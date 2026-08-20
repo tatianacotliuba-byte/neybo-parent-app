@@ -2,7 +2,7 @@
 // Insert one finished task_result (client posts the complete record once the
 // task ends: completed / skipped / abandoned / timeout).
 'use strict';
-const { json, sbInsert, isUuid, str, boolOrNull, intOrNull, handle } = require('./lib/util');
+const { json, sbInsert, isUuid, str, boolOrNull, intOrNull, handle, retryOn, FK_VIOLATION } = require('./lib/util');
 
 const COMPLETION = ['completed', 'skipped', 'abandoned', 'timeout', 'incorrect'];
 
@@ -14,7 +14,7 @@ exports.handler = handle(async (body) => {
   let completion_type = str(body.completion_type, 20);
   if (completion_type && !COMPLETION.includes(completion_type)) completion_type = null;
 
-  await sbInsert('task_results', {
+  await retryOn([FK_VIOLATION], () => sbInsert('task_results', {
     test_session_id: body.test_session_id,
     task_id,
     started_at: str(body.started_at, 40),
@@ -27,7 +27,7 @@ exports.handler = handle(async (body) => {
     completion_type,
     self_reported_difficulty: intOrNull(body.self_reported_difficulty, 1, 5),
     comment: str(body.comment, 2000),
-  });
+  }));
 
   return json(200, { ok: true });
 });

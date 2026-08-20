@@ -1,10 +1,12 @@
 // POST /.netlify/functions/nb-session
-// op:'create'  -> insert a test_sessions row
+// op:'create'  -> insert a test_sessions row (idempotent)
 // op:'update'  -> patch ONLY the row addressed by its own test_session_id
 // A client can therefore only touch the session whose id it holds; it cannot
 // enumerate or modify other sessions (RLS also denies anon entirely).
 'use strict';
-const { json, sbInsert, sbUpdate, isUuid, str, handle } = require('./lib/util');
+const {
+  json, sbInsert, sbUpdate, isUuid, str, handle, retryOn, FK_VIOLATION,
+} = require('./lib/util');
 
 const STATUS = ['started', 'in_progress', 'completed', 'abandoned'];
 
@@ -14,12 +16,19 @@ exports.handler = handle(async (body) => {
 
   if (op === 'create') {
     if (!isUuid(body.participant_code)) return json(400, { error: 'participant_code' });
-    await sbInsert('test_sessions', {
-      test_session_id: body.test_session_id,
-      participant_code: body.participant_code,
-      test_version: str(body.test_version, 60) || 'unknown',
-      device_type: str(body.device_type, 20),
-    });
+
+    // The client fires nb-participant and nb-session in parallel, so this
+    // insert can land before the participants row exists and trip the FK.
+    // Retry briefly instead of failing the session for the whole test.
+    // upsert: replaying the same test_session_id must not 409 either.
+    await retryOn([FK_VIOLATION], () =>
+      sbInsert('test_sessions', {
+        test_session_id: body.test_session_id,
+        participant_code: body.participant_code,
+        test_version: str(body.test_version, 60) || 'unknown',
+        device_type: str(body.device_type, 20),
+      }, { upsert: true }));
+
     return json(200, { ok: true, op });
   }
 
