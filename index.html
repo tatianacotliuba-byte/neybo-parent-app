@@ -1194,9 +1194,10 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
 </section><div class="msheet-wrap" id="libFilterWrap"><div class="msheet-bd" onclick="libCloseFilters()"></div><div class="msheet"><div class="msheet-grip"></div><div class="msheet-title">Filters</div><div class="msheet-sub">Narrow down the library</div><div class="fgroup"><div class="flabel">Character</div><div class="frow" id="fltChar"></div></div><div class="fgroup"><div class="flabel">Play mode</div><div class="frow" id="fltMode"></div></div><div class="fgroup"><div class="flabel">Access</div><div class="frow" id="fltAccess"></div></div><div class="fgroup"><div class="flabel">Age</div><div class="frow" id="fltAge"></div></div><button class="lprefbtn" onclick="libCloseFilters();go('content-prefs')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h6M4 18h13"/><circle cx="17" cy="6" r="2.2"/><circle cx="13" cy="12" r="2.2"/><circle cx="19" cy="18" r="2.2"/></svg>Content preferences</button><div class="fsheet-actions"><button class="freset" onclick="libResetFilters()">Reset</button><button class="msheet-apply" id="fltApply" style="margin-top:0;flex:1" onclick="libApplyFilters()">Show results</button></div></div></div><div class="msheet-wrap" id="libDetailWrap"><div class="msheet-bd" onclick="libCloseDetail()"></div><div class="msheet" id="libDetailPanel"></div></div><div class="msheet-wrap" id="insKnowWrap"><div class="msheet-bd" onclick="insCloseKnow()"></div><div class="msheet" role="dialog" aria-modal="true" aria-labelledby="insKnowTitle"><div class="msheet-grip" aria-hidden="true"></div><div class="msheet-title" id="insKnowTitle">How we know</div><div id="insKnowBody"></div><button type="button" class="msheet-apply" onclick="insCloseKnow()">Got it</button></div></div><div class="msheet-wrap" id="insShareWrap"><div class="msheet-bd" onclick="insCloseShare()"></div><div class="msheet" role="dialog" aria-modal="true" aria-labelledby="insShareTitle"><div class="msheet-grip" aria-hidden="true"></div><div class="msheet-title" id="insShareTitle">Share moment</div><div class="msheet-sub">A preview of what will be shared.</div><div class="card" style="margin-top:6px;background:var(--color-surface-raised);box-shadow:none"><div class="i-momenttext" style="font-size:var(--font-body-small)">“A child made up a story where the moon has a snack drawer.”</div></div><div class="trow2" style="margin-top:6px"><div><div class="n">Include Eve’s name</div><div class="d">Off by default</div></div><span class="cbx" role="switch" aria-checked="false" tabindex="0" id="shName" aria-label="Include Eve’s name" onclick="insSw(this)" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();insSw(this);}"></span></div><div class="divider"></div><div class="trow2"><div><div class="n">Include audio</div><div class="d">Off by default</div></div><span class="cbx" role="switch" aria-checked="false" tabindex="0" id="shAudio" aria-label="Include audio" onclick="insSw(this)" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();insSw(this);}"></span></div><div class="i-note">Shared without personal details unless you turn the options on. You choose who receives it in the next step.</div><button type="button" class="msheet-apply" onclick="insDoShare()">Share moment</button></div></div><div class="tab" id="tab"><div data-tab="home" onclick="go('home')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l7-6 7 6"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></svg><span>Home</span></div><div data-tab="modes" onclick="go('modes')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="4"/><path d="M7.5 12h2M8.5 11v2"/><circle cx="15.5" cy="11.4" r=".7" fill="currentColor" stroke="none"/><circle cx="17.4" cy="13.3" r=".7" fill="currentColor" stroke="none"/></svg><span>Modes</span></div><div data-tab="insights" onclick="go('insights')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20v-6M10 20V8M15 20v-9M20 20v-4" stroke-width="2.4"/><path d="M3 20h18"/></svg><span>Insights</span></div><div data-tab="library" onclick="go('library')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h10a1 1 0 0 1 1 1v15H7a1 1 0 0 1-1-1z"/><path d="M6 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2"/><path d="M17 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/></svg><span>Library</span></div><div data-tab="settings" onclick="go('settings')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3v2.2M4.6 8l1.9 1.1M17.5 14.9l1.9 1.1M4.6 16l1.9-1.1M17.5 9.1l1.9-1.1"/></svg><span>Settings</span></div></div><div class="toast" id="toast"></div></div><script id="nb-device-link">
 /* =====================================================================
    Neybo Parent App -> Device Prototype link (Supabase Realtime, send-only)
-   Broadcasts on channel  neybo-device-{participantId}, event "command".
-   Fire-and-forget: never throws into the UI, never blocks a click.
-   Temporary diagnostics under the [device-link] console prefix.
+   Channel  neybo-device-{participantId}, broadcast event "command".
+   window.NBLink is published FIRST, before anything that can fail, so the
+   console always has a handle even if the CDN or Supabase is unreachable.
+   Diagnostics under the [device-link] prefix.
    ===================================================================== */
 (function () {
   'use strict';
@@ -1211,51 +1212,9 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
   var QUEUE_MAX = 30;
   var RETRY_MS = [1000, 2000, 5000, 10000];
 
-  function L() {
-    try {
-      var a = Array.prototype.slice.call(arguments);
-      a.unshift('[device-link]');
-      console.log.apply(console, a);
-    } catch (e) {}
-  }
-
-  function uuid() {
-    try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      var r = (Math.random() * 16) | 0, v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
-  }
-
-  /* ---- participantId: URL -> localStorage -> new uuid -------------------
-     Accepts participantId / participant_id / pid, and the app's own
-     ?participant= research param, so the moderator cannot miss by a name. */
-  function clean(v) {
-    return v ? (String(v).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || null) : null;
-  }
-  function resolvePid() {
-    var q = null;
-    try { q = new URLSearchParams(location.search); } catch (e) {}
-    var keys = ['participantId', 'participant_id', 'pid', 'participant'];
-    for (var i = 0; q && i < keys.length; i++) {
-      var v = clean(q.get(keys[i]));
-      if (v) {
-        try { localStorage.setItem(PID_KEY, v); } catch (e) {}
-        L('participantId =', v, '(source: ?' + keys[i] + ')');
-        return v;
-      }
-    }
-    var stored = null;
-    try { stored = localStorage.getItem(PID_KEY); } catch (e) {}
-    if (stored) { L('participantId =', stored, '(source: localStorage)'); return stored; }
-    var fresh = uuid();
-    try { localStorage.setItem(PID_KEY, fresh); } catch (e) {}
-    L('participantId =', fresh, '(source: generated — pass ?participantId=test1 to pair with a device)');
-    return fresh;
-  }
-
-  var pid = resolvePid();
-  var channelName = 'neybo-device-' + pid;
+  /* ---- mutable state: declared before anything can throw ---- */
+  var pid = null;
+  var channelName = null;
   var queue = [];
   var client = null;
   var channel = null;
@@ -1264,7 +1223,92 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
   var sdkIdx = 0;
   var tries = 0;
   var sentCount = 0;
-  L('channel =', channelName);
+  var lastError = null;
+
+  function L() {
+    try {
+      var a = Array.prototype.slice.call(arguments);
+      a.unshift('[device-link]');
+      console.log.apply(console, a);
+    } catch (e) {}
+  }
+  function fail(where, e) {
+    lastError = where + ': ' + ((e && (e.message || e.name)) || String(e));
+    L('ERROR', lastError);
+  }
+
+  /* =========== 1. publish the global immediately =========== */
+  function status() {
+    return {
+      participantId: pid,
+      channel: channelName,
+      subscribed: ready,
+      queue: queue.length,
+      queued: queue.length,
+      sent: sentCount,
+      sdkLoaded: !!(window.supabase && window.supabase.createClient),
+      lastError: lastError
+    };
+  }
+  window.NBLink = {
+    version: 2,
+    send: function (t, p) { return send(t, p); },
+    status: status,
+    get participantId() { return pid; },
+    get channel() { return channelName; },
+    get lastError() { return lastError; },
+    ping: function () { send('device.ping', { at: new Date().toISOString() }); },
+    reconnect: function () { tries = 0; sdkIdx = 0; loading = false; loadSdk(); },
+    setParticipantId: function (id) {
+      var v = clean(id);
+      if (!v) { L('setParticipantId: invalid value'); return; }
+      try { localStorage.setItem(PID_KEY, v); } catch (e) {}
+      L('participantId stored as', v, '- reload the page to re-subscribe');
+    },
+    deviceUrl: function () {
+      return 'https://neybo-prototype.netlify.app/play/device-flow-prototype.html?embed=1&participantId=' +
+        encodeURIComponent(pid || '');
+    }
+  };
+  window.nbSend = function (t, p) { return send(t, p); };
+  L('NBLink installed (v2)');
+
+  /* =========== 2. helpers =========== */
+  function uuid() {
+    try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0, v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+  function clean(v) {
+    return v ? (String(v).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || null) : null;
+  }
+
+  /* participantId: URL -> localStorage -> new uuid.
+     Accepts participantId / participant_id / pid, plus the app's own
+     ?participant= research param, so a name mismatch cannot break pairing. */
+  function resolvePid() {
+    var q = null;
+    try { q = new URLSearchParams(location.search); } catch (e) { fail('URLSearchParams', e); }
+    var keys = ['participantId', 'participant_id', 'pid', 'participant'];
+    for (var i = 0; q && i < keys.length; i++) {
+      var v = null;
+      try { v = clean(q.get(keys[i])); } catch (e) {}
+      if (v) {
+        try { localStorage.setItem(PID_KEY, v); } catch (e) {}
+        L('participantId =', v, '(source: ?' + keys[i] + ')');
+        return v;
+      }
+    }
+    var stored = null;
+    try { stored = localStorage.getItem(PID_KEY); } catch (e) { fail('localStorage.get', e); }
+    if (stored) { L('participantId =', stored, '(source: localStorage)'); return stored; }
+    var fresh = uuid();
+    try { localStorage.setItem(PID_KEY, fresh); } catch (e) {}
+    L('participantId =', fresh, '(source: generated - open with ?participantId=test1 to pair)');
+    return fresh;
+  }
 
   function envelope(type, payload) {
     return {
@@ -1284,15 +1328,11 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
       sentCount++;
       L('send ->', msg.type, msg.requestId, msg.payload);
       if (p && typeof p.then === 'function') {
-        p.then(function (r) {
-          if (r !== 'ok') L('send result NOT ok:', r, msg.type, msg.requestId);
-        })['catch'](function (e) { L('send threw:', e && e.message, msg.type); });
+        p.then(function (r) { if (r !== 'ok') L('send result NOT ok:', r, msg.type); })
+         ['catch'](function (e) { fail('send.promise', e); });
       }
       return true;
-    } catch (e) {
-      L('send failed:', e && e.message, msg.type);
-      return false;
-    }
+    } catch (e) { fail('channel.send', e); return false; }
   }
 
   function drain() {
@@ -1308,12 +1348,13 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
       channel = client.channel(channelName, {
         config: { broadcast: { self: false, ack: false }, private: false }
       });
-      L('subscribing to', channelName, '…');
-      channel.subscribe(function (status, err) {
-        L('status:', status, err ? ('err=' + (err.message || err)) : '');
-        ready = (status === 'SUBSCRIBED');
-        if (ready) { tries = 0; drain(); return; }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      L('subscribing to', channelName, '...');
+      channel.subscribe(function (st, err) {
+        L('status:', st, err ? ('err=' + (err.message || err)) : '');
+        ready = (st === 'SUBSCRIBED');
+        if (ready) { lastError = null; tries = 0; drain(); return; }
+        if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') {
+          lastError = 'subscribe status ' + st + (err ? (' / ' + (err.message || err)) : '');
           var wait = RETRY_MS[Math.min(tries, RETRY_MS.length - 1)];
           tries++;
           L('re-subscribing in', wait + 'ms (attempt ' + tries + ')');
@@ -1324,40 +1365,41 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
           }, wait);
         }
       });
-    } catch (e) {
-      L('subscribe threw:', e && e.message);
-    }
+    } catch (e) { fail('subscribe', e); }
   }
 
   function loadSdk() {
-    if (loading || channel) return;
-    if (sdkIdx >= SDKS.length) { L('no SDK source left — link disabled'); return; }
-    loading = true;
-    var url = SDKS[sdkIdx];
-    L('loading SDK', url);
-    var el = document.createElement('script');
-    el.src = url;
-    el.async = true;
-    el.onerror = function () {
-      L('SDK load FAILED', url);
-      loading = false; sdkIdx++; loadSdk();
-    };
-    el.onload = function () {
-      loading = false;
-      var lib = window.supabase;
-      if (!lib || !lib.createClient) {
-        L('SDK loaded but window.supabase.createClient missing'); sdkIdx++; loadSdk(); return;
-      }
-      try {
-        client = lib.createClient(SUPABASE_URL, SUPABASE_KEY, {
-          auth: { persistSession: false, autoRefreshToken: false },
-          realtime: { params: { eventsPerSecond: 10 } }
-        });
-        L('client created for', SUPABASE_URL);
-        subscribe();
-      } catch (e) { L('createClient threw:', e && e.message); }
-    };
-    (document.head || document.documentElement).appendChild(el);
+    try {
+      if (loading || channel) return;
+      if (sdkIdx >= SDKS.length) { lastError = 'no SDK source reachable'; L(lastError); return; }
+      loading = true;
+      var url = SDKS[sdkIdx];
+      L('loading SDK', url);
+      var el = document.createElement('script');
+      el.src = url;
+      el.async = true;
+      el.onerror = function () {
+        lastError = 'SDK load failed: ' + url;
+        L(lastError); loading = false; sdkIdx++; loadSdk();
+      };
+      el.onload = function () {
+        loading = false;
+        var lib = window.supabase;
+        if (!lib || !lib.createClient) {
+          lastError = 'SDK loaded but window.supabase.createClient is missing';
+          L(lastError); sdkIdx++; loadSdk(); return;
+        }
+        try {
+          client = lib.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: { persistSession: false, autoRefreshToken: false },
+            realtime: { params: { eventsPerSecond: 10 } }
+          });
+          L('client created for', SUPABASE_URL);
+          subscribe();
+        } catch (e) { fail('createClient', e); }
+      };
+      (document.head || document.documentElement).appendChild(el);
+    } catch (e) { fail('loadSdk', e); }
   }
 
   function send(type, payload) {
@@ -1369,33 +1411,18 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
       if (queue.length > QUEUE_MAX) queue.shift();
       L('queued (not subscribed yet):', msg.type, '| queue =', queue.length);
       loadSdk();
-    } catch (e) { /* the link must never break the prototype */ }
+    } catch (e) { fail('send', e); }
   }
 
-  window.NBLink = {
-    send: send,
-    participantId: pid,
-    channel: channelName,
-    deviceUrl: function () {
-      return 'https://neybo-prototype.netlify.app/play/device-flow-prototype.html?embed=1&participantId=' +
-        encodeURIComponent(pid);
-    },
-    status: function () {
-      var s = { participantId: pid, channel: channelName, subscribed: ready,
-                queued: queue.length, sent: sentCount, sdk: !!window.supabase };
-      L('status', s);
-      return s;
-    },
-    ping: function () { send('device.ping', { at: new Date().toISOString() }); },
-    setParticipantId: function (id) {
-      var v = clean(id);
-      if (!v) { L('setParticipantId: invalid'); return; }
-      try { localStorage.setItem(PID_KEY, v); } catch (e) {}
-      L('participantId set to', v, '— reload the page to re-subscribe');
-    }
-  };
-  window.nbSend = send;
-
+  /* =========== 3. init (the global already exists) =========== */
+  try {
+    pid = resolvePid();
+  } catch (e) {
+    fail('resolvePid', e);
+    pid = 'unknown';
+  }
+  channelName = 'neybo-device-' + pid;
+  L('channel =', channelName);
   loadSdk();
 })();
 </script>
