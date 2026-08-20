@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Neybo Test Room</title>
+<style>
+  :root{
+    --room-bg:#e9e6de;
+    --room-ink:#22262e;
+    --room-muted:#6d6a62;
+    --room-line:#d3cfc5;
+    --room-panel:#141821;
+    --room-panel-ink:#d8dde8;
+    --room-ok:#5f9e5b;
+    --room-warn:#d9a53c;
+    --room-bad:#d9604f;
+    --pane-gap:36px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--room-bg);color:var(--room-ink);
+    font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* ---------- clean stage (default) ---------- */
+  .stage{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    gap:var(--pane-gap);padding:28px;flex-wrap:wrap;
+  }
+  .pane{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .frame{
+    border:0;background:#fff;border-radius:26px;display:block;
+    box-shadow:0 18px 48px rgba(0,0,0,.16),0 2px 6px rgba(0,0,0,.06);
+  }
+  #parentFrame{width:390px;height:844px;border-radius:34px;background:transparent;box-shadow:none}
+  #deviceFrame{width:560px;height:844px}
+  .cap{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--room-muted)}
+  body.debug{padding-bottom:300px}
+  body.debug .stage{min-height:calc(100vh - 300px)}
+
+  @media (max-width:1010px){
+    .stage{flex-direction:column;padding:20px 12px}
+    #deviceFrame{width:min(94vw,560px)}
+    #parentFrame{width:390px;max-width:94vw}
+  }
+
+  /* ---------- debug drawer (?debug=1 only) ---------- */
+  #dbg{
+    position:fixed;left:0;right:0;bottom:0;height:300px;z-index:50;
+    background:var(--room-panel);color:var(--room-panel-ink);
+    display:none;grid-template-columns:360px 1fr;
+    font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    border-top:1px solid #000;box-shadow:0 -8px 30px rgba(0,0,0,.28);
+  }
+  body.debug #dbg{display:grid}
+  body.debug.dbg-min #dbg{height:34px;grid-template-columns:1fr}
+  body.debug.dbg-min #dbgL,body.debug.dbg-min #dbgR{display:none}
+  body.debug.dbg-min{padding-bottom:34px}
+  body.debug.dbg-min .stage{min-height:calc(100vh - 34px)}
+  #dbgBar{
+    position:absolute;top:0;right:0;height:34px;display:flex;align-items:center;gap:8px;
+    padding:0 10px;z-index:2;
+  }
+  #dbgL{padding:14px 16px;border-right:1px solid #262c39;overflow:auto}
+  #dbgR{padding:14px 16px;overflow:auto}
+  #dbg h3{margin:0 0 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8b93a6;font-weight:600}
+  .kv{display:grid;grid-template-columns:84px 1fr;gap:2px 10px;margin-bottom:10px}
+  .kv dt{color:#8b93a6}
+  .kv dd{margin:0;word-break:break-all;color:#e8ecf5}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:1px 8px;border-radius:999px;font-size:11px;background:#232a37}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--room-warn);flex:none}
+  .dot.ok{background:var(--room-ok)}
+  .dot.bad{background:var(--room-bad)}
+  #dbg button{
+    font:inherit;font-size:11px;background:#232a37;color:#d8dde8;border:1px solid #333c4d;
+    border-radius:7px;padding:4px 10px;cursor:pointer;
+  }
+  #dbg button:hover{background:#2c3546}
+  .btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+  #log{margin:0;white-space:pre-wrap;word-break:break-word}
+  #log .l{padding:3px 0;border-bottom:1px solid #1e2430}
+  #log .t{color:#6f7787}
+  #log .e{color:#8fd3a0}
+  #log .w{color:#e2b45c}
+  #log .x{color:#ef8d7d}
+  .hint{color:#6f7787;margin-top:8px}
+</style>
+</head>
+<body>
+
+<main class="stage">
+  <section class="pane">
+    <iframe id="parentFrame" class="frame" title="Neybo Parent App"
+            allow="clipboard-write"></iframe>
+    <div class="cap" data-cap hidden>Parent App</div>
+  </section>
+  <section class="pane">
+    <iframe id="deviceFrame" class="frame" title="Neybo Device Prototype"></iframe>
+    <div class="cap" data-cap hidden>Device</div>
+  </section>
+</main>
+
+<aside id="dbg" aria-label="Diagnostics">
+  <div id="dbgBar">
+    <button type="button" id="btnMin">Hide</button>
+  </div>
+  <div id="dbgL">
+    <h3>Room</h3>
+    <dl class="kv">
+      <dt>participant</dt><dd id="dPid">—</dd>
+      <dt>channel</dt><dd id="dChan">—</dd>
+      <dt>room link</dt><dd id="dRoom">—</dd>
+      <dt>parent src</dt><dd id="dParent">—</dd>
+      <dt>device src</dt><dd id="dDevice">—</dd>
+    </dl>
+    <h3>Realtime</h3>
+    <dl class="kv">
+      <dt>room</dt><dd><span class="pill"><i class="dot" id="dotRoom"></i><span id="dRoom2">connecting…</span></span></dd>
+      <dt>parent</dt><dd><span class="pill"><i class="dot" id="dotParent"></i><span id="dParent2">waiting…</span></span></dd>
+      <dt>queue / sent</dt><dd id="dQS">— / —</dd>
+      <dt>lastError</dt><dd id="dErr">—</dd>
+    </dl>
+    <div class="btns">
+      <button type="button" id="btnCopy">Copy room link</button>
+      <button type="button" id="btnReload">Reload both</button>
+      <button type="button" id="btnNew">New participant</button>
+      <button type="button" id="btnClear">Clear log</button>
+    </div>
+    <div class="hint">Add <b>?debug=1</b> for this panel. Remove it for the clean room.</div>
+  </div>
+  <div id="dbgR">
+    <h3>Channel events</h3>
+    <div id="log"></div>
+  </div>
+</aside>
+
+<script>
+(function () {
+  'use strict';
+
+  var DEVICE_BASE = 'https://neybo-prototype.netlify.app/play/device-flow-prototype.html';
+  var PARENT_BASE = 'index.html';                 /* same site, same origin */
+  var PID_KEY     = 'neybo_participant_id';       /* same key the Parent App bridge uses */
+  var SUPABASE_URL = 'https://ivuytefoqebikkdsxcsw.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_Em-L8VYmkvDvHSzye-Nviw_UdDIumax';
+  var SDKS = [
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
+    'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js'
+  ];
+
+  var q     = new URLSearchParams(location.search);
+  var DEBUG = q.get('debug') === '1';
+
+  function uuid() {
+    try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0, v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+  function clean(v) {
+    return v ? (String(v).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || null) : null;
+  }
+
+  /* ---- one participantId for the room and both frames ---- */
+  function resolvePid() {
+    var keys = ['participantId', 'participant_id', 'pid'];
+    for (var i = 0; i < keys.length; i++) {
+      var v = clean(q.get(keys[i]));
+      if (v) return v;
+    }
+    var stored = null;
+    try { stored = clean(localStorage.getItem(PID_KEY)); } catch (e) {}
+    return stored || uuid();
+  }
+
+  var pid = resolvePid();
+  var channelName = 'neybo-device-' + pid;
+  try { localStorage.setItem(PID_KEY, pid); } catch (e) {}
+
+  /* keep the address bar shareable: the room link always carries the id */
+  if (q.get('participantId') !== pid) {
+    q.set('participantId', pid);
+    try { history.replaceState(null, '', location.pathname + '?' + q.toString()); } catch (e) {}
+  }
+
+  var parentSrc = PARENT_BASE + '?participantId=' + encodeURIComponent(pid);
+  var deviceSrc = DEVICE_BASE + '?embed=1&participantId=' + encodeURIComponent(pid);
+
+  var parentFrame = document.getElementById('parentFrame');
+  var deviceFrame = document.getElementById('deviceFrame');
+  parentFrame.src = parentSrc;
+  deviceFrame.src = deviceSrc;
+
+  if (!DEBUG) return;   /* clean room: nothing else runs */
+
+  /* ================= debug mode ================= */
+  document.body.classList.add('debug');
+  Array.prototype.forEach.call(document.querySelectorAll('[data-cap]'), function (c) { c.hidden = false; });
+
+  var $ = function (id) { return document.getElementById(id); };
+  $('dPid').textContent    = pid;
+  $('dChan').textContent   = channelName;
+  $('dRoom').textContent   = location.href;
+  $('dParent').textContent = parentSrc;
+  $('dDevice').textContent = deviceSrc;
+
+  var logEl = $('log'), lines = 0;
+  function log(kind, text) {
+    var d = document.createElement('div');
+    d.className = 'l';
+    d.innerHTML = '<span class="t">' + new Date().toLocaleTimeString() + '</span> ' +
+                  '<span class="' + kind + '">' + text.replace(/[&<>]/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c];
+                  }) + '</span>';
+    logEl.insertBefore(d, logEl.firstChild);
+    if (++lines > 250) { logEl.removeChild(logEl.lastChild); lines--; }
+  }
+  function setDot(id, state) {
+    var el = $(id); el.className = 'dot' + (state === 'ok' ? ' ok' : state === 'bad' ? ' bad' : '');
+  }
+
+  $('btnMin').addEventListener('click', function () {
+    var min = document.body.classList.toggle('dbg-min');
+    this.textContent = min ? 'Show' : 'Hide';
+  });
+  $('btnCopy').addEventListener('click', function () {
+    var self = this;
+    try {
+      navigator.clipboard.writeText(location.href).then(function () {
+        self.textContent = 'Copied'; setTimeout(function () { self.textContent = 'Copy room link'; }, 1200);
+      });
+    } catch (e) { log('w', 'clipboard unavailable'); }
+  });
+  $('btnReload').addEventListener('click', function () {
+    parentFrame.src = parentSrc; deviceFrame.src = deviceSrc; log('w', 'both frames reloaded');
+  });
+  $('btnNew').addEventListener('click', function () {
+    var np = uuid();
+    location.search = '?debug=1&participantId=' + encodeURIComponent(np);
+  });
+  $('btnClear').addEventListener('click', function () { logEl.innerHTML = ''; lines = 0; });
+
+  /* ---- poll the Parent App bridge (same origin) ---- */
+  var lastSeen = '';
+  setInterval(function () {
+    var s = null;
+    try { s = parentFrame.contentWindow && parentFrame.contentWindow.NBLink &&
+              parentFrame.contentWindow.NBLink.status(); } catch (e) {}
+    if (!s) { $('dParent2').textContent = 'NBLink not found'; setDot('dotParent', 'bad'); return; }
+    $('dParent2').textContent = s.subscribed ? 'SUBSCRIBED' : (s.sdkLoaded ? 'connecting…' : 'loading SDK…');
+    setDot('dotParent', s.subscribed ? 'ok' : '');
+    $('dQS').textContent = s.queue + ' / ' + s.sent;
+    $('dErr').textContent = s.lastError || '—';
+    var sig = s.subscribed + '|' + s.sent + '|' + s.lastError;
+    if (sig !== lastSeen) {
+      lastSeen = sig;
+      if (s.lastError) log('x', 'parent lastError: ' + s.lastError);
+    }
+    if (s.channel && s.channel !== channelName) {
+      log('x', 'CHANNEL MISMATCH — parent is on ' + s.channel + ', room expects ' + channelName);
+      setDot('dotParent', 'bad');
+    }
+  }, 1000);
+
+  /* ---- listen on the same channel (read-only) ---- */
+  var sdkIdx = 0;
+  function loadSdk() {
+    if (sdkIdx >= SDKS.length) { $('dRoom2').textContent = 'SDK unreachable'; setDot('dotRoom', 'bad'); return; }
+    var url = SDKS[sdkIdx];
+    var el = document.createElement('script');
+    el.src = url; el.async = true;
+    el.onerror = function () { log('x', 'SDK load failed: ' + url); sdkIdx++; loadSdk(); };
+    el.onload = function () {
+      if (!window.supabase || !window.supabase.createClient) { sdkIdx++; loadSdk(); return; }
+      try {
+        var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+          auth: { persistSession: false, autoRefreshToken: false }
+        });
+        /* the observer joins the SAME channel the parent broadcasts on */
+        var ch = client.channel(channelName, {
+          config: { broadcast: { self: false, ack: false }, private: false }
+        });
+        ch.on('broadcast', { event: '*' }, function (m) {
+          var p = m && m.payload;
+          var t = (p && p.type) || m.event || 'message';
+          var who = (p && p.source) || '?';
+          log('e', who + ' · ' + t + ' ' + (p && p.payload ? JSON.stringify(p.payload) : ''));
+        });
+        ch.subscribe(function (st, err) {
+          $('dRoom2').textContent = st;
+          setDot('dotRoom', st === 'SUBSCRIBED' ? 'ok' :
+                            (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') ? 'bad' : '');
+          log(st === 'SUBSCRIBED' ? 'e' : 'w',
+              'observer ' + st + (err ? (' — ' + (err.message || err)) : ''));
+        });
+      } catch (e) { log('x', 'observer failed: ' + (e && e.message)); setDot('dotRoom', 'bad'); }
+    };
+    document.head.appendChild(el);
+  }
+  loadSdk();
+  log('w', 'room ready · participant ' + pid);
+})();
+</script>
+</body>
+</html>
