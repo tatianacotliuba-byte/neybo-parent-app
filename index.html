@@ -1193,20 +1193,31 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
 </section><section class="screen" data-s="m-linked"><div class="topback" onclick="go('m-group')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Group Mode</div><div class="h1">Linked cubes</div><div class="subh">Each child’s cube pairs for shared play</div><div class="lbl">Setup</div><div class="card"><div class="trow2"><div><div class="n">Ask before linking</div><div class="d">Confirm each pairing on this cube</div></div><span class="cbx on" onclick="sw(this)"></span></div><div class="divider"></div><div class="trow2"><div><div class="n">Allow up to 3 cubes</div><div class="d">Link two or three cubes at once</div></div><span class="cbx on" onclick="sw(this)"></span></div></div><div class="lbl">Shared games</div><div class="card"><div class="trow2"><div><div class="n">Circle games</div><div class="d">Team riddles and quests</div></div><span class="cbx on" onclick="sw(this)"></span></div><div class="divider"></div><div class="trow2"><div><div class="n">Storytelling together</div><div class="d">Build a story across cubes</div></div><span class="cbx on" onclick="sw(this)"></span></div><div class="divider"></div><div class="trow2"><div><div class="n">Music &amp; karaoke</div><div class="d">Sing-along with Luna</div></div><span class="cbx" onclick="sw(this)"></span></div></div><button class="btnbig y" style="margin-top:16px" onclick="go('m-group');t('Saved')">Save</button>
 </section><div class="msheet-wrap" id="libFilterWrap"><div class="msheet-bd" onclick="libCloseFilters()"></div><div class="msheet"><div class="msheet-grip"></div><div class="msheet-title">Filters</div><div class="msheet-sub">Narrow down the library</div><div class="fgroup"><div class="flabel">Character</div><div class="frow" id="fltChar"></div></div><div class="fgroup"><div class="flabel">Play mode</div><div class="frow" id="fltMode"></div></div><div class="fgroup"><div class="flabel">Access</div><div class="frow" id="fltAccess"></div></div><div class="fgroup"><div class="flabel">Age</div><div class="frow" id="fltAge"></div></div><button class="lprefbtn" onclick="libCloseFilters();go('content-prefs')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h6M4 18h13"/><circle cx="17" cy="6" r="2.2"/><circle cx="13" cy="12" r="2.2"/><circle cx="19" cy="18" r="2.2"/></svg>Content preferences</button><div class="fsheet-actions"><button class="freset" onclick="libResetFilters()">Reset</button><button class="msheet-apply" id="fltApply" style="margin-top:0;flex:1" onclick="libApplyFilters()">Show results</button></div></div></div><div class="msheet-wrap" id="libDetailWrap"><div class="msheet-bd" onclick="libCloseDetail()"></div><div class="msheet" id="libDetailPanel"></div></div><div class="msheet-wrap" id="insKnowWrap"><div class="msheet-bd" onclick="insCloseKnow()"></div><div class="msheet" role="dialog" aria-modal="true" aria-labelledby="insKnowTitle"><div class="msheet-grip" aria-hidden="true"></div><div class="msheet-title" id="insKnowTitle">How we know</div><div id="insKnowBody"></div><button type="button" class="msheet-apply" onclick="insCloseKnow()">Got it</button></div></div><div class="msheet-wrap" id="insShareWrap"><div class="msheet-bd" onclick="insCloseShare()"></div><div class="msheet" role="dialog" aria-modal="true" aria-labelledby="insShareTitle"><div class="msheet-grip" aria-hidden="true"></div><div class="msheet-title" id="insShareTitle">Share moment</div><div class="msheet-sub">A preview of what will be shared.</div><div class="card" style="margin-top:6px;background:var(--color-surface-raised);box-shadow:none"><div class="i-momenttext" style="font-size:var(--font-body-small)">“A child made up a story where the moon has a snack drawer.”</div></div><div class="trow2" style="margin-top:6px"><div><div class="n">Include Eve’s name</div><div class="d">Off by default</div></div><span class="cbx" role="switch" aria-checked="false" tabindex="0" id="shName" aria-label="Include Eve’s name" onclick="insSw(this)" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();insSw(this);}"></span></div><div class="divider"></div><div class="trow2"><div><div class="n">Include audio</div><div class="d">Off by default</div></div><span class="cbx" role="switch" aria-checked="false" tabindex="0" id="shAudio" aria-label="Include audio" onclick="insSw(this)" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();insSw(this);}"></span></div><div class="i-note">Shared without personal details unless you turn the options on. You choose who receives it in the next step.</div><button type="button" class="msheet-apply" onclick="insDoShare()">Share moment</button></div></div><div class="tab" id="tab"><div data-tab="home" onclick="go('home')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l7-6 7 6"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9"/></svg><span>Home</span></div><div data-tab="modes" onclick="go('modes')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="4"/><path d="M7.5 12h2M8.5 11v2"/><circle cx="15.5" cy="11.4" r=".7" fill="currentColor" stroke="none"/><circle cx="17.4" cy="13.3" r=".7" fill="currentColor" stroke="none"/></svg><span>Modes</span></div><div data-tab="insights" onclick="go('insights')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20v-6M10 20V8M15 20v-9M20 20v-4" stroke-width="2.4"/><path d="M3 20h18"/></svg><span>Insights</span></div><div data-tab="library" onclick="go('library')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h10a1 1 0 0 1 1 1v15H7a1 1 0 0 1-1-1z"/><path d="M6 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2"/><path d="M17 8h2a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-2"/></svg><span>Library</span></div><div data-tab="settings" onclick="go('settings')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3v2.2M4.6 8l1.9 1.1M17.5 14.9l1.9 1.1M4.6 16l1.9-1.1M17.5 9.1l1.9-1.1"/></svg><span>Settings</span></div></div><div class="toast" id="toast"></div></div><script id="nb-device-link">
 /* =====================================================================
-   Neybo Parent App → Device Prototype link (Supabase Realtime, send-only)
-   ---------------------------------------------------------------------
-   Broadcasts commands on channel  neybo-device-{participantId}.
+   Neybo Parent App -> Device Prototype link (Supabase Realtime, send-only)
+   Broadcasts on channel  neybo-device-{participantId}, event "command".
    Fire-and-forget: never throws into the UI, never blocks a click.
-   Adds no UI, no styles and no analytics. Publishable (anon) key only.
+   Temporary diagnostics under the [device-link] console prefix.
    ===================================================================== */
 (function () {
   'use strict';
 
   var SUPABASE_URL = 'https://ivuytefoqebikkdsxcsw.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_Em-L8VYmkvDvHSzye-Nviw_UdDIumax';
-  var SDK = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+  var SDKS = [
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
+    'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js'
+  ];
   var PID_KEY = 'neybo_participant_id';
   var QUEUE_MAX = 30;
+  var RETRY_MS = [1000, 2000, 5000, 10000];
+
+  function L() {
+    try {
+      var a = Array.prototype.slice.call(arguments);
+      a.unshift('[device-link]');
+      console.log.apply(console, a);
+    } catch (e) {}
+  }
 
   function uuid() {
     try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
@@ -1216,29 +1227,44 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
     });
   }
 
-  /* ---- participantId: ?participantId= -> localStorage -> new uuid ---- */
+  /* ---- participantId: URL -> localStorage -> new uuid -------------------
+     Accepts participantId / participant_id / pid, and the app's own
+     ?participant= research param, so the moderator cannot miss by a name. */
+  function clean(v) {
+    return v ? (String(v).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || null) : null;
+  }
   function resolvePid() {
-    var fromUrl = null;
-    try {
-      fromUrl = new URLSearchParams(location.search).get('participantId');
-      if (fromUrl) fromUrl = String(fromUrl).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || null;
-    } catch (e) {}
-    if (fromUrl) { try { localStorage.setItem(PID_KEY, fromUrl); } catch (e) {} return fromUrl; }
+    var q = null;
+    try { q = new URLSearchParams(location.search); } catch (e) {}
+    var keys = ['participantId', 'participant_id', 'pid', 'participant'];
+    for (var i = 0; q && i < keys.length; i++) {
+      var v = clean(q.get(keys[i]));
+      if (v) {
+        try { localStorage.setItem(PID_KEY, v); } catch (e) {}
+        L('participantId =', v, '(source: ?' + keys[i] + ')');
+        return v;
+      }
+    }
     var stored = null;
     try { stored = localStorage.getItem(PID_KEY); } catch (e) {}
-    if (stored) return stored;
+    if (stored) { L('participantId =', stored, '(source: localStorage)'); return stored; }
     var fresh = uuid();
     try { localStorage.setItem(PID_KEY, fresh); } catch (e) {}
+    L('participantId =', fresh, '(source: generated — pass ?participantId=test1 to pair with a device)');
     return fresh;
   }
 
   var pid = resolvePid();
   var channelName = 'neybo-device-' + pid;
   var queue = [];
+  var client = null;
   var channel = null;
   var ready = false;
   var loading = false;
+  var sdkIdx = 0;
+  var tries = 0;
   var sentCount = 0;
+  L('channel =', channelName);
 
   function envelope(type, payload) {
     return {
@@ -1254,55 +1280,95 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
   function push(msg) {
     if (!channel || !ready) return false;
     try {
-      channel.send({ type: 'broadcast', event: 'command', payload: msg });
+      var p = channel.send({ type: 'broadcast', event: 'command', payload: msg });
       sentCount++;
+      L('send ->', msg.type, msg.requestId, msg.payload);
+      if (p && typeof p.then === 'function') {
+        p.then(function (r) {
+          if (r !== 'ok') L('send result NOT ok:', r, msg.type, msg.requestId);
+        })['catch'](function (e) { L('send threw:', e && e.message, msg.type); });
+      }
       return true;
-    } catch (e) { return false; }
+    } catch (e) {
+      L('send failed:', e && e.message, msg.type);
+      return false;
+    }
   }
 
   function drain() {
+    if (queue.length) L('draining queue:', queue.length);
     while (ready && queue.length) {
       var msg = queue.shift();
       if (!push(msg)) { queue.unshift(msg); break; }
     }
   }
 
-  function connect() {
+  function subscribe() {
+    try {
+      channel = client.channel(channelName, {
+        config: { broadcast: { self: false, ack: false }, private: false }
+      });
+      L('subscribing to', channelName, '…');
+      channel.subscribe(function (status, err) {
+        L('status:', status, err ? ('err=' + (err.message || err)) : '');
+        ready = (status === 'SUBSCRIBED');
+        if (ready) { tries = 0; drain(); return; }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          var wait = RETRY_MS[Math.min(tries, RETRY_MS.length - 1)];
+          tries++;
+          L('re-subscribing in', wait + 'ms (attempt ' + tries + ')');
+          setTimeout(function () {
+            try { if (channel) client.removeChannel(channel); } catch (e) {}
+            channel = null;
+            subscribe();
+          }, wait);
+        }
+      });
+    } catch (e) {
+      L('subscribe threw:', e && e.message);
+    }
+  }
+
+  function loadSdk() {
     if (loading || channel) return;
+    if (sdkIdx >= SDKS.length) { L('no SDK source left — link disabled'); return; }
     loading = true;
+    var url = SDKS[sdkIdx];
+    L('loading SDK', url);
     var el = document.createElement('script');
-    el.src = SDK;
+    el.src = url;
     el.async = true;
-    el.onerror = function () { loading = false; };
+    el.onerror = function () {
+      L('SDK load FAILED', url);
+      loading = false; sdkIdx++; loadSdk();
+    };
     el.onload = function () {
+      loading = false;
+      var lib = window.supabase;
+      if (!lib || !lib.createClient) {
+        L('SDK loaded but window.supabase.createClient missing'); sdkIdx++; loadSdk(); return;
+      }
       try {
-        var lib = window.supabase;
-        if (!lib || !lib.createClient) { loading = false; return; }
-        var client = lib.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        client = lib.createClient(SUPABASE_URL, SUPABASE_KEY, {
           auth: { persistSession: false, autoRefreshToken: false },
           realtime: { params: { eventsPerSecond: 10 } }
         });
-        channel = client.channel(channelName, {
-          config: { broadcast: { self: false, ack: false }, private: false }
-        });
-        channel.subscribe(function (status) {
-          ready = (status === 'SUBSCRIBED');
-          if (ready) drain();
-        });
-      } catch (e) { loading = false; }
+        L('client created for', SUPABASE_URL);
+        subscribe();
+      } catch (e) { L('createClient threw:', e && e.message); }
     };
     (document.head || document.documentElement).appendChild(el);
   }
 
-  /* ---- public: fire-and-forget send ---- */
   function send(type, payload) {
     try {
       if (!type) return;
       var msg = envelope(type, payload);
-      if (ready) { if (push(msg)) return; }
+      if (ready && push(msg)) return;
       queue.push(msg);
       if (queue.length > QUEUE_MAX) queue.shift();
-      connect();
+      L('queued (not subscribed yet):', msg.type, '| queue =', queue.length);
+      loadSdk();
     } catch (e) { /* the link must never break the prototype */ }
   }
 
@@ -1315,12 +1381,22 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
         encodeURIComponent(pid);
     },
     status: function () {
-      return { participantId: pid, channel: channelName, subscribed: ready, queued: queue.length, sent: sentCount };
+      var s = { participantId: pid, channel: channelName, subscribed: ready,
+                queued: queue.length, sent: sentCount, sdk: !!window.supabase };
+      L('status', s);
+      return s;
+    },
+    ping: function () { send('device.ping', { at: new Date().toISOString() }); },
+    setParticipantId: function (id) {
+      var v = clean(id);
+      if (!v) { L('setParticipantId: invalid'); return; }
+      try { localStorage.setItem(PID_KEY, v); } catch (e) {}
+      L('participantId set to', v, '— reload the page to re-subscribe');
     }
   };
   window.nbSend = send;
 
-  connect();
+  loadSdk();
 })();
 </script>
 <script>var TAB={home:"home",modes:"modes","m-circle":"modes","m-linked":"modes",insights:"insights","ins-detail":"insights",library:"library",settings:"settings","c-listen":"home","p-profile":"settings",safety:"settings",notifications:"settings",plans:"settings",family:"settings",devices:"settings",friends:"settings",group:"settings",security:"settings","nfc-cards":"settings","c-find":"home","c-volume":"home","c-announce":"home","c-character":"home","c-routines":"home","c-limit":"home","c-firmware":"home","c-newroutine":"home","m-solo":"modes","m-parent":"modes","m-group":"modes","g-intro":"settings","n-safety":"settings","k-game":"library","k-nfc":"m-solo","content-prefs":"library","r-lock":"insights","h-consent":"settings","h-export":"settings","i-friend":"settings","j-transfer":"settings","j-reset":"settings","friends-add":"settings","onb1":null,"onb3":null,"onbdone":null,"fam-invite":"settings","fam-caregiver":"settings","fam-adult":"settings","fam-child":"settings",onb:null,"onb-parent":null};var tier="free";var RANK={free:0,neybo:1,family:2};var NEED={};var lockTarget=null;function setLock(need){var nm=need==="family"?"Family+":"Neybo+";document.getElementById("lockTier").textContent=nm;document.getElementById("lockTier2").textContent=nm;document.getElementById("lockPrice").textContent=need==="family"?"$14.99/mo":"$4.99/mo";document.getElementById("lockFam").style.display=need==="family"?"flex":"none";}function unlock(){if(lockTarget){tier=NEED[lockTarget];tierBtnUpd();applyTier();var tt=lockTarget;lockTarget=null;go(tt);}}function tierBtnUpd(){var b=document.getElementById("tierBtn");if(b)b.textContent="Plan: "+(tier==="free"?"Free":tier==="neybo"?"Neybo+":"Family+");}function cycleTier(){tier=tier==="free"?"neybo":tier==="neybo"?"family":"free";tierBtnUpd();applyTier();t("Plan: "+(tier==="free"?"Free":tier==="neybo"?"Neybo+":"Family+"));}function insAnnounce(m){var a=document.getElementById("insAnnounce");if(a)a.textContent=m;}function setPeriod(el,k){var seg=document.getElementById("insPeriod");if(!seg)return;seg.querySelectorAll('[role="tab"]').forEach(function(x){var on=x===el;x.classList.toggle("on",on);x.setAttribute("aria-selected",on?"true":"false");x.tabIndex=on?0:-1;});var cr=document.getElementById("customRange");if(cr)cr.style.display=(k==="period")?"flex":"none";var R={day:"Jul 26",week:"Jul 20\u201326",month:"Jul 1\u201331",period:"Custom range"};var lbl=R[k]||"Jul 20\u201326";var dEl=document.getElementById("insDate");if(dEl)dEl.textContent=lbl;var MOMENTS={day:{label:"Moment of the day",icon:"\uD83C\uDF19",text:"Right before bed, Eve asked Neybo why the moon changes shape.",action:"Ask her what she found out about the moon."},week:{label:"Moment of the week",icon:"\uD83D\uDCD6",text:"Eve made up a story where the moon has a snack drawer.",action:"Ask her what happened next in the story."},month:{label:"Moment of the month",icon:"\uD83D\uDCDA",text:"Eve read along with Neybo 14 times this month \u2014 her longest streak yet.",action:"Tell her you noticed how much she\u2019s been reading."},period:{label:"Moment of the range",icon:"\uD83D\uDE80",text:"Across these days, Eve kept coming back to space and dinosaurs.",action:"Ask her which planet she\u2019d visit first."}};var M=MOMENTS[k]||MOMENTS.week;var mEl=document.getElementById("momentLabel");if(mEl)mEl.textContent=M.label;var mCard=document.getElementById("momentCard");if(mCard)mCard.setAttribute("aria-label",M.label);var mIco=document.getElementById("momentIcon");if(mIco)mIco.textContent=M.icon;var mTxt2=document.getElementById("momentText");if(mTxt2)mTxt2.textContent=M.text;var mAct=document.getElementById("momentAction");if(mAct)mAct.textContent=M.action;if(window.renderAnalytics){window.renderAnalytics(k);}if(window.renderStarters){window.renderStarters(k);}var cSub=document.getElementById("csSub");if(cSub){var CS={day:"Little things to talk about with Eve today.",week:"Ideas to talk about with Eve this week.",month:"Ideas to talk about with Eve this month.",period:"Ideas to talk about with Eve in this range."};cSub.textContent=CS[k]||cSub.textContent;}insAnnounce("Showing insights for "+lbl);}function setPeriodKey(k){var seg=document.getElementById("insPeriod");if(!seg)return;var tabs=seg.querySelectorAll('[role="tab"]');var idx={day:0,week:1,month:2,period:3}[k];if(tabs[idx])setPeriod(tabs[idx],k);}function insPeriodKey(e){var seg=document.getElementById("insPeriod");var tabs=[].slice.call(seg.querySelectorAll('[role="tab"]'));var i=tabs.findIndex(function(x){return x.classList.contains("on");});var ks=["day","week","month","period"];if(e.key==="ArrowRight"||e.key==="ArrowDown"){e.preventDefault();var n=(i+1)%4;setPeriod(tabs[n],ks[n]);tabs[n].focus();}else if(e.key==="ArrowLeft"||e.key==="ArrowUp"){e.preventDefault();var pv=(i+3)%4;setPeriod(tabs[pv],ks[pv]);tabs[pv].focus();}}function csMore(btn){var h=document.getElementById("csMoreHost");if(h){h.style.display="block";document.getElementById("csList").appendChild(h);}btn.style.display="none";insAnnounce("More conversation starters shown");}var insLastFocus=null;function insOpen(id){insLastFocus=document.activeElement;var w=document.getElementById(id);w.classList.add("open");var dlg=w.querySelector(".msheet");if(dlg){dlg.setAttribute("tabindex","-1");setTimeout(function(){try{dlg.focus();}catch(e){}},20);}}function insCloseW(id){var w=document.getElementById(id);w.classList.remove("open");if(insLastFocus){try{insLastFocus.focus();}catch(e){}}}function insHowKnow(key){var M={moment:{n:5,types:"Story Forge and Book Reading",kind:"Observation",note:"A moment Neybo recorded during a story activity."},cause:{n:5,types:"Story Forge and Logic Riddles",kind:"Observation",note:"Eve often experimented with what happens next."},space:{n:24,types:"stories, questions and puzzles",kind:"Possible pattern",note:"Based on how often the topic came up \u2014 it suggests interest, not skill level."},feelings:{n:12,types:"word and choice signals in activities",kind:"System inference",note:"Some feelings are named by Eve (self-reported); others are possible signals inferred from choices."}};var m=M[key]||M.moment;var row=function(k,v){return '<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--color-border)"><span style="color:var(--color-text-muted);font-size:var(--font-body-small)">'+k+'</span><span style="color:var(--color-text-primary);font-size:var(--font-body-small);font-weight:600;text-align:right;min-width:0">'+v+'</span></div>';};document.getElementById("insKnowBody").innerHTML='<div class="i-momenttext" style="font-size:var(--font-body-small);margin:4px 0 8px">Based on '+m.n+' '+m.types+' sessions from Jul 20\u201326.</div>'+row("Period","Jul 20\u201326")+row("Interactions used",m.n+" activities")+row("Type of finding",m.kind)+row("Not included","No audio, camera, or data from outside Neybo")+'<div class="i-note" style="margin-top:10px">'+m.note+'</div><div class="i-note">Insights summarize activity with Neybo. They are not medical, psychological or developmental assessments.</div>';insOpen("insKnowWrap");}function insCloseKnow(){insCloseW("insKnowWrap");}function insShare(){insOpen("insShareWrap");}function insCloseShare(){insCloseW("insShareWrap");}function insSw(el){var on=el.classList.toggle("on");el.setAttribute("aria-checked",on?"true":"false");}function insDoShare(){var nm=document.getElementById("shName").classList.contains("on");var au=document.getElementById("shAudio").classList.contains("on");var who=(nm?"with Eve\u2019s name":"without personal details")+(au?" and audio":"");insCloseShare();nbToast("Moment shared "+who);}function insState(name){var main=document.getElementById("insMain");var box=document.getElementById("insStateBox");if(!main||!box)return;if(name==="normal"||!name){box.style.display="none";box.innerHTML="";main.style.display="block";insAnnounce("Insights loaded");return;}main.style.display="none";var H={loading:'<div aria-live="polite" role="status"><span class="visually-hidden">Loading insights</span><div class="i-skel tall"></div><div class="i-skel"></div><div class="i-skel"></div></div>',empty:'<div class="i-state" role="status"><h2>No insights yet</h2><p>Insights will appear after Eve plays with Neybo.</p><button type="button" class="i-btn primary" onclick="go(\'library\')">Explore activities</button></div>',limited:'<div class="i-state" role="status"><h2>A quiet week</h2><p>There isn\u2019t enough activity yet to identify patterns. Here are the moments Neybo recorded.</p><button type="button" class="i-btn" onclick="insState(\'normal\')">Show recorded moments</button></div>',error:'<div class="i-state" role="alert"><h2>Insights aren\u2019t available right now</h2><p>Your data is safe. Try again in a moment.</p><button type="button" class="i-btn primary" onclick="insState(\'normal\')">Try again</button></div>'};box.innerHTML=H[name]||"";box.style.display="block";insAnnounce(name==="loading"?"Loading insights":name+" state");}var INS_STATES=["normal","loading","empty","limited","error"];var insStateIdx=0;function insCycleState(){insStateIdx=(insStateIdx+1)%INS_STATES.length;insState(INS_STATES[insStateIdx]);}function go(id){var _n=NEED[id];if(_n&&RANK[tier]<RANK[_n]){lockTarget=id;setLock(_n);id="r-lock";}document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active")});var el=document.querySelector('.screen[data-s="'+id+'"]');el.classList.add("active");el.scrollTop=0;document.getElementById("phone").classList.toggle("onb",id.indexOf("onb")===0);var tb=TAB[id];document.querySelectorAll(".tab div").forEach(function(d){d.classList.toggle("on",d.getAttribute("data-tab")===tb)});if(id==="home")refreshCubeSwitch();if(id==="library")renderLib();if(id!=="c-find"&&window.findStop)findStop();if(id!=="c-listen"&&window.listenStop)listenStop();if(id==="modes"){viewedMode=activeMode;if(window.renderModeCard)renderModeCard();}if(window.nbToastRoute)nbToastRoute(id);if(window.neyCancelHold)neyCancelHold();}var NBT={seq:0,timer:null,route:null,global:false};function nbCurRoute(){var s=document.querySelector(".screen.active");return s?s.getAttribute("data-s"):null;}function nbToast(msg,opts){opts=opts||{};var e=document.getElementById("toast");if(!e)return;NBT.seq++;var my=NBT.seq;NBT.global=!!opts.global;NBT.route=NBT.global?null:nbCurRoute();clearTimeout(NBT.timer);e.textContent=msg;e.setAttribute("role",opts.error?"alert":"status");e.setAttribute("aria-live",opts.error?"assertive":"polite");e.classList.add("show");var dur=opts.duration||(opts.error?3200:2400);NBT.timer=setTimeout(function(){if(NBT.seq===my)nbToastHide();},dur);}function nbToastHide(){var e=document.getElementById("toast");if(!e)return;clearTimeout(NBT.timer);e.classList.remove("show");NBT.route=null;NBT.global=false;var s=++NBT.seq;setTimeout(function(){if(NBT.seq===s&&!e.classList.contains("show"))e.textContent="";},260);}function nbToastRoute(id){if(NBT.global)return;if(NBT.route&&NBT.route!==id)nbToastHide();}function t(m){nbToast(m);}function sw(el){el.classList.toggle("on")}function modeSel(b,name){document.querySelectorAll(".msel").forEach(function(x){x.classList.remove("on");x.textContent="Select";});b.classList.add("on");b.textContent="Selected";t(name+" active now");}function qcN(e){var o=e.classList.toggle("on");e.querySelector(".l").textContent=o?"On":"Off";t("Neybo "+(o?"on":"off"));if(window.updateHero)updateHero();}function qcM(e){if(e.classList.contains("dis"))return;e.dataset.off=e.dataset.off?"":"1";var off=e.dataset.off;e.querySelector(".l").textContent=off?"Mic off":"Mic on";t("Mic "+(off?"off":"on"));if(window.updateHero)updateHero();}function qtog(el,name){el.classList.toggle("on");var on=el.classList.contains("on");var s=el.querySelector(".qstate");if(s)s.textContent=on?"On":"Off";t(name+(on?" on":" off"));}function fMethod(el,k){el.parentElement.querySelectorAll(".fchip").forEach(function(d){d.classList.remove("on")});el.classList.add("on");var g=function(i){return document.getElementById(i)};g("fEmail").style.display=(k==="email")?"block":"none";g("fPhone").style.display=(k==="phone")?"block":"none";g("fScan").style.display=(k==="scan")?"block":"none";g("fSend").style.display=(k==="scan")?"none":"block";}function famEdit(){var r=document.getElementById("famEditRow");r.style.display=(r.style.display==="flex")?"none":"flex";}function famSave(){var v=document.getElementById("famNameInput").value;document.getElementById("famName").textContent=v;document.getElementById("famEditRow").style.display="none";t("Family name saved");}function invMethod(el,k){el.parentElement.querySelectorAll(".fchip").forEach(function(d){d.classList.remove("on")});el.classList.add("on");var g=function(i){return document.getElementById(i)};g("invEmail").style.display=(k==="email")?"block":"none";g("invPhone").style.display=(k==="phone")?"block":"none";g("invQr").style.display=(k==="qr")?"block":"none";}function durSet(el,k){el.parentElement.querySelectorAll(".fchip").forEach(function(d){d.classList.remove("on")});el.classList.add("on");var g=function(i){return document.getElementById(i)};g("cgDate").style.display=(k==="date")?"block":"none";g("cgSchedule").style.display=(k==="sched")?"block":"none";g("cgRevoke").style.display=(k==="revoke")?"block":"none";}var COVERS={"story-forge":"assets/images/cover-story-forge.png","book-reading":"assets/images/cover-book-reading.png","paint-with-words":"assets/images/cover-paint-with-words.png","dress-up":"assets/images/cover-dress-up.png","role-play":"assets/images/cover-role-play.png","math-through-story":"assets/images/cover-math-through-story.png","big-question-debate":"assets/images/cover-big-question-debate.png","logic-riddles":"assets/images/cover-logic-riddles.png","charging-break":"assets/images/cover-charging-break.png","volcano-lab":"assets/images/cover-volcano-lab.png","kitchen-science":"assets/images/cover-kitchen-science.png","circle-play":"assets/images/cover-circle-play.png","karaoke":"assets/images/cover-karaoke.png","feelings-check-in":"assets/images/cover-feelings-check-in.png","interactive-songs":"assets/images/cover-interactive-songs.png","winter-tales-pack":"assets/images/cover-winter-tales-pack.png"};
