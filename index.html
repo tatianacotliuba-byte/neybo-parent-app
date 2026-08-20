@@ -542,8 +542,8 @@ select.nbux-input{appearance:none;-webkit-appearance:none;background-image:linea
 @keyframes nbspin{to{transform:rotate(360deg);}}
 
 /* pairing rings */
-.nbux-rings{position:relative;height:220px;display:flex;align-items:center;justify-content:center;margin:8px 0 6px;}
-.nbux-cube{width:150px;height:150px;background-size:contain;background-repeat:no-repeat;background-position:center;
+.nbux-rings{position:relative;--nb-cube:min(51.6vw,209px);height:calc(var(--nb-cube) + 70px);display:flex;align-items:center;justify-content:center;margin:8px 0 6px;}
+.nbux-cube{width:var(--nb-cube);height:var(--nb-cube);background-size:contain;background-repeat:no-repeat;background-position:center;
   z-index:2;position:relative;}
 /* onboarding hero image: use supplied PNG as-is, no effects */
 .neybo-hero-image{display:block;width:min(74vw,300px);height:auto;margin:0 auto;
@@ -556,10 +556,10 @@ body.dark #nbux-root, body.dark .nbux-frame{background:#0f1024;}
 body.dark .nbux-cta{background:linear-gradient(to top,#0f1024 72%,transparent);}
 .nbux-ring{position:absolute;border:2px solid var(--yellow);border-radius:50%;opacity:0;}
 .nbux-searching .nbux-ring{animation:nbwave 2.1s ease-out infinite;}
-.nbux-ring.r1{width:150px;height:150px;}
-.nbux-ring.r2{width:150px;height:150px;animation-delay:.7s !important;}
-.nbux-ring.r3{width:150px;height:150px;animation-delay:1.4s !important;}
-@keyframes nbwave{0%{width:150px;height:150px;opacity:.65;}100%{width:290px;height:290px;opacity:0;}}
+.nbux-ring.r1{width:var(--nb-cube);height:var(--nb-cube);}
+.nbux-ring.r2{width:var(--nb-cube);height:var(--nb-cube);animation-delay:.7s !important;}
+.nbux-ring.r3{width:var(--nb-cube);height:var(--nb-cube);animation-delay:1.4s !important;}
+@keyframes nbwave{0%{width:var(--nb-cube);height:var(--nb-cube);opacity:.65;}100%{width:calc(var(--nb-cube)*1.55);height:calc(var(--nb-cube)*1.55);opacity:0;}}
 .nbux-status{text-align:center;font-size:14px;color:var(--body);font-weight:600;min-height:22px;margin-top:2px;}
 .nbux-devrow{display:flex;align-items:center;gap:12px;}
 .nbux-devrow .dot{width:10px;height:10px;border-radius:50%;background:var(--green);}
@@ -2970,7 +2970,7 @@ function log(type,data){
   BUF.push(e); if(BUF.length>800)BUF.shift(); lsSet(LOG,BUF);
 }
 
-var STEPS=['welcome','account','child','connect','wifi','privacy','theme','mode','ready'];
+var STEPS=['welcome','account','child','connect','wifi','theme','ready'];
 
 /* ================= DOM refs ================= */
 var root,scrollEl,sheetWrap,toastEl,splashEl;
@@ -3011,9 +3011,10 @@ function back(){var i=S.onboardingStep;if(i>0){log('back clicked',{from:STEPS[i]
 function header(idx){
   var back = idx>=1 ? '<button class="nbux-back" aria-label="Go back to previous step" onclick="NBUX.back()">&#8249; Back</button>' : '<span></span>';
   var prog='';
-  if(idx>=1&&idx<=8){
-    prog='<div class="nbux-prog"><div class="nbux-progbar"><span style="width:'+(idx/8*100)+'%"></span></div>'
-       +'<div class="nbux-progtxt" role="status" aria-live="polite">Getting Neybo ready &middot; '+idx+' of 8</div></div>';
+  var total=STEPS.length-1;
+  if(idx>=1&&idx<=total){
+    prog='<div class="nbux-prog"><div class="nbux-progbar"><span style="width:'+(idx/total*100)+'%"></span></div>'
+       +'<div class="nbux-progtxt" role="status" aria-live="polite">Getting Neybo ready &middot; '+idx+' of '+total+'</div></div>';
   }
   return '<div class="nbux-top">'+back+'</div>'+prog;
 }
@@ -3279,7 +3280,7 @@ STEP.theme=function(){
       +'<div class="mcube" style="background-image:'+cubeBg()+'"></div>'
       +'<div class="mchip acc"></div><div class="mbar"><div></div><div></div><div></div></div></div>';
   }
-  paint(header(6)+
+  paint(header(5)+
   '<h1 class="nbux-h1">Choose your app theme</h1>'
   +'<p class="nbux-lead">You can change it anytime in Settings.</p>'
   +'<div class="nbux-themegrid" id="th-grid">'
@@ -3334,7 +3335,7 @@ STEP.ready=function(){
   var mode=S.activeMode==='solo'?'Solo Mode':S.activeMode==='parent'?'Parent Mode':'Group Mode';
   var conn=S.wifi.skipped?'Offline (local play)':'Online';
   var mic=S.setupPreferences.voiceInteractions?'Microphone on':'Microphone off';
-  paint(header(8)+
+  paint(header(6)+
   '<div class="nbux-success">'
     +'<img class="neybo-hero-image" src="'+heroSrc()+'" alt="Neybo with a tiger explorer"></div>'
   +'<h1 class="nbux-h1" style="text-align:center">Neybo is ready for '+esc(nm)+'</h1>'
@@ -3348,7 +3349,7 @@ STEP.ready=function(){
   +'</div>'
   +'<div class="nbux-cta" style="padding-left:0;padding-right:0">'
     +'<button class="nbux-btn" onclick="NBUX.finish()">Go to Home</button>'
-    +'<button class="nbux-sec" onclick="NBUX.goStep(\'privacy\')">Review settings</button>'
+    +'<button class="nbux-sec" onclick="NBUX.goStep(\'theme\')">Review settings</button>'
   +'</div>');
 };
 
