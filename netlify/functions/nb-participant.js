@@ -16,6 +16,7 @@ exports.handler = handle(async (body) => {
     return json(400, { error: 'consent_required' });
   }
 
+  // upsert: a reload or a retry must not 409 on the same participant_code
   await sbInsert('participants', {
     participant_code: body.participant_code,
     first_name: first.trim(),
@@ -24,7 +25,7 @@ exports.handler = handle(async (body) => {
     child_age_group: str(body.child_age_group, 40),
     consent_analytics,
     consent_session_recording,
-  });
+  }, { upsert: true });
 
   return json(200, { ok: true });
 });
