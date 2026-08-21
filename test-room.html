@@ -19,7 +19,7 @@
     --pane-gap:36px;
   }
   *{box-sizing:border-box}
-  html,body{height:100%}
+  html,body{height:100%;overflow:hidden}
   body{
     margin:0;background:var(--room-bg);color:var(--room-ink);
     font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -27,24 +27,82 @@
   }
   /* ---------- clean stage (default) ---------- */
   .stage{
-    min-height:100vh;display:flex;align-items:center;justify-content:center;
-    gap:var(--pane-gap);padding:28px;flex-wrap:wrap;
+    height:100vh;display:flex;align-items:center;justify-content:center;
+    gap:var(--pane-gap);padding:20px;flex-wrap:nowrap;overflow:hidden;
   }
-  .pane{display:flex;flex-direction:column;align-items:center;gap:10px}
-  .frame{
-    border:0;background:#fff;border-radius:26px;display:block;
+  .pane{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+  /* holder keeps the scaled footprint; the iframe inside keeps its own logical size */
+  .holder{
+    position:relative;overflow:hidden;flex:none;border-radius:26px;
     box-shadow:0 18px 48px rgba(0,0,0,.16),0 2px 6px rgba(0,0,0,.06);
+    background:#fff;
   }
-  #parentFrame{width:390px;height:844px;border-radius:34px;background:transparent;box-shadow:none}
-  #deviceFrame{width:560px;height:844px}
-  .cap{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--room-muted)}
+  #parentHolder{border-radius:34px;background:transparent;box-shadow:none}
+  .frame{
+    position:absolute;top:0;left:0;border:0;display:block;background:transparent;
+    transform-origin:0 0;
+  }
+  .cap{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--room-muted);flex:none}
   body.debug{padding-bottom:300px}
-  body.debug .stage{min-height:calc(100vh - 300px)}
+  body.debug .stage{height:calc(100vh - 300px)}
 
-  @media (max-width:1010px){
-    .stage{flex-direction:column;padding:20px 12px}
-    #deviceFrame{width:min(94vw,560px)}
-    #parentFrame{width:390px;max-width:94vw}
+  /* ---------- intro choreography ---------- */
+  .pane{transition:opacity .75s ease}
+  body.intro .pane{opacity:0}
+  body.intro .pane.reveal{opacity:1}
+  .pane.dimmed{opacity:.26}
+  #intro{
+    position:fixed;inset:0;z-index:60;pointer-events:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;
+    background:var(--room-bg);transition:background .9s ease;
+  }
+  #intro.clear{background:transparent}
+  #intro[hidden]{display:none}
+  #introCube{
+    width:min(40vh,360px);opacity:0;transform:scale(.88);
+    filter:drop-shadow(0 26px 60px rgba(0,0,0,.24));
+    transition:opacity .9s ease, transform 1.15s cubic-bezier(.2,.68,.2,1);
+  }
+  #intro.lit #introCube{opacity:1;transform:scale(1)}
+  #intro.gone #introCube{opacity:0}
+  .introcap{
+    max-width:min(600px,86vw);text-align:center;opacity:0;transform:translateY(12px);
+    transition:opacity .6s ease, transform .6s ease;
+  }
+  .introcap.show{opacity:1;transform:none}
+  .introcap .eyebrow{
+    font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--room-muted);
+    display:block;margin-bottom:10px;
+  }
+  .introcap h2{margin:0 0 12px;font-size:27px;line-height:1.2;font-weight:600;color:var(--room-ink)}
+  .introcap p{margin:0;font-size:15.5px;line-height:1.6;color:#5f5c55}
+  #introCap2{
+    position:fixed;z-index:61;
+    background:rgba(255,254,250,.94);border:1px solid var(--room-line);
+    border-radius:20px;padding:24px 26px;
+    box-shadow:0 22px 60px rgba(0,0,0,.14);
+    max-width:min(430px,84vw);text-align:left;
+  }
+  #introCap2 h2{font-size:22px}
+  #introCap2 p{font-size:14.5px}
+  #introSkip{
+    position:fixed;right:16px;bottom:16px;z-index:63;pointer-events:auto;
+    font:inherit;font-size:12px;color:var(--room-muted);
+    background:rgba(255,255,255,.7);border:1px solid var(--room-line);
+    border-radius:999px;padding:6px 14px;cursor:pointer;
+  }
+  #introSkip:hover{color:var(--room-ink)}
+  #introBanner{
+    position:fixed;left:50%;top:20px;z-index:62;
+    transform:translate(-50%,-16px);opacity:0;pointer-events:none;
+    background:#22262e;color:#f6f3ea;border-radius:999px;
+    padding:11px 20px;font-size:13.5px;font-weight:500;
+    box-shadow:0 14px 34px rgba(0,0,0,.24);
+    transition:opacity .5s ease, transform .5s ease;
+  }
+  #introBanner.show{opacity:1;transform:translate(-50%,0)}
+  @media (prefers-reduced-motion:reduce){
+    #intro,#introCube,.introcap,.pane,#introBanner{transition-duration:.01ms !important}
   }
 
   /* ---------- debug drawer (?debug=1 only) ---------- */
@@ -59,7 +117,7 @@
   body.debug.dbg-min #dbg{height:34px;grid-template-columns:1fr}
   body.debug.dbg-min #dbgL,body.debug.dbg-min #dbgR{display:none}
   body.debug.dbg-min{padding-bottom:34px}
-  body.debug.dbg-min .stage{min-height:calc(100vh - 34px)}
+  body.debug.dbg-min .stage{height:calc(100vh - 34px)}
   #dbgBar{
     position:absolute;top:0;right:0;height:34px;display:flex;align-items:center;gap:8px;
     padding:0 10px;z-index:2;
@@ -93,15 +151,37 @@
 
 <main class="stage">
   <section class="pane">
-    <iframe id="parentFrame" class="frame" title="Neybo Parent App"
-            allow="clipboard-write"></iframe>
+    <div class="holder" id="parentHolder">
+      <iframe id="parentFrame" class="frame" title="Neybo Parent App"
+              allow="clipboard-write"></iframe>
+    </div>
     <div class="cap" data-cap hidden>Parent App</div>
   </section>
   <section class="pane">
-    <iframe id="deviceFrame" class="frame" title="Neybo Device Prototype"></iframe>
+    <div class="holder" id="deviceHolder">
+      <iframe id="deviceFrame" class="frame" title="Neybo Device Prototype"></iframe>
+    </div>
     <div class="cap" data-cap hidden>Device</div>
   </section>
 </main>
+
+<div id="intro" hidden aria-hidden="true">
+  <img id="introCube" src="assets/images/onboarding-cube.png" alt="">
+  <div class="introcap" id="introCap1">
+    <span class="eyebrow">Meet the device</span>
+    <h2>This is Neybo</h2>
+    <p>A voice companion for kids 4+ — curious, funny, and endlessly patient.
+       Sparks real conversations, builds vocabulary, and answers the big questions.</p>
+  </div>
+</div>
+<div class="introcap" id="introCap2" hidden>
+  <span class="eyebrow">And this is the Parent App</span>
+  <h2>You see everything. They stay safe.</h2>
+  <p>No ads, no algorithms, no surprises. Just a curious companion your child loves —
+     and weekly insights so you always know what&#8217;s on their mind.</p>
+</div>
+<button type="button" id="introSkip" hidden>Skip intro</button>
+<div id="introBanner" role="status">Start by filling in your details in the app &#8594;</div>
 
 <aside id="dbg" aria-label="Diagnostics">
   <div id="dbgBar">
@@ -188,12 +268,156 @@
   }
 
   var parentSrc = PARENT_BASE + '?participantId=' + encodeURIComponent(pid);
-  var deviceSrc = DEVICE_BASE + '?embed=1&participantId=' + encodeURIComponent(pid);
+  /* A test room must never show a cached build of the prototype: every room
+     load pulls the current one. (Cheap — it is a single HTML document.) */
+  var cacheBust = 'r' + String(Math.floor(Math.random() * 1e9));
+  var deviceSrc = DEVICE_BASE + '?embed=1&participantId=' + encodeURIComponent(pid) +
+                  '&nocache=' + cacheBust;
 
   var parentFrame = document.getElementById('parentFrame');
   var deviceFrame = document.getElementById('deviceFrame');
   parentFrame.src = parentSrc;
   deviceFrame.src = deviceSrc;
+
+  /* ---- fit both panes into the viewport: no page scroll, ever ----
+     The phone keeps its logical 390x844 and is scaled with a transform,
+     so the app inside never sees a shorter viewport. The device pane gets
+     whatever width is left over, so the cube grows when there is room. */
+  var BASE_H     = 844;
+  var PARENT_W   = 390;
+  var DEVICE_W   = 560;
+  var DEVICE_MAX = 900;
+  var parentHolder = document.getElementById('parentHolder');
+  var deviceHolder = document.getElementById('deviceHolder');
+
+  function place(holder, frame, w, s) {
+    frame.style.width  = w + 'px';
+    frame.style.height = BASE_H + 'px';
+    frame.style.transform = 'scale(' + s + ')';
+    holder.style.width  = Math.round(w * s) + 'px';
+    holder.style.height = Math.round(BASE_H * s) + 'px';
+  }
+
+  function fit() {
+    var cs      = getComputedStyle(document.querySelector('.stage'));
+    var padY    = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    var padX    = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    var gap     = parseFloat(cs.gap) || 36;
+    var drawer  = document.body.classList.contains('debug')
+                    ? (document.body.classList.contains('dbg-min') ? 34 : 300) : 0;
+    var capH    = document.body.classList.contains('debug') ? 26 : 0;
+
+    var availH = window.innerHeight - drawer - padY - capH;
+    var availW = window.innerWidth - padX - gap;
+    if (availH < 200 || availW < 200) return;
+
+    var s = Math.min(availH / BASE_H, availW / (PARENT_W + DEVICE_W));
+    s = Math.max(0.35, Math.min(s, 1.6));
+
+    /* leftover horizontal space (in logical px) widens the device pane only */
+    var spare = availW / s - PARENT_W - DEVICE_W;
+    var dW    = DEVICE_W + Math.max(0, Math.min(spare, DEVICE_MAX - DEVICE_W));
+
+    place(parentHolder, parentFrame, PARENT_W, s);
+    place(deviceHolder, deviceFrame, dW, s);
+  }
+
+  if (DEBUG) document.body.classList.add('debug');   /* drawer height counts in fit() */
+  fit();
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', fit);
+
+  /* ================= intro choreography =================
+     The cube is introduced alone, travels to its place, the app follows, and
+     only then does the test begin. Presentation only: both frames are already
+     loaded and connected underneath, so nothing about the session depends on
+     this running. ?intro=0 skips it. */
+  (function intro() {
+    var RUN = q.get('intro') !== '0';
+    var stage       = document.querySelector('.stage');
+    var panes       = document.querySelectorAll('.pane');
+    var devicePane  = deviceFrame.closest('.pane');
+    var parentPane  = parentFrame.closest('.pane');
+    var wrap        = document.getElementById('intro');
+    var cube        = document.getElementById('introCube');
+    var cap1        = document.getElementById('introCap1');
+    var cap2        = document.getElementById('introCap2');
+    var skip        = document.getElementById('introSkip');
+    var banner      = document.getElementById('introBanner');
+    if (!wrap || !devicePane || !parentPane) return;
+
+    var timers = [];
+    function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
+    function clearAll() { timers.forEach(clearTimeout); timers = []; }
+
+    function finish(showBanner) {
+      clearAll();
+      wrap.hidden = true;
+      cap2.hidden = true;
+      skip.hidden = true;
+      document.body.classList.remove('intro');
+      Array.prototype.forEach.call(panes, function (p) {
+        p.classList.add('reveal');
+        p.classList.remove('dimmed');
+      });
+      if (showBanner) {
+        banner.classList.add('show');
+        setTimeout(function () { banner.classList.remove('show'); }, 9000);
+      }
+    }
+
+    if (!RUN) { finish(false); return; }
+
+    document.body.classList.add('intro');
+    wrap.hidden = false;
+    skip.hidden = false;
+    skip.addEventListener('click', function () { finish(true); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !wrap.hidden) finish(true);
+    });
+
+    /* 1 · the cube alone, centre stage */
+    at(260,  function () { wrap.classList.add('lit'); });
+    at(1000, function () { cap1.classList.add('show'); });
+
+    /* 2 · it takes its place, the device panel materialises around it */
+    at(5200, function () {
+      cap1.classList.remove('show');
+      var from = cube.getBoundingClientRect();
+      var to   = deviceHolder.getBoundingClientRect();
+      if (from.width && to.width) {
+        var k  = Math.min(1, (to.height * 0.62) / from.height);
+        var dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+        var dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+        cube.style.transform = 'translate(' + Math.round(dx) + 'px,' + Math.round(dy) + 'px) scale(' + k.toFixed(3) + ')';
+      }
+      wrap.classList.add('clear');
+    });
+    at(6100, function () {
+      devicePane.classList.add('reveal');
+      wrap.classList.add('gone');
+    });
+
+    /* 3 · then the app, with the cube politely stepping back */
+    at(7000, function () {
+      wrap.hidden = true;
+      parentPane.classList.add('reveal');
+      devicePane.classList.add('dimmed');
+      var r = deviceHolder.getBoundingClientRect();
+      cap2.hidden = false;
+      cap2.style.left = Math.round(Math.max(16, r.left + r.width / 2 - Math.min(430, r.width * 0.9) / 2)) + 'px';
+      cap2.style.top  = Math.round(Math.max(16, r.top + r.height / 2 - 110)) + 'px';
+      cap2.style.width = Math.round(Math.min(430, Math.max(280, r.width * 0.9))) + 'px';
+      requestAnimationFrame(function () { cap2.classList.add('show'); });
+    });
+
+    /* 4 · the test begins */
+    at(12600, function () {
+      cap2.classList.remove('show');
+      devicePane.classList.remove('dimmed');
+    });
+    at(13300, function () { finish(true); });
+  })();
 
   if (!DEBUG) return;   /* clean room: nothing else runs */
 
@@ -226,6 +450,7 @@
   $('btnMin').addEventListener('click', function () {
     var min = document.body.classList.toggle('dbg-min');
     this.textContent = min ? 'Show' : 'Hide';
+    fit();
   });
   $('btnCopy').addEventListener('click', function () {
     var self = this;

@@ -500,8 +500,12 @@ select.nbux-input{appearance:none;-webkit-appearance:none;background-image:linea
 
 /* checkbox row */
 .nbux-check{display:flex;gap:12px;align-items:flex-start;margin:6px 0 4px;cursor:pointer;}
-.nbux-box{width:24px;height:24px;min-width:24px;border:2px solid var(--line);border-radius:7px;
+.nbux-box{width:24px;height:24px;min-width:24px;border:2px solid #9a948a;border-radius:7px;
+  background:#fff;box-shadow:inset 0 1px 2px rgba(34,38,46,.10);
   display:flex;align-items:center;justify-content:center;transition:.12s;margin-top:1px;}
+.nbux-check:hover .nbux-box{border-color:#6d6860;}
+body.dark .nbux-box{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.46);box-shadow:none;}
+body.dark .nbux-check:hover .nbux-box{border-color:rgba(255,255,255,.72);}
 .nbux-check[aria-checked="true"] .nbux-box{background:var(--green);border-color:var(--green);}
 .nbux-check[aria-checked="true"] .nbux-box svg{opacity:1;}
 .nbux-box svg{width:15px;height:15px;color:#fff;opacity:0;}
@@ -866,8 +870,8 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
  <div class="h1">Plans</div><div class="subh">Change or cancel any time, right here</div>
  <div class="banner"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/></svg><div><b>Core play modes stay available on Free.</b><span>Paid plans add more games and deeper insights.</span></div></div>
  <div class="plan"><div class="flex"><div class="pn">Neybo Free</div><div class="price">$0</div></div><div class="flex"><div class="pu">1 app user · core games</div><span class="pillt green" id="cur-free">Current plan</span></div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>All modes: Solo · Parent · Group</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Full cube control, mute and Find Device</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Core game set in every mode</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Basic analytics · full data controls</div><button class="planbtn" onclick="choosePlan('free')">Switch to Free</button></div>
- <div class="plan feat"><div class="flex"><div class="pn">Neybo+ <span class="pillt green" id="cur-neybo" style="display:none"></span></div><div style="text-align:right"><div class="price">$4.99</div><div class="per">/ month</div></div></div><div class="pu">2 app users · more games</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Everything in Free</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Expanded library in Solo, Parent and Group</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>2 app users — both parents</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Full analytics depth, in-app</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>More included usage each month</div><button class="planbtn fill" onclick="choosePlan('neybo')">Switch to Neybo+</button></div>
- <div class="plan"><div class="flex"><div class="pn">Family+ <span class="pillt green" id="cur-family" style="display:none"></span></div><div style="text-align:right"><div class="price">$14.99</div><div class="per">/ month</div></div></div><div class="pu">2–4 users · export · support</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Everything in Neybo+ · seasonal packs</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>PDF export and household view</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Priority human support</div><button class="planbtn fill" onclick="choosePlan('family')">Switch to Family+</button></div>
+ <div class="plan feat"><div class="flex"><div class="pn">Neybo+ <span class="pillt green" id="cur-neybo" style="display:none"></span></div><div style="text-align:right"><div class="price">$14.99</div><div class="per">/ month</div></div></div><div class="pu">2 app users · more games</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Everything in Free</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Expanded library in Solo, Parent and Group</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>2 app users — both parents</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Full analytics depth, in-app</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>More included usage each month</div><button class="planbtn fill" onclick="choosePlan('neybo')">Switch to Neybo+</button></div>
+ <div class="plan"><div class="flex"><div class="pn">Family+ <span class="pillt green" id="cur-family" style="display:none"></span></div><div style="text-align:right"><div class="price">$39.99</div><div class="per">/ month</div></div></div><div class="pu">2–4 users · export · support</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Everything in Neybo+ · seasonal packs</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>PDF export and household view</div><div class="ck"><span class="c"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Priority human support</div><button class="planbtn fill" onclick="choosePlan('family')">Switch to Family+</button></div>
  <div style="text-align:center;color:var(--muted);font-size:14px;margin-top:18px">Cancel anytime.</div>
 </section><section class="screen" data-s="family"><div class="topback" onclick="go('settings')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Settings</div>
  <div class="h1">Family</div><div class="subh">Eve’s Cube</div>
@@ -1118,7 +1122,7 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
    <div class="ck"><span class="c"><svg class="tsvg"style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Developmental spotlight &amp; per-topic depth</div>
    <div class="ck"><span class="c"><svg class="tsvg"style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>Learning-progress view</div>
    <div class="ck" id="lockFam" style="display:none"><span class="c"><svg class="tsvg"style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></span>PDF export &amp; household view</div></div>
- <button class="btnbig y" onclick="unlock()">Unlock <span id="lockTier2">Neybo+</span> · <span id="lockPrice">$4.99/mo</span></button>
+ <button class="btnbig y" onclick="unlock()">Unlock <span id="lockTier2">Neybo+</span> · <span id="lockPrice">$14.99/mo</span></button>
  <button class="link" style="background:none;border:none;color:var(--accent,#a5781f);width:100%;padding:12px;cursor:pointer;font-family:inherit;font-size:13px" onclick="go('plans')">Compare all plans</button>
 </section><section class="screen" data-s="c-limit"><div class="topback" onclick="go('home')"><svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Home</div>
  <div class="h1">Time with Neybo</div><div class="subh">A daily rhythm that winds down, never slams shut</div>
@@ -1258,6 +1262,19 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
     get channel() { return channelName; },
     get lastError() { return lastError; },
     ping: function () { send('device.ping', { at: new Date().toISOString() }); },
+    /* ---- inbound API ---- */
+    get deviceState() { return deviceState; },
+    isDeviceOn: function () { return deviceIsOn(); },
+    refreshState: function () { send('state.get', {}); },
+    onDevice: function (cb) {
+      if (typeof cb !== 'function') return function () {};
+      deviceListeners.push(cb);
+      if (deviceState) { try { cb(deviceState); } catch (e) {} }
+      return function () {
+        var i = deviceListeners.indexOf(cb);
+        if (i >= 0) deviceListeners.splice(i, 1);
+      };
+    },
     reconnect: function () { tries = 0; sdkIdx = 0; loading = false; loadSdk(); },
     setParticipantId: function (id) {
       var v = clean(id);
@@ -1343,16 +1360,43 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
     }
   }
 
+  /* ---- inbound: what the cube reports (device.hello / device.state / command.ack) ----
+     Read-only. The app still never *acts* on the cube's behalf; it only learns
+     whether the cube is powered on so the UI can stop lying. */
+  var deviceState     = null;
+  var deviceListeners = [];
+
+  function deviceIsOn() {
+    return !!(deviceState && deviceState.state && deviceState.state !== 'off');
+  }
+  function notifyDevice() {
+    for (var i = 0; i < deviceListeners.length; i++) {
+      try { deviceListeners[i](deviceState); } catch (e) { fail('onDevice listener', e); }
+    }
+  }
+  function onDeviceBroadcast(m) {
+    var p = m && m.payload;
+    if (!p || typeof p !== 'object' || p.source !== 'neybo-cube') return;
+    if (p.participantId && p.participantId !== pid) return;
+    var st = p.payload && p.payload.state;
+    if (!st || typeof st !== 'object') return;
+    var was = deviceState && deviceState.state;
+    deviceState = st;
+    if (was !== st.state) L('<- ' + p.type + ' | device state =', st.state);
+    notifyDevice();
+  }
+
   function subscribe() {
     try {
       channel = client.channel(channelName, {
         config: { broadcast: { self: false, ack: false }, private: false }
       });
+      channel.on('broadcast', { event: '*' }, onDeviceBroadcast);
       L('subscribing to', channelName, '...');
       channel.subscribe(function (st, err) {
         L('status:', st, err ? ('err=' + (err.message || err)) : '');
         ready = (st === 'SUBSCRIBED');
-        if (ready) { lastError = null; tries = 0; drain(); return; }
+        if (ready) { lastError = null; tries = 0; drain(); send('state.get', {}); return; }
         if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') {
           lastError = 'subscribe status ' + st + (err ? (' / ' + (err.message || err)) : '');
           var wait = RETRY_MS[Math.min(tries, RETRY_MS.length - 1)];
@@ -1426,7 +1470,7 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
   loadSdk();
 })();
 </script>
-<script>var TAB={home:"home",modes:"modes","m-circle":"modes","m-linked":"modes",insights:"insights","ins-detail":"insights",library:"library",settings:"settings","c-listen":"home","p-profile":"settings",safety:"settings",notifications:"settings",plans:"settings",family:"settings",devices:"settings",friends:"settings",group:"settings",security:"settings","nfc-cards":"settings","c-find":"home","c-volume":"home","c-announce":"home","c-character":"home","c-routines":"home","c-limit":"home","c-firmware":"home","c-newroutine":"home","m-solo":"modes","m-parent":"modes","m-group":"modes","g-intro":"settings","n-safety":"settings","k-game":"library","k-nfc":"m-solo","content-prefs":"library","r-lock":"insights","h-consent":"settings","h-export":"settings","i-friend":"settings","j-transfer":"settings","j-reset":"settings","friends-add":"settings","onb1":null,"onb3":null,"onbdone":null,"fam-invite":"settings","fam-caregiver":"settings","fam-adult":"settings","fam-child":"settings",onb:null,"onb-parent":null};var tier="free";var RANK={free:0,neybo:1,family:2};var NEED={};var lockTarget=null;function setLock(need){var nm=need==="family"?"Family+":"Neybo+";document.getElementById("lockTier").textContent=nm;document.getElementById("lockTier2").textContent=nm;document.getElementById("lockPrice").textContent=need==="family"?"$14.99/mo":"$4.99/mo";document.getElementById("lockFam").style.display=need==="family"?"flex":"none";}function unlock(){if(lockTarget){tier=NEED[lockTarget];tierBtnUpd();applyTier();var tt=lockTarget;lockTarget=null;go(tt);}}function tierBtnUpd(){var b=document.getElementById("tierBtn");if(b)b.textContent="Plan: "+(tier==="free"?"Free":tier==="neybo"?"Neybo+":"Family+");}function cycleTier(){tier=tier==="free"?"neybo":tier==="neybo"?"family":"free";tierBtnUpd();applyTier();t("Plan: "+(tier==="free"?"Free":tier==="neybo"?"Neybo+":"Family+"));}function insAnnounce(m){var a=document.getElementById("insAnnounce");if(a)a.textContent=m;}function setPeriod(el,k){var seg=document.getElementById("insPeriod");if(!seg)return;seg.querySelectorAll('[role="tab"]').forEach(function(x){var on=x===el;x.classList.toggle("on",on);x.setAttribute("aria-selected",on?"true":"false");x.tabIndex=on?0:-1;});var cr=document.getElementById("customRange");if(cr)cr.style.display=(k==="period")?"flex":"none";var R={day:"Jul 26",week:"Jul 20\u201326",month:"Jul 1\u201331",period:"Custom range"};var lbl=R[k]||"Jul 20\u201326";var dEl=document.getElementById("insDate");if(dEl)dEl.textContent=lbl;var MOMENTS={day:{label:"Moment of the day",icon:"\uD83C\uDF19",text:"Right before bed, Eve asked Neybo why the moon changes shape.",action:"Ask her what she found out about the moon."},week:{label:"Moment of the week",icon:"\uD83D\uDCD6",text:"Eve made up a story where the moon has a snack drawer.",action:"Ask her what happened next in the story."},month:{label:"Moment of the month",icon:"\uD83D\uDCDA",text:"Eve read along with Neybo 14 times this month \u2014 her longest streak yet.",action:"Tell her you noticed how much she\u2019s been reading."},period:{label:"Moment of the range",icon:"\uD83D\uDE80",text:"Across these days, Eve kept coming back to space and dinosaurs.",action:"Ask her which planet she\u2019d visit first."}};var M=MOMENTS[k]||MOMENTS.week;var mEl=document.getElementById("momentLabel");if(mEl)mEl.textContent=M.label;var mCard=document.getElementById("momentCard");if(mCard)mCard.setAttribute("aria-label",M.label);var mIco=document.getElementById("momentIcon");if(mIco)mIco.textContent=M.icon;var mTxt2=document.getElementById("momentText");if(mTxt2)mTxt2.textContent=M.text;var mAct=document.getElementById("momentAction");if(mAct)mAct.textContent=M.action;if(window.renderAnalytics){window.renderAnalytics(k);}if(window.renderStarters){window.renderStarters(k);}var cSub=document.getElementById("csSub");if(cSub){var CS={day:"Little things to talk about with Eve today.",week:"Ideas to talk about with Eve this week.",month:"Ideas to talk about with Eve this month.",period:"Ideas to talk about with Eve in this range."};cSub.textContent=CS[k]||cSub.textContent;}insAnnounce("Showing insights for "+lbl);}function setPeriodKey(k){var seg=document.getElementById("insPeriod");if(!seg)return;var tabs=seg.querySelectorAll('[role="tab"]');var idx={day:0,week:1,month:2,period:3}[k];if(tabs[idx])setPeriod(tabs[idx],k);}function insPeriodKey(e){var seg=document.getElementById("insPeriod");var tabs=[].slice.call(seg.querySelectorAll('[role="tab"]'));var i=tabs.findIndex(function(x){return x.classList.contains("on");});var ks=["day","week","month","period"];if(e.key==="ArrowRight"||e.key==="ArrowDown"){e.preventDefault();var n=(i+1)%4;setPeriod(tabs[n],ks[n]);tabs[n].focus();}else if(e.key==="ArrowLeft"||e.key==="ArrowUp"){e.preventDefault();var pv=(i+3)%4;setPeriod(tabs[pv],ks[pv]);tabs[pv].focus();}}function csMore(btn){var h=document.getElementById("csMoreHost");if(h){h.style.display="block";document.getElementById("csList").appendChild(h);}btn.style.display="none";insAnnounce("More conversation starters shown");}var insLastFocus=null;function insOpen(id){insLastFocus=document.activeElement;var w=document.getElementById(id);w.classList.add("open");var dlg=w.querySelector(".msheet");if(dlg){dlg.setAttribute("tabindex","-1");setTimeout(function(){try{dlg.focus();}catch(e){}},20);}}function insCloseW(id){var w=document.getElementById(id);w.classList.remove("open");if(insLastFocus){try{insLastFocus.focus();}catch(e){}}}function insHowKnow(key){var M={moment:{n:5,types:"Story Forge and Book Reading",kind:"Observation",note:"A moment Neybo recorded during a story activity."},cause:{n:5,types:"Story Forge and Logic Riddles",kind:"Observation",note:"Eve often experimented with what happens next."},space:{n:24,types:"stories, questions and puzzles",kind:"Possible pattern",note:"Based on how often the topic came up \u2014 it suggests interest, not skill level."},feelings:{n:12,types:"word and choice signals in activities",kind:"System inference",note:"Some feelings are named by Eve (self-reported); others are possible signals inferred from choices."}};var m=M[key]||M.moment;var row=function(k,v){return '<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--color-border)"><span style="color:var(--color-text-muted);font-size:var(--font-body-small)">'+k+'</span><span style="color:var(--color-text-primary);font-size:var(--font-body-small);font-weight:600;text-align:right;min-width:0">'+v+'</span></div>';};document.getElementById("insKnowBody").innerHTML='<div class="i-momenttext" style="font-size:var(--font-body-small);margin:4px 0 8px">Based on '+m.n+' '+m.types+' sessions from Jul 20\u201326.</div>'+row("Period","Jul 20\u201326")+row("Interactions used",m.n+" activities")+row("Type of finding",m.kind)+row("Not included","No audio, camera, or data from outside Neybo")+'<div class="i-note" style="margin-top:10px">'+m.note+'</div><div class="i-note">Insights summarize activity with Neybo. They are not medical, psychological or developmental assessments.</div>';insOpen("insKnowWrap");}function insCloseKnow(){insCloseW("insKnowWrap");}function insShare(){insOpen("insShareWrap");}function insCloseShare(){insCloseW("insShareWrap");}function insSw(el){var on=el.classList.toggle("on");el.setAttribute("aria-checked",on?"true":"false");}function insDoShare(){var nm=document.getElementById("shName").classList.contains("on");var au=document.getElementById("shAudio").classList.contains("on");var who=(nm?"with Eve\u2019s name":"without personal details")+(au?" and audio":"");insCloseShare();nbToast("Moment shared "+who);}function insState(name){var main=document.getElementById("insMain");var box=document.getElementById("insStateBox");if(!main||!box)return;if(name==="normal"||!name){box.style.display="none";box.innerHTML="";main.style.display="block";insAnnounce("Insights loaded");return;}main.style.display="none";var H={loading:'<div aria-live="polite" role="status"><span class="visually-hidden">Loading insights</span><div class="i-skel tall"></div><div class="i-skel"></div><div class="i-skel"></div></div>',empty:'<div class="i-state" role="status"><h2>No insights yet</h2><p>Insights will appear after Eve plays with Neybo.</p><button type="button" class="i-btn primary" onclick="go(\'library\')">Explore activities</button></div>',limited:'<div class="i-state" role="status"><h2>A quiet week</h2><p>There isn\u2019t enough activity yet to identify patterns. Here are the moments Neybo recorded.</p><button type="button" class="i-btn" onclick="insState(\'normal\')">Show recorded moments</button></div>',error:'<div class="i-state" role="alert"><h2>Insights aren\u2019t available right now</h2><p>Your data is safe. Try again in a moment.</p><button type="button" class="i-btn primary" onclick="insState(\'normal\')">Try again</button></div>'};box.innerHTML=H[name]||"";box.style.display="block";insAnnounce(name==="loading"?"Loading insights":name+" state");}var INS_STATES=["normal","loading","empty","limited","error"];var insStateIdx=0;function insCycleState(){insStateIdx=(insStateIdx+1)%INS_STATES.length;insState(INS_STATES[insStateIdx]);}function go(id){var _n=NEED[id];if(_n&&RANK[tier]<RANK[_n]){lockTarget=id;setLock(_n);id="r-lock";}document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active")});var el=document.querySelector('.screen[data-s="'+id+'"]');el.classList.add("active");el.scrollTop=0;document.getElementById("phone").classList.toggle("onb",id.indexOf("onb")===0);var tb=TAB[id];document.querySelectorAll(".tab div").forEach(function(d){d.classList.toggle("on",d.getAttribute("data-tab")===tb)});if(id==="home")refreshCubeSwitch();if(id==="library")renderLib();if(id!=="c-find"&&window.findStop)findStop();if(id!=="c-listen"&&window.listenStop)listenStop();if(id==="modes"){viewedMode=activeMode;if(window.renderModeCard)renderModeCard();}if(window.nbToastRoute)nbToastRoute(id);if(window.neyCancelHold)neyCancelHold();}var NBT={seq:0,timer:null,route:null,global:false};function nbCurRoute(){var s=document.querySelector(".screen.active");return s?s.getAttribute("data-s"):null;}function nbToast(msg,opts){opts=opts||{};var e=document.getElementById("toast");if(!e)return;NBT.seq++;var my=NBT.seq;NBT.global=!!opts.global;NBT.route=NBT.global?null:nbCurRoute();clearTimeout(NBT.timer);e.textContent=msg;e.setAttribute("role",opts.error?"alert":"status");e.setAttribute("aria-live",opts.error?"assertive":"polite");e.classList.add("show");var dur=opts.duration||(opts.error?3200:2400);NBT.timer=setTimeout(function(){if(NBT.seq===my)nbToastHide();},dur);}function nbToastHide(){var e=document.getElementById("toast");if(!e)return;clearTimeout(NBT.timer);e.classList.remove("show");NBT.route=null;NBT.global=false;var s=++NBT.seq;setTimeout(function(){if(NBT.seq===s&&!e.classList.contains("show"))e.textContent="";},260);}function nbToastRoute(id){if(NBT.global)return;if(NBT.route&&NBT.route!==id)nbToastHide();}function t(m){nbToast(m);}function sw(el){el.classList.toggle("on")}function modeSel(b,name){document.querySelectorAll(".msel").forEach(function(x){x.classList.remove("on");x.textContent="Select";});b.classList.add("on");b.textContent="Selected";t(name+" active now");}function qcN(e){var o=e.classList.toggle("on");e.querySelector(".l").textContent=o?"On":"Off";t("Neybo "+(o?"on":"off"));if(window.updateHero)updateHero();}function qcM(e){if(e.classList.contains("dis"))return;e.dataset.off=e.dataset.off?"":"1";var off=e.dataset.off;e.querySelector(".l").textContent=off?"Mic off":"Mic on";t("Mic "+(off?"off":"on"));if(window.updateHero)updateHero();}function qtog(el,name){el.classList.toggle("on");var on=el.classList.contains("on");var s=el.querySelector(".qstate");if(s)s.textContent=on?"On":"Off";t(name+(on?" on":" off"));}function fMethod(el,k){el.parentElement.querySelectorAll(".fchip").forEach(function(d){d.classList.remove("on")});el.classList.add("on");var g=function(i){return document.getElementById(i)};g("fEmail").style.display=(k==="email")?"block":"none";g("fPhone").style.display=(k==="phone")?"block":"none";g("fScan").style.display=(k==="scan")?"block":"none";g("fSend").style.display=(k==="scan")?"none":"block";}function famEdit(){var r=document.getElementById("famEditRow");r.style.display=(r.style.display==="flex")?"none":"flex";}function famSave(){var v=document.getElementById("famNameInput").value;document.getElementById("famName").textContent=v;document.getElementById("famEditRow").style.display="none";t("Family name saved");}function invMethod(el,k){el.parentElement.querySelectorAll(".fchip").forEach(function(d){d.classList.remove("on")});el.classList.add("on");var g=function(i){return document.getElementById(i)};g("invEmail").style.display=(k==="email")?"block":"none";g("invPhone").style.display=(k==="phone")?"block":"none";g("invQr").style.display=(k==="qr")?"block":"none";}function durSet(el,k){el.parentElement.querySelectorAll(".fchip").forEach(function(d){d.classList.remove("on")});el.classList.add("on");var g=function(i){return document.getElementById(i)};g("cgDate").style.display=(k==="date")?"block":"none";g("cgSchedule").style.display=(k==="sched")?"block":"none";g("cgRevoke").style.display=(k==="revoke")?"block":"none";}var COVERS={"story-forge":"assets/images/cover-story-forge.png","book-reading":"assets/images/cover-book-reading.png","paint-with-words":"assets/images/cover-paint-with-words.png","dress-up":"assets/images/cover-dress-up.png","role-play":"assets/images/cover-role-play.png","math-through-story":"assets/images/cover-math-through-story.png","big-question-debate":"assets/images/cover-big-question-debate.png","logic-riddles":"assets/images/cover-logic-riddles.png","charging-break":"assets/images/cover-charging-break.png","volcano-lab":"assets/images/cover-volcano-lab.png","kitchen-science":"assets/images/cover-kitchen-science.png","circle-play":"assets/images/cover-circle-play.png","karaoke":"assets/images/cover-karaoke.png","feelings-check-in":"assets/images/cover-feelings-check-in.png","interactive-songs":"assets/images/cover-interactive-songs.png","winter-tales-pack":"assets/images/cover-winter-tales-pack.png"};
+<script>var TAB={home:"home",modes:"modes","m-circle":"modes","m-linked":"modes",insights:"insights","ins-detail":"insights",library:"library",settings:"settings","c-listen":"home","p-profile":"settings",safety:"settings",notifications:"settings",plans:"settings",family:"settings",devices:"settings",friends:"settings",group:"settings",security:"settings","nfc-cards":"settings","c-find":"home","c-volume":"home","c-announce":"home","c-character":"home","c-routines":"home","c-limit":"home","c-firmware":"home","c-newroutine":"home","m-solo":"modes","m-parent":"modes","m-group":"modes","g-intro":"settings","n-safety":"settings","k-game":"library","k-nfc":"m-solo","content-prefs":"library","r-lock":"insights","h-consent":"settings","h-export":"settings","i-friend":"settings","j-transfer":"settings","j-reset":"settings","friends-add":"settings","onb1":null,"onb3":null,"onbdone":null,"fam-invite":"settings","fam-caregiver":"settings","fam-adult":"settings","fam-child":"settings",onb:null,"onb-parent":null};var tier="free";var RANK={free:0,neybo:1,family:2};var NEED={};var lockTarget=null;function setLock(need){var nm=need==="family"?"Family+":"Neybo+";document.getElementById("lockTier").textContent=nm;document.getElementById("lockTier2").textContent=nm;document.getElementById("lockPrice").textContent=need==="family"?"$39.99/mo":"$14.99/mo";document.getElementById("lockFam").style.display=need==="family"?"flex":"none";}function unlock(){if(lockTarget){tier=NEED[lockTarget];tierBtnUpd();applyTier();var tt=lockTarget;lockTarget=null;go(tt);}}function tierBtnUpd(){var b=document.getElementById("tierBtn");if(b)b.textContent="Plan: "+(tier==="free"?"Free":tier==="neybo"?"Neybo+":"Family+");}function cycleTier(){tier=tier==="free"?"neybo":tier==="neybo"?"family":"free";tierBtnUpd();applyTier();t("Plan: "+(tier==="free"?"Free":tier==="neybo"?"Neybo+":"Family+"));}function insAnnounce(m){var a=document.getElementById("insAnnounce");if(a)a.textContent=m;}function setPeriod(el,k){var seg=document.getElementById("insPeriod");if(!seg)return;seg.querySelectorAll('[role="tab"]').forEach(function(x){var on=x===el;x.classList.toggle("on",on);x.setAttribute("aria-selected",on?"true":"false");x.tabIndex=on?0:-1;});var cr=document.getElementById("customRange");if(cr)cr.style.display=(k==="period")?"flex":"none";var R={day:"Jul 26",week:"Jul 20\u201326",month:"Jul 1\u201331",period:"Custom range"};var lbl=R[k]||"Jul 20\u201326";var dEl=document.getElementById("insDate");if(dEl)dEl.textContent=lbl;var MOMENTS={day:{label:"Moment of the day",icon:"\uD83C\uDF19",text:"Right before bed, Eve asked Neybo why the moon changes shape.",action:"Ask her what she found out about the moon."},week:{label:"Moment of the week",icon:"\uD83D\uDCD6",text:"Eve made up a story where the moon has a snack drawer.",action:"Ask her what happened next in the story."},month:{label:"Moment of the month",icon:"\uD83D\uDCDA",text:"Eve read along with Neybo 14 times this month \u2014 her longest streak yet.",action:"Tell her you noticed how much she\u2019s been reading."},period:{label:"Moment of the range",icon:"\uD83D\uDE80",text:"Across these days, Eve kept coming back to space and dinosaurs.",action:"Ask her which planet she\u2019d visit first."}};var M=MOMENTS[k]||MOMENTS.week;var mEl=document.getElementById("momentLabel");if(mEl)mEl.textContent=M.label;var mCard=document.getElementById("momentCard");if(mCard)mCard.setAttribute("aria-label",M.label);var mIco=document.getElementById("momentIcon");if(mIco)mIco.textContent=M.icon;var mTxt2=document.getElementById("momentText");if(mTxt2)mTxt2.textContent=M.text;var mAct=document.getElementById("momentAction");if(mAct)mAct.textContent=M.action;if(window.renderAnalytics){window.renderAnalytics(k);}if(window.renderStarters){window.renderStarters(k);}var cSub=document.getElementById("csSub");if(cSub){var CS={day:"Little things to talk about with Eve today.",week:"Ideas to talk about with Eve this week.",month:"Ideas to talk about with Eve this month.",period:"Ideas to talk about with Eve in this range."};cSub.textContent=CS[k]||cSub.textContent;}insAnnounce("Showing insights for "+lbl);}function setPeriodKey(k){var seg=document.getElementById("insPeriod");if(!seg)return;var tabs=seg.querySelectorAll('[role="tab"]');var idx={day:0,week:1,month:2,period:3}[k];if(tabs[idx])setPeriod(tabs[idx],k);}function insPeriodKey(e){var seg=document.getElementById("insPeriod");var tabs=[].slice.call(seg.querySelectorAll('[role="tab"]'));var i=tabs.findIndex(function(x){return x.classList.contains("on");});var ks=["day","week","month","period"];if(e.key==="ArrowRight"||e.key==="ArrowDown"){e.preventDefault();var n=(i+1)%4;setPeriod(tabs[n],ks[n]);tabs[n].focus();}else if(e.key==="ArrowLeft"||e.key==="ArrowUp"){e.preventDefault();var pv=(i+3)%4;setPeriod(tabs[pv],ks[pv]);tabs[pv].focus();}}function csMore(btn){var h=document.getElementById("csMoreHost");if(h){h.style.display="block";document.getElementById("csList").appendChild(h);}btn.style.display="none";insAnnounce("More conversation starters shown");}var insLastFocus=null;function insOpen(id){insLastFocus=document.activeElement;var w=document.getElementById(id);w.classList.add("open");var dlg=w.querySelector(".msheet");if(dlg){dlg.setAttribute("tabindex","-1");setTimeout(function(){try{dlg.focus();}catch(e){}},20);}}function insCloseW(id){var w=document.getElementById(id);w.classList.remove("open");if(insLastFocus){try{insLastFocus.focus();}catch(e){}}}function insHowKnow(key){var M={moment:{n:5,types:"Story Forge and Book Reading",kind:"Observation",note:"A moment Neybo recorded during a story activity."},cause:{n:5,types:"Story Forge and Logic Riddles",kind:"Observation",note:"Eve often experimented with what happens next."},space:{n:24,types:"stories, questions and puzzles",kind:"Possible pattern",note:"Based on how often the topic came up \u2014 it suggests interest, not skill level."},feelings:{n:12,types:"word and choice signals in activities",kind:"System inference",note:"Some feelings are named by Eve (self-reported); others are possible signals inferred from choices."}};var m=M[key]||M.moment;var row=function(k,v){return '<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--color-border)"><span style="color:var(--color-text-muted);font-size:var(--font-body-small)">'+k+'</span><span style="color:var(--color-text-primary);font-size:var(--font-body-small);font-weight:600;text-align:right;min-width:0">'+v+'</span></div>';};document.getElementById("insKnowBody").innerHTML='<div class="i-momenttext" style="font-size:var(--font-body-small);margin:4px 0 8px">Based on '+m.n+' '+m.types+' sessions from Jul 20\u201326.</div>'+row("Period","Jul 20\u201326")+row("Interactions used",m.n+" activities")+row("Type of finding",m.kind)+row("Not included","No audio, camera, or data from outside Neybo")+'<div class="i-note" style="margin-top:10px">'+m.note+'</div><div class="i-note">Insights summarize activity with Neybo. They are not medical, psychological or developmental assessments.</div>';insOpen("insKnowWrap");}function insCloseKnow(){insCloseW("insKnowWrap");}function insShare(){insOpen("insShareWrap");}function insCloseShare(){insCloseW("insShareWrap");}function insSw(el){var on=el.classList.toggle("on");el.setAttribute("aria-checked",on?"true":"false");}function insDoShare(){var nm=document.getElementById("shName").classList.contains("on");var au=document.getElementById("shAudio").classList.contains("on");var who=(nm?"with Eve\u2019s name":"without personal details")+(au?" and audio":"");insCloseShare();nbToast("Moment shared "+who);}function insState(name){var main=document.getElementById("insMain");var box=document.getElementById("insStateBox");if(!main||!box)return;if(name==="normal"||!name){box.style.display="none";box.innerHTML="";main.style.display="block";insAnnounce("Insights loaded");return;}main.style.display="none";var H={loading:'<div aria-live="polite" role="status"><span class="visually-hidden">Loading insights</span><div class="i-skel tall"></div><div class="i-skel"></div><div class="i-skel"></div></div>',empty:'<div class="i-state" role="status"><h2>No insights yet</h2><p>Insights will appear after Eve plays with Neybo.</p><button type="button" class="i-btn primary" onclick="go(\'library\')">Explore activities</button></div>',limited:'<div class="i-state" role="status"><h2>A quiet week</h2><p>There isn\u2019t enough activity yet to identify patterns. Here are the moments Neybo recorded.</p><button type="button" class="i-btn" onclick="insState(\'normal\')">Show recorded moments</button></div>',error:'<div class="i-state" role="alert"><h2>Insights aren\u2019t available right now</h2><p>Your data is safe. Try again in a moment.</p><button type="button" class="i-btn primary" onclick="insState(\'normal\')">Try again</button></div>'};box.innerHTML=H[name]||"";box.style.display="block";insAnnounce(name==="loading"?"Loading insights":name+" state");}var INS_STATES=["normal","loading","empty","limited","error"];var insStateIdx=0;function insCycleState(){insStateIdx=(insStateIdx+1)%INS_STATES.length;insState(INS_STATES[insStateIdx]);}function go(id){var _n=NEED[id];if(_n&&RANK[tier]<RANK[_n]){lockTarget=id;setLock(_n);id="r-lock";}document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active")});var el=document.querySelector('.screen[data-s="'+id+'"]');el.classList.add("active");el.scrollTop=0;document.getElementById("phone").classList.toggle("onb",id.indexOf("onb")===0);var tb=TAB[id];document.querySelectorAll(".tab div").forEach(function(d){d.classList.toggle("on",d.getAttribute("data-tab")===tb)});if(id==="home")refreshCubeSwitch();if(id==="library")renderLib();if(id!=="c-find"&&window.findStop)findStop();if(id!=="c-listen"&&window.listenStop)listenStop();if(id==="modes"){viewedMode=activeMode;if(window.renderModeCard)renderModeCard();}if(window.nbToastRoute)nbToastRoute(id);if(window.neyCancelHold)neyCancelHold();}var NBT={seq:0,timer:null,route:null,global:false};function nbCurRoute(){var s=document.querySelector(".screen.active");return s?s.getAttribute("data-s"):null;}function nbToast(msg,opts){opts=opts||{};var e=document.getElementById("toast");if(!e)return;NBT.seq++;var my=NBT.seq;NBT.global=!!opts.global;NBT.route=NBT.global?null:nbCurRoute();clearTimeout(NBT.timer);e.textContent=msg;e.setAttribute("role",opts.error?"alert":"status");e.setAttribute("aria-live",opts.error?"assertive":"polite");e.classList.add("show");var dur=opts.duration||(opts.error?3200:2400);NBT.timer=setTimeout(function(){if(NBT.seq===my)nbToastHide();},dur);}function nbToastHide(){var e=document.getElementById("toast");if(!e)return;clearTimeout(NBT.timer);e.classList.remove("show");NBT.route=null;NBT.global=false;var s=++NBT.seq;setTimeout(function(){if(NBT.seq===s&&!e.classList.contains("show"))e.textContent="";},260);}function nbToastRoute(id){if(NBT.global)return;if(NBT.route&&NBT.route!==id)nbToastHide();}function t(m){nbToast(m);}function sw(el){el.classList.toggle("on")}function modeSel(b,name){document.querySelectorAll(".msel").forEach(function(x){x.classList.remove("on");x.textContent="Select";});b.classList.add("on");b.textContent="Selected";t(name+" active now");}function qcN(e){var o=e.classList.toggle("on");e.querySelector(".l").textContent=o?"On":"Off";t("Neybo "+(o?"on":"off"));if(window.updateHero)updateHero();}function qcM(e){if(e.classList.contains("dis"))return;e.dataset.off=e.dataset.off?"":"1";var off=e.dataset.off;e.querySelector(".l").textContent=off?"Mic off":"Mic on";t("Mic "+(off?"off":"on"));if(window.updateHero)updateHero();}function qtog(el,name){el.classList.toggle("on");var on=el.classList.contains("on");var s=el.querySelector(".qstate");if(s)s.textContent=on?"On":"Off";t(name+(on?" on":" off"));}function fMethod(el,k){el.parentElement.querySelectorAll(".fchip").forEach(function(d){d.classList.remove("on")});el.classList.add("on");var g=function(i){return document.getElementById(i)};g("fEmail").style.display=(k==="email")?"block":"none";g("fPhone").style.display=(k==="phone")?"block":"none";g("fScan").style.display=(k==="scan")?"block":"none";g("fSend").style.display=(k==="scan")?"none":"block";}function famEdit(){var r=document.getElementById("famEditRow");r.style.display=(r.style.display==="flex")?"none":"flex";}function famSave(){var v=document.getElementById("famNameInput").value;document.getElementById("famName").textContent=v;document.getElementById("famEditRow").style.display="none";t("Family name saved");}function invMethod(el,k){el.parentElement.querySelectorAll(".fchip").forEach(function(d){d.classList.remove("on")});el.classList.add("on");var g=function(i){return document.getElementById(i)};g("invEmail").style.display=(k==="email")?"block":"none";g("invPhone").style.display=(k==="phone")?"block":"none";g("invQr").style.display=(k==="qr")?"block":"none";}function durSet(el,k){el.parentElement.querySelectorAll(".fchip").forEach(function(d){d.classList.remove("on")});el.classList.add("on");var g=function(i){return document.getElementById(i)};g("cgDate").style.display=(k==="date")?"block":"none";g("cgSchedule").style.display=(k==="sched")?"block":"none";g("cgRevoke").style.display=(k==="revoke")?"block":"none";}var COVERS={"story-forge":"assets/images/cover-story-forge.png","book-reading":"assets/images/cover-book-reading.png","paint-with-words":"assets/images/cover-paint-with-words.png","dress-up":"assets/images/cover-dress-up.png","role-play":"assets/images/cover-role-play.png","math-through-story":"assets/images/cover-math-through-story.png","big-question-debate":"assets/images/cover-big-question-debate.png","logic-riddles":"assets/images/cover-logic-riddles.png","charging-break":"assets/images/cover-charging-break.png","volcano-lab":"assets/images/cover-volcano-lab.png","kitchen-science":"assets/images/cover-kitchen-science.png","circle-play":"assets/images/cover-circle-play.png","karaoke":"assets/images/cover-karaoke.png","feelings-check-in":"assets/images/cover-feelings-check-in.png","interactive-songs":"assets/images/cover-interactive-songs.png","winter-tales-pack":"assets/images/cover-winter-tales-pack.png"};
 var ITEMS=[
 {id:"story-forge",e:"📜",t:"Story Forge",c:"e",ch:"Ember",cov:"e",m:"solo",tier:"free",topics:["creativity","stories"],ag:[5,9],dur:"10–15 min",pop:82,nw:false,pub:20260410,pg:55,last:"12 min in",desc:"Eve and Ember build a story together — she picks the hero, the twist and the ending while Ember keeps it moving with short prompts.",help:"imagination, vocabulary and story structure."},
 {id:"book-reading",e:"📖",t:"Book Reading",c:"e",ch:"Ember",cov:"e",m:"solo",tier:"free",topics:["stories","reading"],ag:[4,9],dur:"10–20 min",pop:88,nw:false,pub:20260320,last:"Yesterday",desc:"Ember reads along with Eve, pausing to ask what she thinks happens next and co-creating side adventures.",help:"reading confidence and listening."},
@@ -1555,6 +1599,7 @@ function neyContent(mode){var dk=neyThemeDark();
   if(mode==='power-off')return{img:dk?HERO.offDark:HERO.offLight,title:'Neybo is off',sub:'Turn Neybo on for remote control.'};
   if(mode==='offline')return{img:dk?HERO.offDark:HERO.offLight,title:'Neybo is offline',sub:'Local play continues. New commands will sync when Neybo reconnects. · Last connected 6 min ago'};
   if(mode==='mic-off')return{img:dk?HERO.micDark:HERO.micLight,title:'Microphone is off',sub:'Turn the mic on so Neybo can hear you.'};
+  if(NEY_LIVE)return{img:dk?HERO.onDark:HERO.onLight,title:NEY_LIVE.title,sub:NEY_LIVE.sub};
   return{img:dk?HERO.onDark:HERO.onLight,title:'Playing Story Forge',sub:'Story Forge · 12 min in'};}
 function neySetAvail(id,ok){var el=document.getElementById(id);if(!el)return;el.disabled=!ok;el.setAttribute('aria-disabled',(!ok).toString());}
 function neySetReason(id,txt){var el=document.getElementById(id);if(!el)return;if(txt){el.textContent=txt;el.style.display='block';}else{el.style.display='none';el.textContent='';}}
@@ -1598,8 +1643,9 @@ function neyHousekeeping(){var scr=document.querySelector('.screen[data-s="home"
 function neyFocusTitle(){var t=document.getElementById('stTitle');if(t){try{t.focus({preventScroll:true});}catch(e){}}}
 function neyApply(label){neyHousekeeping();renderHome();if(label)neyToast(label);neyFocusTitle();}
 function neyTogglePower(){NEY.power=!NEY.power;try{window.nbSend&&nbSend(NEY.power?'device.power_on':'device.power_off',{});}catch(e){}neyApply(NEY.power?'Neybo turned on':'Neybo turned off');}
-function neyToggleMic(){if(!NEY.power||!NEY.online)return;NEY.mic=!NEY.mic;NEY.micSaved=NEY.mic;neyApply(NEY.mic?'Microphone on':'Microphone off');}
-function neySetMic(on){if(!NEY.power||!NEY.online)return;NEY.mic=!!on;NEY.micSaved=NEY.mic;neyApply(on?'Microphone on':'Microphone off');}
+function neySendMic(){try{window.nbSend&&nbSend('mic.set',{on:!!NEY.mic});}catch(e){}}
+function neyToggleMic(){if(!NEY.power||!NEY.online)return;NEY.mic=!NEY.mic;NEY.micSaved=NEY.mic;neySendMic();neyApply(NEY.mic?'Microphone on':'Microphone off');}
+function neySetMic(on){if(!NEY.power||!NEY.online)return;NEY.mic=!!on;NEY.micSaved=NEY.mic;neySendMic();neyApply(on?'Microphone on':'Microphone off');}
 function toggleOffline(){
   if(NEY.online){NEY.micSaved=NEY.mic;NEY.online=false;neyHousekeeping();renderHome();neyToast('Neybo is offline');neyFocusTitle();}
   else{NEY.online=true;NEY.mic=NEY.micSaved;neyHousekeeping();renderHome();
@@ -1611,6 +1657,45 @@ function neyVolume(){var b=document.getElementById('volBtn');if(b&&b.disabled)re
 function neyFind(){var b=document.getElementById('findBtn');if(b&&b.disabled)return;go('c-find');}
 function neyListen(){var b=document.getElementById('listenBtn');if(b&&b.disabled)return;go('c-listen');}
 function neyNote(){var b=document.getElementById('noteBtn');if(b&&b.disabled)return;if(!NEY.online){NEY.queue++;renderHome();neyToast('Note queued · will send when Neybo reconnects');return;}go('c-announce');}
+/* ===== live activity: the hero mirrors what the cube is really doing =====
+   Fed by device.state / command.ack over the bridge (NBLink.onDevice).
+   NEY_LIVE stays null until the cube speaks, so the demo copy is the fallback. */
+var NEY_LIVE=null;
+var NEY_CHARNAME={moss:'Moss',luna:'Luna',ember:'Ember'};
+var NEY_GAMENAME={riddles:'Logic Riddles',charging:'Charging Break',karaoke:'Karaoke',
+  paint:'Paint With Words',dress:'Dress-Up',story:'Book Reading',
+  'talk-moss':'Talk to Moss','talk-luna':'Talk to Luna','talk-ember':'Talk to Ember'};
+var NEY_SETUPSUB={'onboard-qr':'Waiting for this app','onboard-pair':'Confirm the code shown on Neybo',
+  'onboard-wifi':'Joining Wi-Fi','onboard-profile':'Waiting for the child profile',
+  'onboard-character':'Waiting for a character','group-intro':'Group Mode intro'};
+function neyActivity(st){
+  if(!st||typeof st.state!=='string')return null;
+  var s=st.state,who=NEY_CHARNAME[st.character]||'Neybo';
+  var game=st.gameLabel||NEY_GAMENAME[st.game]||null;
+  if(s==='off')return null;
+  if(s==='boot')return{title:'Neybo is waking up',sub:'Starting up\u2026'};
+  if(s.indexOf('onboard-meeting')===0)return{title:'Meeting '+who,sub:'Setup \u00b7 saying hello'};
+  if(s.indexOf('onboard-')===0||s==='group-intro')
+    return{title:'Setting up Neybo',sub:NEY_SETUPSUB[s]||'Setup in progress'};
+  if(s.indexOf('choose')===0||s==='wake')return{title:'Choosing a game',sub:who+' is waiting for a pick'};
+  if(s==='mode-select')return{title:'Choosing a mode',sub:'On Neybo\u2019s screen'};
+  if(s==='idle')return{title:'Neybo is listening',sub:'Ready \u00b7 nothing playing right now'};
+  if(s==='sleep')return{title:'Neybo is resting',sub:'Screen asleep'};
+  if(s==='charging')return{title:'Charging',sub:(st.battery!=null?('Battery '+st.battery+'%'):'On the charger')};
+  if(s.indexOf('talk-')===0)return{title:'Talking with '+who,sub:'Open conversation'};
+  if(s.indexOf('end')===0)return{title:'Wrapping up',sub:(game?(game+' \u00b7 '):'')+'saying goodbye'};
+  if(s==='karaoke-praise')return{title:'Playing Karaoke',sub:'Karaoke \u00b7 '+who+' is cheering'};
+  if(game)return{title:'Playing '+game,sub:game+' \u00b7 with '+who};
+  return{title:'Neybo is busy',sub:'On Neybo: '+s};
+}
+window.NBonDeviceState=function(st){
+  NEY_LIVE=neyActivity(st);
+  if(st&&typeof st.state==='string')NEY.power=(st.state!=='off');
+  if(st&&typeof st.muted==='boolean'){NEY.mic=!st.muted;NEY.micSaved=NEY.mic;}
+  if(window.renderHome)renderHome();
+};
+try{if(window.NBLink&&NBLink.onDevice)NBLink.onDevice(window.NBonDeviceState);}catch(e){}
+
 updateHero=renderHome;
 renderHome();
 </script>
@@ -2597,6 +2682,10 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     if (m) return 'https://' + m[1].toLowerCase() + '-assets.i.posthog.com';
     return h || 'https://us-assets.i.posthog.com';   // self-host / proxy: same host
   }
+  // The stub's own init() is what inserts /static/array.js, so the callback
+  // must fire as soon as the stub exists. Wiring it to the script's onload
+  // instead was a deadlock: init() was never called, the SDK was never
+  // inserted, and not a single event ever left the page.
   function loadPosthog(cb) {
     if (window.posthog && window.posthog.__loaded) return cb();
     // Official PostHog array-stub loader (minimal).
@@ -2604,10 +2693,11 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       function g(t, e) { var o = e.split('.'); 2 == o.length && (t = t[o[0]], e = o[1]); t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))); }; }
       (p = t.createElement('script')).type = 'text/javascript', p.crossOrigin = 'anonymous', p.async = !0,
       p.src = assetsHost() + '/static/array.js',
-      p.onload = cb, p.onerror = function () { log('posthog load error'); },
+      p.onerror = function () { log('posthog load error'); },
       (r = t.getElementsByTagName('script')[0]).parentNode.insertBefore(p, r);
       var u = e; for (void 0 !== a ? u = e[a] = [] : a = 'posthog', u.people = u.people || [], u.toString = function (t) { var e = 'posthog'; return 'posthog' !== a && (e += '.' + a), t || (e += ' (stub)'), e; }, u.people.toString = function () { return u.toString(1) + '.people (stub)'; },
       o = 'init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug getPageViewId'.split(' '), n = 0; n < o.length; n++)g(u, o[n]); e._i.push([i, s, a]); }, e.__SV = 1); }(document, window.posthog || []);
+    cb();                    // the stub queues init(); the SDK arrives right after
   }
 
   function initPosthog() {
@@ -2686,6 +2776,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       participant_code: S.participant,
       test_session_id: S.session,
       test_version: CFG.test_version,
+      surface: 'parent_app',
       screen_id: S.screen ? S.screen.id : null,
       device_type: S.device,
       viewport_width: window.innerWidth,
@@ -3187,6 +3278,23 @@ function clearTest(){lsDel(NS);lsDel(LOG);
 var didReset=false;
 if(q.get('reset')==='true'){clearTest();didReset=true;}
 
+/* The test room hands us a participantId. A NEW id means a new participant:
+   wipe the stored session so the app opens at the very start of Setup instead
+   of resuming the previous person's progress. Same id = normal reload. */
+try{
+  var _roomPid=sanId(q.get('participantId')||q.get('participant_id')||q.get('pid')||q.get('participant')||'');
+  if(_roomPid){
+    var _roomPidWas=null;
+    try{_roomPidWas=localStorage.getItem('nb_room_participant');}catch(e){}
+    if(_roomPidWas!==_roomPid){
+      clearTest();didReset=true;
+      try{['nb_participant_code','nb_test_session_id','nb_consented','nb_consent_r','nb_tour_seen','nb_tour_done']
+        .forEach(function(k){sessionStorage.removeItem(k);});}catch(e){}
+      try{localStorage.setItem('nb_room_participant',_roomPid);}catch(e){}
+    }
+  }
+}catch(e){}
+
 var S = Object.assign(defState(), lsGet(NS)||{});
 // deep-ensure nested shapes after a version change
 ['parent','child','device','setupPreferences','wifi','flags'].forEach(function(k){S[k]=Object.assign(defState()[k],S[k]||{});});
@@ -3363,6 +3471,7 @@ STEP.child=function(){
     if(!S.child.ageGroup){$('#e-chage').classList.add('show');ok=false;}
     if(!ok){log('validation error',{step:'child'});return;}
     S.child.firstName=fn; save();
+    try{installNameReplacer();}catch(e){}      /* the whole app switches to this name at once */
     try{window.nbSend&&nbSend('profile.save',{childName:fn,ageGroup:S.child.ageGroup||null});}catch(e){}
     next();
   });
@@ -3370,7 +3479,7 @@ STEP.child=function(){
 
 /* --- Connect (Bluetooth simulated) --- */
 STEP.connect=function(){
-  var found=false;
+  var found=false,connected=false;
   paint(header(3)+
   '<h1 class="nbux-h1">Let&#8217;s find your Neybo</h1>'
   +'<p class="nbux-lead">Turn Neybo on, then double-tap the top to wake it.</p>'
@@ -3392,6 +3501,26 @@ STEP.connect=function(){
   });
 
   var rings=$('#cn-rings'),status=$('#cn-status'),cta=$('#cn-cta');
+
+  /* This is the moment the cube should ask to be switched on — not earlier. */
+  try{window.nbSend&&nbSend('hint.set',{hint:'power_on'});}catch(e){}
+
+  /* Pairing requires a cube that is actually powered on at the device.
+     The device reports its state over the same channel; until it says
+     anything other than "off", Connect is inert. */
+  function cubeOn(){try{return !!(window.NBLink&&NBLink.isDeviceOn&&NBLink.isDeviceOn());}catch(e){return false;}}
+  function gateConnect(){
+    if(!found||connected)return;
+    var on=cubeOn();
+    cta.disabled=!on;
+    cta.style.opacity=on?'':'0.55';
+    cta.style.cursor=on?'':'not-allowed';
+    cta.setAttribute('aria-disabled',on?'false':'true');
+    status.textContent=on?'Neybo found':'Turn Neybo on to continue';
+  }
+  try{if(window.NBLink&&NBLink.onDevice)NBLink.onDevice(gateConnect);}catch(e){}
+  try{if(window.NBLink&&NBLink.refreshState)NBLink.refreshState();}catch(e){}
+
   cta.addEventListener('click',function(){
     if(!found){
       try{window.nbSend&&nbSend('setup.start',{});}catch(e){}
@@ -3400,8 +3529,16 @@ STEP.connect=function(){
         rings.classList.remove('nbux-searching');ctaBusy(cta,false);
         found=true;status.textContent='Neybo found';
         $('#cn-found').style.display='block';cta.textContent='Connect';
+        gateConnect();
       },1600);
     } else {
+      if(!cubeOn()){
+        gateConnect();
+        toast('Turn Neybo on first');
+        log('task blocked',{task:'pairing_needs_power'});
+        return;
+      }
+      connected=true;
       try{window.nbSend&&nbSend('pairing.confirm',{deviceId:'7F2A'});}catch(e){}
       ctaBusy(cta,true);status.textContent='Connecting…';
       setTimeout(function(){
@@ -3639,12 +3776,20 @@ function applyPersona(){
   installNetworkName();
 }
 
-var nbObs=null,nbBusy=false;
+var nbObs=null,nbBusy=false,nbNameApplied=null;
 /* text-node only: child name + PRD terminology (§17). Never touches attrs/classes/JS. */
 function applyText(v,name){
   if(!v)return v;
   // \bEve\b only — never inside words like "Every"/"Everyday" (was: "Ciciry day" bug)
   if(name)v=v.replace(/\bEve('s|’s)?\b/g,function(m,p){return name+(p?'’s':'');});
+  /* a name entered earlier (or the placeholder) is already baked into the DOM —
+     swap it for the current one, otherwise the old name sticks forever */
+  if(name&&nbNameApplied&&nbNameApplied!==name&&nbNameApplied.length>=2){
+    try{
+      var esc=nbNameApplied.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      v=v.replace(new RegExp('\\b'+esc+"('s|’s)?\\b",'g'),function(m,p){return name+(p?'’s':'');});
+    }catch(e){}
+  }
   v=v.replace(/(’s|'s) Cube\b/g,'$1 Neybo')       // "Mila's Cube" -> "Mila's Neybo"
      .replace(/Find the [Cc]ube\b/g,'Find Neybo') // "Find the cube" -> "Find Neybo"
      .replace(/Leave a note\b/g,'Send a message');// "Leave a note" -> "Send a message"
@@ -3653,7 +3798,8 @@ function applyText(v,name){
 function textFix(root,name){
   var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null,false),n,arr=[];
   while(n=w.nextNode()){var v=n.nodeValue;
-    if(v&&(v.indexOf('Eve')>=0||v.indexOf('Cube')>=0||v.indexOf('cube')>=0||v.indexOf('Leave a note')>=0))arr.push(n);}
+    var stale=(nbNameApplied&&nbNameApplied!==name&&nbNameApplied.length>=2&&v&&v.indexOf(nbNameApplied)>=0);
+    if(v&&(stale||v.indexOf('Eve')>=0||v.indexOf('Cube')>=0||v.indexOf('cube')>=0||v.indexOf('Leave a note')>=0))arr.push(n);}
   arr.forEach(function(t){var nv=applyText(t.nodeValue,name);if(nv!==t.nodeValue)t.nodeValue=nv;});
 }
 /* Single source of truth for the child's display name: trimmed, with a safe
@@ -3680,7 +3826,15 @@ function installNameReplacer(){
     nbBusy=false;
   });
   nbObs.observe(host,{childList:true,subtree:true});
+  nbNameApplied=name||null;
 }
+window.nbRefreshName=installNameReplacer;
+/* console helper: set the child's name and re-flow the whole interface */
+window.nbSetChildName=function(v){
+  var n=String(v||'').trim();
+  if(n.length<2)return false;
+  S.child.firstName=n;save();installNameReplacer();return n;
+};
 function installNetworkName(){
   var net=S.wifi.network||'Miller Home';
   var host=document.getElementById('phone')||document.body;
@@ -3804,6 +3958,9 @@ function buildResearchBar(){
 }
 function restartTest(){
   log('task completed',{task:'restart'});
+  /* the cube must un-provision too, otherwise it boots straight into an
+     active device while the app is back at the start of Setup */
+  try{window.nbSend&&nbSend('setup.reset',{});}catch(e){}
   try{if(window.NBA)NBA.sessionUpdate({completion_status:'abandoned'});}catch(e){}
   clearTest();
   // start a completely fresh test session (new participant_code + test_session_id)
@@ -3819,7 +3976,7 @@ function restartTest(){
       history.replaceState(null,'',location.pathname+(qs?('?'+qs):'')+location.hash);
     }
   }catch(e){}
-  location.reload();
+  setTimeout(function(){location.reload();},260);   /* let setup.reset leave first */
 }
 function exportLog(){
   var data=JSON.stringify({participant:S.participant||null,exportedAt:new Date().toISOString(),events:BUF},null,2);
@@ -3869,7 +4026,16 @@ window.NBUX={
 /* ================= usability tasks (config, separate from UI) ================= */
 
 /* ================= participant + consent gate ================= */
-function gateBypass(){return q.get('start')==='home'||q.get('nogate')==='1'||q.has('participant');}
+/* The gate is mandatory. It used to be skipped for ?participant= / ?nogate=1 /
+   ?start=home, and because those paths never call NBA.beginSession(), the whole
+   session ran with consent_analytics=false — PostHog was never even loaded.
+   Nothing bypasses it now; a reload inside the same session resumes instead. */
+function gateBypass(){return false;}
+function gateParticipantCode(){
+  var k=['participant','participantId','participant_id','pid'];
+  for(var i=0;i<k.length;i++){var v=sanId(q.get(k[i]));if(v)return v;}
+  return null;
+}
 function consentedThisSession(){try{return sessionStorage.getItem('nb_consented')==='1'&&sessionStorage.getItem('nb_participant_code');}catch(e){return false;}}
 
 function renderGate(){
@@ -3902,13 +4068,24 @@ function gateSubmit(){
   if(!ok)return;
 
   try{
-    if(window.NBA)NBA.beginSession({first_name:fn,last_name:ln,email:null,child_age_group:null,
+    if(window.NBA)NBA.beginSession({participant_code:gateParticipantCode()||undefined,
+      first_name:fn,last_name:ln,email:null,child_age_group:null,
       consent_analytics:true,consent_session_recording:true});
   }catch(e){}
+  // Carry the name forward so the account step is not a second round of typing.
+  // (S already holds the parent's name once that step is saved; nothing new
+  // reaches sessionStorage, which still only ever holds non-PII codes.)
+  S.parent.firstName=fn;S.parent.lastName=ln;save();
   // Only NON-PII codes + consent flags in sessionStorage (never the name/email)
   try{sessionStorage.setItem('nb_consented','1');sessionStorage.setItem('nb_consent_r','1');}catch(e){}
   log('consent given');                       // local log only (no PII)
   // proceed into the real onboarding
+  if(q.get('start')==='home'){        // internal review: straight to the app, still consented
+    if(!S.child.firstName){S.child.firstName='Alex';S.child.ageGroup='6-8';}
+    S.onboardingCompleted=true;save();
+    finishToApp(false);
+    return;
+  }
   S.onboardingStep=0;S.onboardingCompleted=false;save();
   renderStep();
 }
