@@ -129,7 +129,7 @@
   .pane.dimmed{pointer-events:none}
   #nbRing{
     position:fixed;z-index:59;pointer-events:none;border-radius:18px;opacity:0;
-    box-shadow:0 0 0 2px rgba(255,213,92,.95), 0 0 22px 6px rgba(255,205,77,.20);
+    box-shadow:0 0 0 2px rgba(255,213,92,.95), 0 0 14px 3px rgba(255,205,77,.22);
     transition:opacity .35s ease, left .4s cubic-bezier(.2,.7,.2,1), top .4s cubic-bezier(.2,.7,.2,1),
                width .4s cubic-bezier(.2,.7,.2,1), height .4s cubic-bezier(.2,.7,.2,1);
   }
@@ -832,10 +832,12 @@
 
     function ringBox(box, radius) {
       if (!box) { ring.classList.remove('on'); return false; }
-      var host = deviceHolder.getBoundingClientRect(), pad = 7;
-      var l = Math.max(host.left + 1, box.left - pad), t = Math.max(host.top + 1, box.top - pad);
-      var r2 = Math.min(host.left + host.width - 1, box.left + box.width + pad);
-      var b2 = Math.min(host.top + host.height - 1, box.top + box.height + pad);
+      /* the glow spreads past the ring and the pane has rounded corners —
+         keep the whole thing inside so it never bleeds onto the room */
+      var host = deviceHolder.getBoundingClientRect(), pad = 6, edge = 16;
+      var l = Math.max(host.left + edge, box.left - pad), t = Math.max(host.top + edge, box.top - pad);
+      var r2 = Math.min(host.left + host.width - edge, box.left + box.width + pad);
+      var b2 = Math.min(host.top + host.height - edge, box.top + box.height + pad);
       ring.style.borderRadius = (radius == null ? 999 : radius) + 'px';
       ring.style.left = Math.round(l) + 'px';
       ring.style.top = Math.round(t) + 'px';
@@ -897,16 +899,15 @@
                    done: function (s) { return s.state === 'onboard-meeting' || s.state === 'choose'; } } ] },
       { label: 'Play Logic Riddles',
         hit: function (s) { return s.game === 'riddles'; },
-        steps: [ { target: 'game.riddles', done: function (s) { return s.game === 'riddles'; } } ] },
+        steps: [ { chip: 'riddle',      done: function (s) { return s.game === 'riddles'; } } ] },
       { label: 'Sing karaoke with Luna',
         hit: function (s) { return s.game === 'karaoke'; },
-        steps: [ { target: 'char.luna',    done: function (s) { return s.character === 'luna'; } },
-                 { target: 'game.karaoke', done: function (s) { return s.game === 'karaoke'; } } ] },
+        steps: [ { target: 'char.luna', done: function (s) { return s.character === 'luna'; } },
+                 { chip: 'karaoke',    done: function (s) { return s.game === 'karaoke'; } } ] },
       { label: 'Have a talk with Ember',
         hit: function (s) { return s.state === 'talk-ember'; },
-        steps: [ { target: 'char.ember',   done: function (s) { return s.character === 'ember'; } },
-                 { chip: 'talk', target: 'choose.ember',
-                   done: function (s) { return s.state === 'talk-ember'; } } ] },
+        steps: [ { target: 'char.ember', done: function (s) { return s.character === 'ember'; } },
+                 { chip: 'talk',      done: function (s) { return s.state === 'talk-ember'; } } ] },
       { label: 'Send Neybo to sleep',
         hit: function (s) { return s.state === 'sleep'; },
         steps: [ { target: 'device.sleep', done: function (s) { return s.state === 'sleep'; } } ] }
@@ -957,6 +958,9 @@
 
     /* ================= the steps ================= */
     function stepConnected() {
+      hideTourOffer();
+      clearInterval(offerKiller);
+      offerKiller = setInterval(hideTourOffer, 400);   /* it arrives right after setup */
       show({
         eyebrow: 'Setup complete',
         title: 'Great — the app and Neybo are connected',
@@ -1037,9 +1041,23 @@
       spotTask();
     }
 
+    /* The app offers its own tour card at the end of setup. In the room the
+       guided script is the one asking, so the offer stays off screen and the
+       tour is started by this card's button instead. */
+    var offerKiller = null;
+    function hideTourOffer() {
+      try {
+        var d = parentFrame.contentWindow.document;
+        var off = d.getElementById('nbtour-offer');
+        if (off) { off.hidden = true; off.style.display = 'none'; }
+        d.body.classList.remove('tour-offering');
+      } catch (e) {}
+    }
+
     function stepApp() {
       if (step === 'app' || step === 'free') return;
       step = 'app';
+      hideTourOffer();
       watchingTasks = false;
       ringOff();
       /* the cube is asleep by now, so it needs no dimming — leave it live */
@@ -1056,6 +1074,8 @@
 
     function startAppTour() {
       hideCard();
+      clearInterval(offerKiller); offerKiller = null;
+      hideTourOffer();
       var pw = null;
       try { pw = parentFrame.contentWindow; } catch (e) {}
       var started = false;
