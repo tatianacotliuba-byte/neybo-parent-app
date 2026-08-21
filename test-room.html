@@ -1047,8 +1047,6 @@
     /* ================= the steps ================= */
     function stepConnected() {
       hideTourOffer();
-      clearInterval(offerKiller);
-      offerKiller = setInterval(hideTourOffer, 400);   /* it arrives right after setup */
       show({
         eyebrow: 'Setup complete',
         title: 'Great — the app and Neybo are connected',
@@ -1129,18 +1127,32 @@
       spotTask();
     }
 
-    /* The app offers its own tour card at the end of setup. In the room the
-       guided script is the one asking, so the offer stays off screen and the
-       tour is started by this card's button instead. */
+    /* The app offers its own tour card the moment setup finishes. In the room
+       the guided script is the one asking, so that offer must never appear —
+       not even for the moment before the room's own card arrives. A stylesheet
+       injected into the app frame keeps it off screen with no flash; the class
+       and the element are cleared too, and the whole thing is re-applied
+       whenever the frame reloads. */
     var offerKiller = null;
     function hideTourOffer() {
       try {
         var d = parentFrame.contentWindow.document;
+        if (!d.getElementById('nb-room-hide-offer')) {
+          var st = d.createElement('style');
+          st.id = 'nb-room-hide-offer';
+          st.textContent = '#nbtour-offer{display:none !important}';
+          (d.head || d.documentElement).appendChild(st);
+        }
         var off = d.getElementById('nbtour-offer');
         if (off) { off.hidden = true; off.style.display = 'none'; }
         d.body.classList.remove('tour-offering');
       } catch (e) {}
     }
+    /* from the first moment the frame exists, and again after any reload */
+    hideTourOffer();
+    parentFrame.addEventListener('load', hideTourOffer);
+    clearInterval(offerKiller);
+    offerKiller = setInterval(hideTourOffer, 1000);   /* cheap safety net */
 
     function stepApp() {
       if (step === 'app' || step === 'free') return;
@@ -1163,7 +1175,11 @@
     function startAppTour() {
       hideCard();
       clearInterval(offerKiller); offerKiller = null;
-      hideTourOffer();
+      try {
+        var d0 = parentFrame.contentWindow.document;
+        var s0 = d0.getElementById('nb-room-hide-offer');
+        if (s0 && s0.parentNode) s0.parentNode.removeChild(s0);   /* the tour is ours now */
+      } catch (e) {}
       var pw = null;
       try { pw = parentFrame.contentWindow; } catch (e) {}
       var started = false;
