@@ -500,8 +500,12 @@ select.nbux-input{appearance:none;-webkit-appearance:none;background-image:linea
 
 /* checkbox row */
 .nbux-check{display:flex;gap:12px;align-items:flex-start;margin:6px 0 4px;cursor:pointer;}
-.nbux-box{width:24px;height:24px;min-width:24px;border:2px solid var(--line);border-radius:7px;
+.nbux-box{width:24px;height:24px;min-width:24px;border:2px solid #9a948a;border-radius:7px;
+  background:#fff;box-shadow:inset 0 1px 2px rgba(34,38,46,.10);
   display:flex;align-items:center;justify-content:center;transition:.12s;margin-top:1px;}
+.nbux-check:hover .nbux-box{border-color:#6d6860;}
+body.dark .nbux-box{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.46);box-shadow:none;}
+body.dark .nbux-check:hover .nbux-box{border-color:rgba(255,255,255,.72);}
 .nbux-check[aria-checked="true"] .nbux-box{background:var(--green);border-color:var(--green);}
 .nbux-check[aria-checked="true"] .nbux-box svg{opacity:1;}
 .nbux-box svg{width:15px;height:15px;color:#fff;opacity:0;}
@@ -3461,6 +3465,7 @@ STEP.child=function(){
     if(!S.child.ageGroup){$('#e-chage').classList.add('show');ok=false;}
     if(!ok){log('validation error',{step:'child'});return;}
     S.child.firstName=fn; save();
+    try{installNameReplacer();}catch(e){}      /* the whole app switches to this name at once */
     try{window.nbSend&&nbSend('profile.save',{childName:fn,ageGroup:S.child.ageGroup||null});}catch(e){}
     next();
   });
@@ -3762,12 +3767,20 @@ function applyPersona(){
   installNetworkName();
 }
 
-var nbObs=null,nbBusy=false;
+var nbObs=null,nbBusy=false,nbNameApplied=null;
 /* text-node only: child name + PRD terminology (§17). Never touches attrs/classes/JS. */
 function applyText(v,name){
   if(!v)return v;
   // \bEve\b only — never inside words like "Every"/"Everyday" (was: "Ciciry day" bug)
   if(name)v=v.replace(/\bEve('s|’s)?\b/g,function(m,p){return name+(p?'’s':'');});
+  /* a name entered earlier (or the placeholder) is already baked into the DOM —
+     swap it for the current one, otherwise the old name sticks forever */
+  if(name&&nbNameApplied&&nbNameApplied!==name&&nbNameApplied.length>=2){
+    try{
+      var esc=nbNameApplied.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      v=v.replace(new RegExp('\\b'+esc+"('s|’s)?\\b",'g'),function(m,p){return name+(p?'’s':'');});
+    }catch(e){}
+  }
   v=v.replace(/(’s|'s) Cube\b/g,'$1 Neybo')       // "Mila's Cube" -> "Mila's Neybo"
      .replace(/Find the [Cc]ube\b/g,'Find Neybo') // "Find the cube" -> "Find Neybo"
      .replace(/Leave a note\b/g,'Send a message');// "Leave a note" -> "Send a message"
@@ -3776,7 +3789,8 @@ function applyText(v,name){
 function textFix(root,name){
   var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null,false),n,arr=[];
   while(n=w.nextNode()){var v=n.nodeValue;
-    if(v&&(v.indexOf('Eve')>=0||v.indexOf('Cube')>=0||v.indexOf('cube')>=0||v.indexOf('Leave a note')>=0))arr.push(n);}
+    var stale=(nbNameApplied&&nbNameApplied!==name&&nbNameApplied.length>=2&&v&&v.indexOf(nbNameApplied)>=0);
+    if(v&&(stale||v.indexOf('Eve')>=0||v.indexOf('Cube')>=0||v.indexOf('cube')>=0||v.indexOf('Leave a note')>=0))arr.push(n);}
   arr.forEach(function(t){var nv=applyText(t.nodeValue,name);if(nv!==t.nodeValue)t.nodeValue=nv;});
 }
 /* Single source of truth for the child's display name: trimmed, with a safe
@@ -3803,7 +3817,15 @@ function installNameReplacer(){
     nbBusy=false;
   });
   nbObs.observe(host,{childList:true,subtree:true});
+  nbNameApplied=name||null;
 }
+window.nbRefreshName=installNameReplacer;
+/* console helper: set the child's name and re-flow the whole interface */
+window.nbSetChildName=function(v){
+  var n=String(v||'').trim();
+  if(n.length<2)return false;
+  S.child.firstName=n;save();installNameReplacer();return n;
+};
 function installNetworkName(){
   var net=S.wifi.network||'Miller Home';
   var host=document.getElementById('phone')||document.body;
@@ -4041,6 +4063,10 @@ function gateSubmit(){
       first_name:fn,last_name:ln,email:null,child_age_group:null,
       consent_analytics:true,consent_session_recording:true});
   }catch(e){}
+  // Carry the name forward so the account step is not a second round of typing.
+  // (S already holds the parent's name once that step is saved; nothing new
+  // reaches sessionStorage, which still only ever holds non-PII codes.)
+  S.parent.firstName=fn;S.parent.lastName=ln;save();
   // Only NON-PII codes + consent flags in sessionStorage (never the name/email)
   try{sessionStorage.setItem('nb_consented','1');sessionStorage.setItem('nb_consent_r','1');}catch(e){}
   log('consent given');                       // local log only (no PII)
