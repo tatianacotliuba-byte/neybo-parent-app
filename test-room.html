@@ -59,10 +59,20 @@
   #intro.clear{background:transparent}
   #intro[hidden]{display:none}
   #introCube{
-    width:min(40vh,360px);opacity:0;transform:scale(.88);
+    position:relative;width:min(40vh,360px);opacity:0;transform:scale(.88);
     filter:drop-shadow(0 26px 60px rgba(0,0,0,.24));
     transition:opacity .9s ease, transform 1.15s cubic-bezier(.2,.68,.2,1);
   }
+  /* The cube still is the body; the clip plays inside its own screen, so the
+     result reads as one whole cube — no video rectangle, no extra frame. */
+  #introCube .introcube-frame{display:block;width:100%;height:auto}
+  #introCube .introcube-screen{
+    position:absolute;left:22%;top:20.6%;width:57%;height:58.4%;
+    border-radius:13%;object-fit:cover;
+    background:transparent;border:0;outline:0;pointer-events:none;
+    opacity:0;transition:opacity .45s ease;
+  }
+  #introCube.playing .introcube-screen{opacity:1}
   #intro.lit #introCube{opacity:1;transform:scale(1)}
   #intro.gone #introCube{opacity:0}
   /* Same visual language as the in-app tutorial (nbtour): dark card, gold
@@ -200,7 +210,13 @@
 </main>
 
 <div id="intro" hidden aria-hidden="true">
-  <img id="introCube" src="assets/images/onboarding-cube.png" alt="">
+  <div id="introCube">
+    <img class="introcube-frame" src="assets/images/onboarding-cube.png" alt="Neybo cube">
+    <video class="introcube-screen" id="introCubeVideo"
+           src="assets/images/device-moss-idle.mp4"
+           autoplay muted loop playsinline preload="auto"
+           disablepictureinpicture tabindex="-1" aria-hidden="true"></video>
+  </div>
   <div class="introcap" id="introCap1">
     <span class="pointer" aria-hidden="true"></span>
     <span class="eyebrow">Meet the device</span>
@@ -416,6 +432,20 @@
       var top  = r.top + r.height * (yBias == null ? 0.5 : yBias) - ch / 2;
       card.style.left = Math.round(Math.min(Math.max(EDGE, left), Math.max(EDGE, window.innerWidth - cw - EDGE))) + 'px';
       card.style.top  = Math.round(Math.min(Math.max(EDGE, top), Math.max(EDGE, window.innerHeight - ch - EDGE))) + 'px';
+    }
+
+    /* the clip inside the cube's screen: only revealed once it really plays,
+       so a blocked autoplay leaves the static cube instead of a black box */
+    var clip = document.getElementById('introCubeVideo');
+    if (clip) {
+      var lit = function () { cube.classList.add('playing'); };
+      clip.addEventListener('loadeddata', lit);
+      clip.addEventListener('playing', lit);
+      clip.addEventListener('error', function () { cube.classList.remove('playing'); });
+      try {
+        var pr = clip.play();
+        if (pr && pr.catch) pr.catch(function () {});
+      } catch (e) {}
     }
 
     var timers = [];
