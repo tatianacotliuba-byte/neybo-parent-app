@@ -808,6 +808,23 @@ body.nbux-onb #tab{display:none !important;}
 #nbux-root .nbux-card{background:var(--card);border-color:var(--line);}
 #nbux-root .nbux-rings{--nb-ring:rgba(245,200,74,.55);}
 
+
+/* ---------------------------------------------------------------------
+   Final setup screen ("Neybo is ready for …") — fits without scrolling.
+   Scoped with :has() to the one screen that carries summary rows, so the
+   welcome hero and every other step keep their own rhythm.
+   --------------------------------------------------------------------- */
+.nbux-scroll:has(.nbux-sum){padding-top:44px;padding-bottom:10px;}
+.nbux-scroll:has(.nbux-sum) .nbux-prog{margin-bottom:8px;}
+.nbux-scroll:has(.nbux-sum) .nbux-success{padding:0 0 2px;}
+.nbux-scroll:has(.nbux-sum) .neybo-hero-image{width:min(52vw,208px);}
+.nbux-scroll:has(.nbux-sum) .nbux-h1{margin:2px 0 4px;font-size:24px;}
+.nbux-scroll:has(.nbux-sum) .nbux-lead{margin-bottom:10px;}
+.nbux-scroll:has(.nbux-sum) .nbux-card{padding:6px 14px;margin-bottom:10px;}
+.nbux-scroll:has(.nbux-sum) .nbux-sum{padding:8px 0;}
+.nbux-scroll:has(.nbux-sum) .nbux-cta{padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));}
+.nbux-scroll:has(.nbux-sum) .nbux-sec{padding:8px;min-height:40px;}
+
 @media (prefers-reduced-motion:reduce){
   #nbux-splash .nbxs-cube,#nbux-splash .nbxs-ground,#nbux-splash .nbxs-word b,
   #nbux-splash .nbxs-rule,#nbux-splash .nbxs-tag,#nbux-splash .nbxs-skip{animation:none;opacity:1;transform:none;}
@@ -3415,7 +3432,10 @@ var CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wid
 var NB_ONB_CUBE='assets/images/onboarding-cube.png';
 var NB_HERO_IMG='assets/images/nb-hero.png';
 var NB_HERO_IMG_DARK='assets/images/nb-hero-dark.jpg';
-function heroSrc(){try{if(document.body.classList.contains('dark'))return NB_HERO_IMG_DARK;}catch(e){}return NB_HERO_IMG;}
+/* Setup runs on one dark ground (see SETUP DARK THEME), so the hero is always
+   the dark artwork — the light PNG carries its own pale box, which read as a
+   white slab on the welcome screen. */
+function heroSrc(){ return NB_HERO_IMG_DARK; }
 /* onboarding cube = provided tiger art, transparent bg so it blends on any page bg */
 function cubeBg(){ return "url('"+NB_ONB_CUBE+"')"; }
 
