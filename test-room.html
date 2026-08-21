@@ -1698,7 +1698,7 @@
   }
 
   /* channel traffic: latency, errors, and what the cube actually did */
-  var lastCubeState = null;
+  var lastCubeState = null, lastCubeAt = 0;
   function onChannel(payload) {
     if (!payload || typeof payload !== 'object') return;
     var type = payload.type || '';
@@ -1718,6 +1718,7 @@
       if (type === 'command.error') { diag.failed_command_count++; diag.bridge_error_count++; }
     }
     var snap = payload.payload && payload.payload.state;
+    if (snap && snap.state) lastCubeAt = nowMs();
     if (snap && snap.state && snap.state !== lastCubeState) {
       var prev = lastCubeState;
       lastCubeState = snap.state;
@@ -1773,21 +1774,40 @@
   try { if (window.NBRoom && window.NBRoom.onStatus) window.NBRoom.onStatus(function (s) { roomSubscribed = (s === 'SUBSCRIBED'); }); } catch (e) {}
 
   var CUBE_NOT_READY = /^(off|boot|onboard-)/;
+  var GUIDE_GRACE_MS = 5 * 60 * 1000;      /* a guided run left unfinished */
+  var CUBE_FRESH_MS  = 45 * 1000;          /* the cube reported recently */
+
   function readiness() {
     var link = appLink(), snap = cubeSnap();
+    var cubeFresh = lastCubeAt > 0 && (nowMs() - lastCubeAt) < CUBE_FRESH_MS;
+
+    /* The guided run should be over — the ask belongs to free exploration, not
+       to the middle of a tutorial. But a tester who never finishes the tasks
+       or never starts the app tour must still be asked, so after a grace
+       period from the end of setup the run counts as done. */
+    var guideDone = !!window.NBRoomGuideDone;
+    var guideTimedOut = !guideDone && !!st.setup_done_at &&
+                        (nowMs() - st.setup_done_at) > GUIDE_GRACE_MS;
+
+    /* The link that matters is app <-> cube. The room's own read-only observer
+       is a nice-to-have: a live cube report proves the pair is working even if
+       the observer never subscribed. */
+    var bridgeOk = !!(link && link.subscribed) && (roomSubscribed || cubeFresh);
+
     var r = {
       app_setup_done:   appOnboardingDone(),
       device_setup_done: !!(snap && snap.firstRunDone && !CUBE_NOT_READY.test(snap.state || 'off')),
-      /* the guided run — cube tour, cube tasks, app tour — has to be over:
-         the ask belongs to free exploration, not to the middle of a tutorial */
-      guided_run_done:  !!window.NBRoomGuideDone,
+      guided_run_done:  guideDone || guideTimedOut,
+      guide_timed_out:  guideTimedOut,
       same_participant: !!(link && PID && link.participantId === PID),
       app_subscribed:   !!(link && link.subscribed),
       room_subscribed:  roomSubscribed,
+      cube_fresh:       cubeFresh,
+      bridge_ok:        bridgeOk,
       cube_state:       snap ? snap.state : null
     };
     r.ok = r.app_setup_done && r.device_setup_done && r.guided_run_done &&
-           r.same_participant && r.app_subscribed && r.room_subscribed;
+           r.same_participant && bridgeOk;
     return r;
   }
 
@@ -1877,8 +1897,9 @@
       'feedback · pid ' + (PID || '—') + '\n' +
       'ready ' + (r.ok ? 'yes' : 'no') +
       ' (app ' + (r.app_setup_done ? 1 : 0) + ' cube ' + (r.device_setup_done ? 1 : 0) +
-      ' guide ' + (r.guided_run_done ? 1 : 0) +
+      ' guide ' + (r.guided_run_done ? 1 : 0) + (r.guide_timed_out ? '(t)' : '') +
       ' link ' + (r.app_subscribed ? 1 : 0) + ' room ' + (r.room_subscribed ? 1 : 0) +
+      (r.cube_fresh ? '(cube live)' : '') +
       ' pid ' + (r.same_participant ? 1 : 0) + ')\n' +
       'prompt ' + (st.prompt_count || 0) + ' · later ' + (st.later_count || 0) +
       ' · submitted ' + (st.submitted ? 'yes' : 'no') + '\n' +
