@@ -1536,7 +1536,7 @@
 
   /* ---------------------------------------------------------------- config */
   var VERSION            = 1;
-  var PROMPT_DELAY_MS    = 30000;
+  var PROMPT_DELAY_MS    = 10000;      /* ten seconds of free exploration */
   var LATER_DELAY_MS     = 120000;
   var TEXT_MAX           = 1000;
   var APP_VERSION        = 'parent-app-proto-1';
@@ -1806,8 +1806,14 @@
       bridge_ok:        bridgeOk,
       cube_state:       snap ? snap.state : null
     };
-    r.ok = r.app_setup_done && r.device_setup_done && r.guided_run_done &&
-           r.same_participant && bridgeOk;
+    /* Reaching free exploration is the whole answer: the guide only gets there
+       after setup, the cube tour, the tasks and the app tour. Nothing else may
+       stand in the way — a cube that has gone to sleep stops reporting, and
+       waiting on the channel is what kept the ask from ever appearing. */
+    r.ok = guideDone ||
+           /* no guide, or a run left unfinished: fall back to the checks */
+           (guideTimedOut && r.app_setup_done && r.device_setup_done &&
+            r.same_participant && bridgeOk);
     return r;
   }
 
