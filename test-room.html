@@ -226,7 +226,13 @@
   </section>
   <section class="pane pane-device">
     <div class="holder" id="deviceHolder">
-      <iframe id="deviceFrame" class="frame" title="Neybo Device Prototype"></iframe>
+      <!-- Talk mode needs the microphone, and a cross-origin frame gets none
+           unless the page that embeds it says so. Without this attribute
+           getUserMedia inside the cube is rejected outright and talk mode
+           can never connect from the Test Room. autoplay lets the avatar's
+           voice start without a second gesture inside the frame. -->
+      <iframe id="deviceFrame" class="frame" title="Neybo Device Prototype"
+              allow="microphone; autoplay"></iframe>
     </div>
     <div class="cap" data-cap hidden>Device</div>
   </section>
