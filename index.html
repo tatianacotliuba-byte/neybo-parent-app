@@ -554,10 +554,9 @@ body.dark .nbux-check:hover .nbux-box{border-color:rgba(255,255,255,.72);}
   object-fit:contain;object-position:center;filter:none;box-shadow:none;transform:none;background:none;}
 .neybo-hero-image::before,.neybo-hero-image::after{content:none;}
 /* match onboarding bg to each hero image's own bg so the hero blends seamlessly */
-body:not(.dark) #nbux-root, body:not(.dark) .nbux-frame{background:#f1ece0;}
-body:not(.dark) .nbux-cta{background:linear-gradient(to top,#f1ece0 72%,transparent);}
-body.dark #nbux-root, body.dark .nbux-frame{background:#0f1024;}
-body.dark .nbux-cta{background:linear-gradient(to top,#0f1024 72%,transparent);}
+/* setup runs on one dark ground in both app themes — see SETUP DARK THEME below */
+#nbux-root, .nbux-frame{background:var(--cream);}
+.nbux-cta{background:linear-gradient(to top,var(--cream) 72%,transparent);}
 .nbux-ring{position:absolute;border:2px solid var(--yellow);border-radius:50%;opacity:0;}
 .nbux-searching .nbux-ring{animation:nbwave 2.1s ease-out infinite;}
 .nbux-ring.r1{width:var(--nb-cube);height:var(--nb-cube);}
@@ -718,6 +717,96 @@ body.nbux-onb #tab{display:none !important;}
   opacity:0;animation:nbxtag .5s ease 1.3s forwards;cursor:pointer;padding:10px 16px;min-height:44px;}
 #nbux-splash.reduce .nbxs-cube,#nbux-splash.reduce .nbxs-ground,#nbux-splash.reduce .nbxs-word b,
 #nbux-splash.reduce .nbxs-rule,#nbux-splash.reduce .nbxs-tag,#nbux-splash.reduce .nbxs-skip{animation:none;opacity:1;transform:none;}
+
+
+/* =====================================================================
+   SETUP DARK THEME — one palette, always on
+   ---------------------------------------------------------------------
+   The whole pre-Home flow (splash, consent gate, every setup step, their
+   sheets and toasts) runs on the app's OWN dark token set, so it matches
+   the dark Home screen instead of introducing a second palette. Scoped to
+   the overlay roots only: Home and every post-setup screen keep whatever
+   theme the parent picked.
+   Nothing below invents a colour that Home does not already use, apart
+   from four values tuned for legibility on a dark ground (accent text,
+   mint, coral, placeholder) — all of them tokens, none of them repeated.
+   ===================================================================== */
+#nbux-root, #nbux-splash, #nbux-sheetwrap, #nbux-toast{
+  /* surfaces: page, then progressively lighter */
+  --cream:#121326;
+  --card:#1E213A;
+  --surface-soft:#292C49;
+  --pill:#292C49;
+  --field:#23263F;
+  --accent-soft:#393426;
+  --nbo-elev:#242844;
+  --nbo-raised:#2A2E4B;
+  /* text */
+  --ink:#F7F3E8;
+  --body:#C7C4DC;
+  --muted:#B5B1C8;
+  --label:#9A97B4;
+  --nbo-placeholder:#9490AD;
+  /* lines */
+  --line:#353957;
+  --lineacc:#6B5A2A;
+  --nbo-line-strong:#74719A;
+  --nbo-line-hover:#A7A3C4;
+  /* accent + status, tuned for a dark ground */
+  --ystrong:#F5C84A;
+  --color-focus:#F5C84A;
+  --color-accent-text:#F6E4AE;
+  --green:#7FCB93;
+  --coral:#FF8E71;
+  --nbo-on-mint:#10261A;
+  --nbo-glow:0 0 0 3px rgba(245,200,74,.22);
+}
+
+/* --- inputs: dark field, visible border, readable placeholder --- */
+#nbux-root .nbux-input,#nbux-sheetwrap .nbux-input{background:var(--field);border-color:var(--nbo-line-strong);color:var(--ink);}
+#nbux-root .nbux-input::placeholder,#nbux-sheetwrap .nbux-input::placeholder{color:var(--nbo-placeholder);opacity:1;}
+#nbux-root .nbux-input:hover,#nbux-sheetwrap .nbux-input:hover{border-color:var(--nbo-line-hover);}
+#nbux-root .nbux-input.err,#nbux-sheetwrap .nbux-input.err{border-color:var(--coral);}
+
+/* --- checkbox + switch: obvious off, obvious on --- */
+#nbux-root .nbux-box,#nbux-sheetwrap .nbux-box{background:rgba(255,255,255,.05);border-color:var(--nbo-line-strong);box-shadow:none;}
+#nbux-root .nbux-check:hover .nbux-box,#nbux-sheetwrap .nbux-check:hover .nbux-box{border-color:var(--nbo-line-hover);}
+#nbux-root .nbux-check[aria-checked="true"] .nbux-box,#nbux-sheetwrap .nbux-check[aria-checked="true"] .nbux-box{background:var(--green);border-color:var(--green);box-shadow:var(--nbo-glow);}
+#nbux-root .nbux-box svg,#nbux-sheetwrap .nbux-box svg,#nbux-root .nbux-successic svg{color:var(--nbo-on-mint);}
+#nbux-root .nbux-sw{background:#3A3E60;}
+#nbux-root .nbux-sw[aria-checked="true"]{background:var(--green);}
+#nbux-root .nbux-sw::after{background:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.45);}
+
+/* --- interactive borders: a divider may whisper, a control may not --- */
+#nbux-root .nbux-chip,#nbux-root .nbux-themecard,#nbux-root .nbux-modecard,
+#nbux-root .nbux-scalebtn,#nbux-sheetwrap .nbux-scalebtn{border-color:var(--nbo-line-strong);}
+
+/* --- selected: yellow stroke plus a soft glow, never colour alone --- */
+#nbux-root .nbux-chip[aria-pressed="true"],#nbux-root .nbux-chip.on,
+#nbux-root .nbux-themecard[aria-selected="true"],
+#nbux-root .nbux-modecard[aria-pressed="true"],
+#nbux-root .nbux-scalebtn.on,#nbux-sheetwrap .nbux-scalebtn.on{box-shadow:var(--nbo-glow);}
+#nbux-root .nbux-chip:hover,#nbux-root .nbux-themecard:hover,#nbux-root .nbux-modecard:hover{border-color:var(--nbo-line-hover);}
+
+/* --- CTA states --- */
+#nbux-root .nbux-btn:hover:not(:disabled),#nbux-sheetwrap .nbux-btn:hover:not(:disabled){filter:brightness(1.06);}
+#nbux-root .nbux-btn:active:not(:disabled),#nbux-sheetwrap .nbux-btn:active:not(:disabled){filter:brightness(.94);}
+#nbux-root .nbux-btn:disabled,#nbux-sheetwrap .nbux-btn:disabled{background:var(--nbo-raised);color:var(--label);}
+#nbux-root .nbux-sec:hover{color:var(--ink);}
+
+/* --- progress and Back stay high-contrast --- */
+#nbux-root .nbux-progbar{background:var(--nbo-raised);}
+#nbux-root .nbux-back{color:var(--ink);}
+#nbux-root .nbux-back:hover{background:rgba(255,255,255,.06);}
+
+/* --- sheets, scrim, toast (the last two invert ink/cream, so they are pinned) --- */
+#nbux-sheetwrap{background:rgba(6,7,18,.62);}
+#nbux-sheetwrap .nbux-sheet{background:var(--card);border:1px solid var(--line);border-bottom:0;}
+#nbux-toast{background:var(--nbo-elev);color:var(--ink);border:1px solid var(--line);box-shadow:0 10px 26px rgba(0,0,0,.34);}
+
+/* --- cards sit above the page, never a flat black area --- */
+#nbux-root .nbux-card{background:var(--card);border-color:var(--line);}
+#nbux-root .nbux-rings{--nb-ring:rgba(245,200,74,.55);}
 
 @media (prefers-reduced-motion:reduce){
   #nbux-splash .nbxs-cube,#nbux-splash .nbxs-ground,#nbux-splash .nbxs-word b,
