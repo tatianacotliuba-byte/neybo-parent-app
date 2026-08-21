@@ -3886,6 +3886,9 @@ function buildResearchBar(){
 }
 function restartTest(){
   log('task completed',{task:'restart'});
+  /* the cube must un-provision too, otherwise it boots straight into an
+     active device while the app is back at the start of Setup */
+  try{window.nbSend&&nbSend('setup.reset',{});}catch(e){}
   try{if(window.NBA)NBA.sessionUpdate({completion_status:'abandoned'});}catch(e){}
   clearTest();
   // start a completely fresh test session (new participant_code + test_session_id)
@@ -3901,7 +3904,7 @@ function restartTest(){
       history.replaceState(null,'',location.pathname+(qs?('?'+qs):'')+location.hash);
     }
   }catch(e){}
-  location.reload();
+  setTimeout(function(){location.reload();},260);   /* let setup.reset leave first */
 }
 function exportLog(){
   var data=JSON.stringify({participant:S.participant||null,exportedAt:new Date().toISOString(),events:BUF},null,2);
