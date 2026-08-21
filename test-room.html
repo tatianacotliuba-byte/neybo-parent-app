@@ -906,9 +906,12 @@
         hit: function (s) { return s.state === 'talk-ember'; },
         steps: [ { target: 'char.ember',   done: function (s) { return s.character === 'ember'; } },
                  { chip: 'talk', target: 'choose.ember',
-                   done: function (s) { return s.state === 'talk-ember'; } } ] }
+                   done: function (s) { return s.state === 'talk-ember'; } } ] },
+      { label: 'Send Neybo to sleep',
+        hit: function (s) { return s.state === 'sleep'; },
+        steps: [ { target: 'device.sleep', done: function (s) { return s.state === 'sleep'; } } ] }
     ];
-    var doneFlags = [false, false, false, false];
+    var doneFlags = [false, false, false, false, false];
 
     function renderTasks() {
       elTask.hidden = false;
@@ -1024,7 +1027,7 @@
       spotTask();
       show({
         eyebrow: 'Your turn on the cube',
-        title: 'Four things to try',
+        title: 'Five things to try',
         body: 'Use the controls under the cube. Each one ticks itself off when the cube reacts.',
         tasks: true,
         anchor: deviceHolder, bias: 0.5,
@@ -1039,7 +1042,8 @@
       step = 'app';
       watchingTasks = false;
       ringOff();
-      devicePane.classList.add('dimmed');
+      /* the cube is asleep by now, so it needs no dimming — leave it live */
+      devicePane.classList.remove('dimmed');
       parentPane.classList.remove('dimmed');
       show({
         eyebrow: 'Now the app',
