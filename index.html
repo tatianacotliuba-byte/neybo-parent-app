@@ -552,6 +552,12 @@ body.dark .nbux-check:hover .nbux-box{border-color:rgba(255,255,255,.72);}
 /* onboarding hero image: use supplied PNG as-is, no effects */
 .neybo-hero-image{display:block;width:min(74vw,300px);height:auto;margin:0 auto;
   object-fit:contain;object-position:center;filter:none;box-shadow:none;transform:none;background:none;}
+/* The artwork carries its own backdrop baked in, so its square edge shows on
+   the setup ground. Fade the outer ring away — the cube sits well inside it. */
+#nbux-root .neybo-hero-image{
+  -webkit-mask-image:radial-gradient(closest-side at 50% 47%,#000 74%,rgba(0,0,0,.55) 88%,transparent 100%);
+  mask-image:radial-gradient(closest-side at 50% 47%,#000 74%,rgba(0,0,0,.55) 88%,transparent 100%);
+}
 .neybo-hero-image::before,.neybo-hero-image::after{content:none;}
 /* match onboarding bg to each hero image's own bg so the hero blends seamlessly */
 /* setup runs on one dark ground in both app themes — see SETUP DARK THEME below */
@@ -3470,7 +3476,12 @@ var CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wid
 var NB_ONB_CUBE='assets/images/onboarding-cube.png';
 var NB_HERO_IMG='assets/images/nb-hero.png';
 var NB_HERO_IMG_DARK='assets/images/nb-hero-dark.jpg';
-function heroSrc(){try{if(document.body.classList.contains('dark'))return NB_HERO_IMG_DARK;}catch(e){}return NB_HERO_IMG;}
+/* SETUP IS ALWAYS DARK (see "SETUP DARK THEME" in the onboarding stylesheet),
+   so both screens that use this hero — Welcome and the final "Neybo is ready"
+   — must take the dark artwork. nb-hero.png carries its own cream backdrop
+   baked into the pixels, which lands on the dark ground as a pale square.
+   Do not make this theme-aware again unless setup follows the app theme. */
+function heroSrc(){ return NB_HERO_IMG_DARK; }
 /* onboarding cube = provided tiger art, transparent bg so it blends on any page bg */
 function cubeBg(){ return "url('"+NB_ONB_CUBE+"')"; }
 
