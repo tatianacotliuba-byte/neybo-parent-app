@@ -19,7 +19,7 @@
     --pane-gap:36px;
   }
   *{box-sizing:border-box}
-  html,body{height:100%}
+  html,body{height:100%;overflow:hidden}
   body{
     margin:0;background:var(--room-bg);color:var(--room-ink);
     font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -27,25 +27,24 @@
   }
   /* ---------- clean stage (default) ---------- */
   .stage{
-    min-height:100vh;display:flex;align-items:center;justify-content:center;
-    gap:var(--pane-gap);padding:28px;flex-wrap:wrap;
+    height:100vh;display:flex;align-items:center;justify-content:center;
+    gap:var(--pane-gap);padding:20px;flex-wrap:nowrap;overflow:hidden;
   }
-  .pane{display:flex;flex-direction:column;align-items:center;gap:10px}
-  .frame{
-    border:0;background:#fff;border-radius:26px;display:block;
+  .pane{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+  /* holder keeps the scaled footprint; the iframe inside keeps its own logical size */
+  .holder{
+    position:relative;overflow:hidden;flex:none;border-radius:26px;
     box-shadow:0 18px 48px rgba(0,0,0,.16),0 2px 6px rgba(0,0,0,.06);
+    background:#fff;
   }
-  #parentFrame{width:390px;height:844px;border-radius:34px;background:transparent;box-shadow:none}
-  #deviceFrame{width:560px;height:844px}
-  .cap{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--room-muted)}
+  #parentHolder{border-radius:34px;background:transparent;box-shadow:none}
+  .frame{
+    position:absolute;top:0;left:0;border:0;display:block;background:transparent;
+    transform-origin:0 0;
+  }
+  .cap{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--room-muted);flex:none}
   body.debug{padding-bottom:300px}
-  body.debug .stage{min-height:calc(100vh - 300px)}
-
-  @media (max-width:1010px){
-    .stage{flex-direction:column;padding:20px 12px}
-    #deviceFrame{width:min(94vw,560px)}
-    #parentFrame{width:390px;max-width:94vw}
-  }
+  body.debug .stage{height:calc(100vh - 300px)}
 
   /* ---------- debug drawer (?debug=1 only) ---------- */
   #dbg{
@@ -59,7 +58,7 @@
   body.debug.dbg-min #dbg{height:34px;grid-template-columns:1fr}
   body.debug.dbg-min #dbgL,body.debug.dbg-min #dbgR{display:none}
   body.debug.dbg-min{padding-bottom:34px}
-  body.debug.dbg-min .stage{min-height:calc(100vh - 34px)}
+  body.debug.dbg-min .stage{height:calc(100vh - 34px)}
   #dbgBar{
     position:absolute;top:0;right:0;height:34px;display:flex;align-items:center;gap:8px;
     padding:0 10px;z-index:2;
@@ -93,12 +92,16 @@
 
 <main class="stage">
   <section class="pane">
-    <iframe id="parentFrame" class="frame" title="Neybo Parent App"
-            allow="clipboard-write"></iframe>
+    <div class="holder" id="parentHolder">
+      <iframe id="parentFrame" class="frame" title="Neybo Parent App"
+              allow="clipboard-write"></iframe>
+    </div>
     <div class="cap" data-cap hidden>Parent App</div>
   </section>
   <section class="pane">
-    <iframe id="deviceFrame" class="frame" title="Neybo Device Prototype"></iframe>
+    <div class="holder" id="deviceHolder">
+      <iframe id="deviceFrame" class="frame" title="Neybo Device Prototype"></iframe>
+    </div>
     <div class="cap" data-cap hidden>Device</div>
   </section>
 </main>
@@ -195,6 +198,54 @@
   parentFrame.src = parentSrc;
   deviceFrame.src = deviceSrc;
 
+  /* ---- fit both panes into the viewport: no page scroll, ever ----
+     The phone keeps its logical 390x844 and is scaled with a transform,
+     so the app inside never sees a shorter viewport. The device pane gets
+     whatever width is left over, so the cube grows when there is room. */
+  var BASE_H     = 844;
+  var PARENT_W   = 390;
+  var DEVICE_W   = 560;
+  var DEVICE_MAX = 900;
+  var parentHolder = document.getElementById('parentHolder');
+  var deviceHolder = document.getElementById('deviceHolder');
+
+  function place(holder, frame, w, s) {
+    frame.style.width  = w + 'px';
+    frame.style.height = BASE_H + 'px';
+    frame.style.transform = 'scale(' + s + ')';
+    holder.style.width  = Math.round(w * s) + 'px';
+    holder.style.height = Math.round(BASE_H * s) + 'px';
+  }
+
+  function fit() {
+    var cs      = getComputedStyle(document.querySelector('.stage'));
+    var padY    = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    var padX    = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    var gap     = parseFloat(cs.gap) || 36;
+    var drawer  = document.body.classList.contains('debug')
+                    ? (document.body.classList.contains('dbg-min') ? 34 : 300) : 0;
+    var capH    = document.body.classList.contains('debug') ? 26 : 0;
+
+    var availH = window.innerHeight - drawer - padY - capH;
+    var availW = window.innerWidth - padX - gap;
+    if (availH < 200 || availW < 200) return;
+
+    var s = Math.min(availH / BASE_H, availW / (PARENT_W + DEVICE_W));
+    s = Math.max(0.35, Math.min(s, 1.6));
+
+    /* leftover horizontal space (in logical px) widens the device pane only */
+    var spare = availW / s - PARENT_W - DEVICE_W;
+    var dW    = DEVICE_W + Math.max(0, Math.min(spare, DEVICE_MAX - DEVICE_W));
+
+    place(parentHolder, parentFrame, PARENT_W, s);
+    place(deviceHolder, deviceFrame, dW, s);
+  }
+
+  if (DEBUG) document.body.classList.add('debug');   /* drawer height counts in fit() */
+  fit();
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', fit);
+
   if (!DEBUG) return;   /* clean room: nothing else runs */
 
   /* ================= debug mode ================= */
@@ -226,6 +277,7 @@
   $('btnMin').addEventListener('click', function () {
     var min = document.body.classList.toggle('dbg-min');
     this.textContent = min ? 'Show' : 'Hide';
+    fit();
   });
   $('btnCopy').addEventListener('click', function () {
     var self = this;
