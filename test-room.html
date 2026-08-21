@@ -104,9 +104,12 @@
     position:absolute;width:10px;height:10px;transform:rotate(45deg);
     background:#25283f;border:1px solid rgba(255,255,255,.15);
   }
-  .introcap.pt-left  .pointer{left:-6px;border-right:0;border-top:0}
-  .introcap.pt-right .pointer{right:-6px;border-left:0;border-bottom:0}
-  .introcap.pt-top   .pointer{top:-6px;border-right:0;border-bottom:0}
+  /* the arrow belongs to a side placement; anywhere else it would float over
+     the card's own text, so it is hidden unless a pt-* placement is set */
+  .introcap .pointer{display:none}
+  .introcap.pt-left  .pointer{display:block;left:-6px;border-right:0;border-top:0}
+  .introcap.pt-right .pointer{display:block;right:-6px;border-left:0;border-bottom:0}
+  .introcap.pt-top   .pointer{display:block;top:-6px;border-right:0;border-bottom:0}
   #introCap1{position:relative;width:360px}
   #introCap1 .pointer{display:none}
   #introCap2,#introBannerCard,#nbCard{position:fixed;z-index:62}
@@ -405,6 +408,48 @@
     if (window.__nbReanchor) window.__nbReanchor();
   });
 
+  /* ================= shared spotlight ring =================
+     One ring element, used by the intro and by the guided tour. The room can
+     measure inside the Parent App frame (same origin), so it can ring a whole
+     pane or an exact region of a screen. */
+  var ringEl = document.getElementById('nbRing');
+
+  function nbSpot(box, radius, pad) {
+    if (!ringEl || !box) { if (ringEl) ringEl.classList.remove('on'); return false; }
+    pad = pad == null ? 8 : pad;
+    ringEl.style.borderRadius = (radius == null ? 18 : radius) + 'px';
+    ringEl.style.left   = Math.round(box.left - pad) + 'px';
+    ringEl.style.top    = Math.round(box.top - pad) + 'px';
+    ringEl.style.width  = Math.round(box.width + pad * 2) + 'px';
+    ringEl.style.height = Math.round(box.height + pad * 2) + 'px';
+    ringEl.classList.add('on');
+    return true;
+  }
+  function nbSpotOff() { if (ringEl) ringEl.classList.remove('on'); }
+
+  /* union rect of two elements inside the Parent App, in room coordinates */
+  function nbAppRegion(fromSel, toSel) {
+    try {
+      var w = parentFrame.contentWindow, d = w.document;
+      var a = d.querySelector(fromSel), b = d.querySelector(toSel);
+      if (!a || !b) return null;
+      var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      if (!ra.height || !rb.height) return null;
+      var host = parentHolder.getBoundingClientRect();
+      var sc = host.width / (w.innerWidth || 390);
+      var l = Math.min(ra.left, rb.left), r = Math.max(ra.right, rb.right);
+      var t = Math.min(ra.top, rb.top), bo = Math.max(ra.bottom, rb.bottom);
+      var box = { left: host.left + l * sc, top: host.top + t * sc,
+                  width: (r - l) * sc, height: (bo - t) * sc };
+      /* never spill outside the phone */
+      var maxB = host.top + host.height - 4;
+      if (box.top < host.top + 4) { box.height -= (host.top + 4 - box.top); box.top = host.top + 4; }
+      if (box.top + box.height > maxB) box.height = maxB - box.top;
+      return box.height > 40 ? box : null;
+    } catch (e) { return null; }
+  }
+  window.NBSpot = { on: nbSpot, off: nbSpotOff, region: nbAppRegion };
+
   /* ================= intro choreography =================
      The cube is introduced alone, travels to its place, the app follows, and
      only then does the test begin. Presentation only: both frames are already
@@ -428,16 +473,24 @@
 
     /* Put a card next to the phone, pointer aimed at it. Right side when there
        is room, otherwise left, otherwise under it. */
-    /* These cards talk about the app, so they live ON the phone. Putting them
-       beside it would cover the cube — the one thing that must stay visible. */
-    function anchor(card, holder, yBias) {
+    /* The ring says what is being talked about, so the card just needs room:
+       'beside' puts it next to the phone (covering the cube is fine),
+       anything else lays it over the phone itself. */
+    function anchor(card, holder, yBias, mode) {
       var r  = holder.getBoundingClientRect();
-      var EDGE = 14;
+      var EDGE = 14, GAP = 22;
       card.style.left = '0px'; card.style.top = '0px';
       var cw = card.offsetWidth || 310, ch = card.offsetHeight || 130;
       card.classList.remove('pt-left', 'pt-right', 'pt-top');
-      var left = r.left + r.width / 2 - cw / 2;
-      var top  = r.top + r.height * (yBias == null ? 0.5 : yBias) - ch / 2;
+      var left;
+      if (mode === 'beside' && r.right + GAP + cw <= window.innerWidth - EDGE) {
+        left = r.right + GAP;
+      } else if (mode === 'beside' && r.left - GAP - cw >= EDGE) {
+        left = r.left - GAP - cw;
+      } else {
+        left = r.left + r.width / 2 - cw / 2;
+      }
+      var top = r.top + r.height * (yBias == null ? 0.5 : yBias) - ch / 2;
       card.style.left = Math.round(Math.min(Math.max(EDGE, left), Math.max(EDGE, window.innerWidth - cw - EDGE))) + 'px';
       card.style.top  = Math.round(Math.min(Math.max(EDGE, top), Math.max(EDGE, window.innerHeight - ch - EDGE))) + 'px';
     }
@@ -472,12 +525,18 @@
       });
       if (showBanner) {
         banner.hidden = false;
-        anchor(bannerCard, parentHolder, 0.62);
+        spotGate();
+        gateTimer = setInterval(spotGate, 700);     /* the form is still rendering */
+        anchor(bannerCard, parentHolder, 0.5, 'beside');
         requestAnimationFrame(function () { bannerCard.classList.add('show'); });
         setTimeout(function () {
+          clearInterval(gateTimer); gateTimer = null;
+          nbSpotOff();
           bannerCard.classList.remove('show');
           setTimeout(function () { banner.hidden = true; }, 600);
         }, 9000);
+      } else {
+        nbSpotOff();
       }
     }
 
@@ -518,20 +577,39 @@
       wrap.hidden = true;
       parentPane.classList.add('reveal');
       devicePane.classList.add('dimmed');
+      var ph = parentHolder.getBoundingClientRect();
+      nbSpot({ left: ph.left, top: ph.top, width: ph.width, height: ph.height }, 38, 6);
       cap2.hidden = false;
-      anchor(cap2, parentHolder, 0.42);
+      anchor(cap2, parentHolder, 0.42, 'beside');
       requestAnimationFrame(function () { cap2.classList.add('show'); });
     });
 
+    var gateTimer = null;
+    /* "Before you start" heading through the "Start the test" button */
+    function spotGate() {
+      var box = nbAppRegion('#nbux-root .nbux-h1', '#nb-participant-submit');
+      if (box) nbSpot(box, 16, 10);
+      else nbSpot({ left: parentHolder.getBoundingClientRect().left,
+                    top: parentHolder.getBoundingClientRect().top,
+                    width: parentHolder.getBoundingClientRect().width,
+                    height: parentHolder.getBoundingClientRect().height }, 38, 6);
+      anchor(bannerCard, parentHolder, 0.5, 'beside');
+    }
+
     window.__nbReanchor = function () {
-      if (!cap2.hidden && cap2.classList.contains('show')) anchor(cap2, parentHolder, 0.42);
-      if (!banner.hidden) anchor(bannerCard, parentHolder, 0.62);
+      if (!cap2.hidden && cap2.classList.contains('show')) {
+        var ph = parentHolder.getBoundingClientRect();
+        nbSpot({ left: ph.left, top: ph.top, width: ph.width, height: ph.height }, 38, 6);
+        anchor(cap2, parentHolder, 0.42, 'beside');
+      }
+      if (!banner.hidden) spotGate();
     };
 
     /* 4 · the test begins */
     at(12600, function () {
       cap2.classList.remove('show');
       devicePane.classList.remove('dimmed');
+      nbSpotOff();
     });
     at(13300, function () { finish(true); });
   })();
@@ -713,6 +791,7 @@
       var top  = Math.max(host.top + 2, box.top - pad);
       var right  = Math.min(host.left + host.width - 2, box.left + box.width + pad);
       var bottom = Math.min(host.top + host.height - 2, box.top + box.height + pad);
+      ring.style.borderRadius = '18px';
       ring.style.left   = Math.round(left) + 'px';
       ring.style.top    = Math.round(top) + 'px';
       ring.style.width  = Math.round(right - left) + 'px';
