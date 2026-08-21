@@ -1483,9 +1483,9 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
   function deviceIsOn() {
     return !!(deviceState && deviceState.state && deviceState.state !== 'off');
   }
-  function notifyDevice() {
+  function notifyDevice(type, envelope) {
     for (var i = 0; i < deviceListeners.length; i++) {
-      try { deviceListeners[i](deviceState); } catch (e) { fail('onDevice listener', e); }
+      try { deviceListeners[i](deviceState, type, envelope); } catch (e) { fail('onDevice listener', e); }
     }
   }
   function onDeviceBroadcast(m) {
@@ -1497,7 +1497,7 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
     var was = deviceState && deviceState.state;
     deviceState = st;
     if (was !== st.state) L('<- ' + p.type + ' | device state =', st.state);
-    notifyDevice();
+    notifyDevice(p.type, p);
   }
 
   function subscribe() {
@@ -3712,7 +3712,7 @@ STEP.child=function(){
     if(!ok){log('validation error',{step:'child'});return;}
     S.child.firstName=fn; save();
     try{installNameReplacer();}catch(e){}      /* the whole app switches to this name at once */
-    try{window.nbSend&&nbSend('profile.save',{childName:fn,ageGroup:S.child.ageGroup||null});}catch(e){}
+    try{window.nbSend&&nbSendSetup('profile.save',{childName:fn,ageGroup:S.child.ageGroup||null});}catch(e){}
     next();
   });
 };
@@ -3763,7 +3763,7 @@ STEP.connect=function(){
 
   cta.addEventListener('click',function(){
     if(!found){
-      try{window.nbSend&&nbSend('setup.start',{});}catch(e){}
+      try{window.nbSend&&nbSendSetup('setup.start',{});}catch(e){}
       rings.classList.add('nbux-searching');status.textContent='Searching…';ctaBusy(cta,true);
       setTimeout(function(){
         rings.classList.remove('nbux-searching');ctaBusy(cta,false);
@@ -3779,7 +3779,7 @@ STEP.connect=function(){
         return;
       }
       connected=true;
-      try{window.nbSend&&nbSend('pairing.confirm',{deviceId:'7F2A'});}catch(e){}
+      try{window.nbSend&&nbSendSetup('pairing.confirm',{deviceId:'7F2A'});}catch(e){}
       ctaBusy(cta,true);status.textContent='Connecting…';
       setTimeout(function(){
         ctaBusy(cta,false);status.textContent='Neybo connected';
@@ -3790,6 +3790,56 @@ STEP.connect=function(){
     }
   });
 };
+
+/* ================= setup resync =================
+   The bridge validates every setup command against the cube's own state, so a
+   command sent while the cube is still off simply fails. The app carries on
+   regardless — that is how the two used to end up on different steps, with the
+   cube stuck on "Connecting…" and the pairing code never shown.
+
+   Every setup command is therefore logged in order, and whenever the cube
+   becomes reachable (or reports it was behind) the log is replayed with a
+   pause between steps. Each replayed command is validated by the cube as
+   usual: the ones that do not apply come back as bad_state and change
+   nothing, the ones that do walk it forward. No protocol change. */
+var NB_SETUP_LOG = [];
+function nbSendSetup(type,payload){
+  NB_SETUP_LOG.push({type:type,payload:payload||{}});
+  try{window.nbSend&&nbSend(type,payload||{});}catch(e){}
+}
+var nbResyncing=false, nbCubeSettled=false, nbResyncAt=0, nbResyncTries=0;
+var NB_CUBE_BUSY=/^(off|boot)$/;                     /* nothing can be applied yet */
+function nbResyncSetup(why){
+  if(nbResyncing||!NB_SETUP_LOG.length)return;
+  var dev=null; try{dev=window.NBLink&&NBLink.deviceState;}catch(e){}
+  if(!dev||!dev.state||NB_CUBE_BUSY.test(dev.state))return;
+  if(Date.now()-nbResyncAt<2500)return;               /* one walk at a time */
+  if(nbResyncTries>=4)return;                         /* never loop forever */
+  nbResyncing=true; nbResyncAt=Date.now(); nbResyncTries++;
+  try{log('cube resync',{why:why,steps:NB_SETUP_LOG.length,attempt:nbResyncTries});}catch(e){}
+  var i=0;
+  (function next(){
+    if(i>=NB_SETUP_LOG.length){nbResyncing=false;return;}
+    var c=NB_SETUP_LOG[i++];
+    try{window.nbSend&&nbSend(c.type,c.payload);}catch(e){}
+    setTimeout(next,1200);
+  })();
+}
+window.nbResyncSetup=nbResyncSetup;                   /* console handle */
+try{
+  if(window.NBLink&&NBLink.onDevice)NBLink.onDevice(function(st,type,env){
+    if(!st)return;
+    var busy=!st.state||NB_CUBE_BUSY.test(st.state);
+    if(busy){ nbCubeSettled=false; nbResyncTries=0; }   /* a fresh cube gets fresh tries */
+    else if(!nbCubeSettled){
+      nbCubeSettled=true;
+      if(!S.onboardingCompleted)nbResyncSetup('cube came up');
+    }
+    var code=null;
+    try{code=env&&env.payload&&env.payload.code;}catch(e){}
+    if(type==='command.error'&&code==='bad_state'&&!S.onboardingCompleted)nbResyncSetup('cube was behind');
+  });
+}catch(e){}
 
 /* --- Wi-Fi handoff (one recoverable failure then success) --- */
 STEP.wifi=function(){
@@ -3822,7 +3872,7 @@ STEP.wifi=function(){
   var steps=$('#wf-steps'),cta=$('#wf-cta'),errEl=$('#wf-err');
   cta.addEventListener('click',function(){
     if(errEl)errEl.classList.remove('show');
-    try{window.nbSend&&nbSend('wifi.connect',{network:S.wifi.network||null});}catch(e){}
+    try{window.nbSend&&nbSendSetup('wifi.connect',{network:S.wifi.network||null});}catch(e){}
     steps.style.display='block';ctaBusy(cta,true);
     var lns=steps.querySelectorAll('.ln');lns.forEach(function(l){l.className='ln';l.querySelector('.ic').innerHTML='';});
     var i=0;
@@ -4141,7 +4191,7 @@ function finishToApp(justCompleted){
   buildResearchBar();
   applyAccount();
   if(window.go)try{go('home');}catch(e){}
-  if(justCompleted){S.onboardingCompleted=true;S.onboardingStep=STEPS.length-1;save();try{window.nbSend&&nbSend('setup.complete',{});}catch(e){}log('setup completed');log('task completed',{task:'onboarding'});}
+  if(justCompleted){S.onboardingCompleted=true;S.onboardingStep=STEPS.length-1;save();try{window.nbSend&&nbSendSetup('setup.complete',{});}catch(e){}log('setup completed');log('task completed',{task:'onboarding'});}
   // Product tour offer. Guided tasks are parked (nbux-tasks.disabled.js), so
   // there is nothing to resume afterwards — the callback is a no-op today and
   // is the hook to restore startTasks() when the task runner comes back.
