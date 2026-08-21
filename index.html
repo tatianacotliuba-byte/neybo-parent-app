@@ -2766,6 +2766,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       participant_code: S.participant,
       test_session_id: S.session,
       test_version: CFG.test_version,
+      surface: 'parent_app',
       screen_id: S.screen ? S.screen.id : null,
       device_type: S.device,
       viewport_width: window.innerWidth,
@@ -3994,7 +3995,16 @@ window.NBUX={
 /* ================= usability tasks (config, separate from UI) ================= */
 
 /* ================= participant + consent gate ================= */
-function gateBypass(){return q.get('start')==='home'||q.get('nogate')==='1'||q.has('participant');}
+/* The gate is mandatory. It used to be skipped for ?participant= / ?nogate=1 /
+   ?start=home, and because those paths never call NBA.beginSession(), the whole
+   session ran with consent_analytics=false — PostHog was never even loaded.
+   Nothing bypasses it now; a reload inside the same session resumes instead. */
+function gateBypass(){return false;}
+function gateParticipantCode(){
+  var k=['participant','participantId','participant_id','pid'];
+  for(var i=0;i<k.length;i++){var v=sanId(q.get(k[i]));if(v)return v;}
+  return null;
+}
 function consentedThisSession(){try{return sessionStorage.getItem('nb_consented')==='1'&&sessionStorage.getItem('nb_participant_code');}catch(e){return false;}}
 
 function renderGate(){
@@ -4027,13 +4037,20 @@ function gateSubmit(){
   if(!ok)return;
 
   try{
-    if(window.NBA)NBA.beginSession({first_name:fn,last_name:ln,email:null,child_age_group:null,
+    if(window.NBA)NBA.beginSession({participant_code:gateParticipantCode()||undefined,
+      first_name:fn,last_name:ln,email:null,child_age_group:null,
       consent_analytics:true,consent_session_recording:true});
   }catch(e){}
   // Only NON-PII codes + consent flags in sessionStorage (never the name/email)
   try{sessionStorage.setItem('nb_consented','1');sessionStorage.setItem('nb_consent_r','1');}catch(e){}
   log('consent given');                       // local log only (no PII)
   // proceed into the real onboarding
+  if(q.get('start')==='home'){        // internal review: straight to the app, still consented
+    if(!S.child.firstName){S.child.firstName='Alex';S.child.ageGroup='6-8';}
+    S.onboardingCompleted=true;save();
+    finishToApp(false);
+    return;
+  }
   S.onboardingStep=0;S.onboardingCompleted=false;save();
   renderStep();
 }
