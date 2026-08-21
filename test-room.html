@@ -657,7 +657,15 @@
     return {
       get cube() { return snapshot; },
       onCube: function (fn) { listeners.push(fn); if (snapshot) { try { fn(snapshot, null); } catch (e) {} } },
-      onStatus: function (fn) { statusFns.push(fn); }
+      onStatus: function (fn) { statusFns.push(fn); },
+      /* second, local source for the same snapshot (the cube's layout beacon):
+         keeps the guided tasks honest if realtime is slow or blocked */
+      feed: function (snap, type) {
+        if (!snap || typeof snap !== 'object') return;
+        var sig = JSON.stringify(snap);
+        if (sig === JSON.stringify(snapshot)) return;
+        snapshot = snap; emit(type || 'layout');
+      }
     };
   })();
   window.NBRoom = NBRoom;
@@ -670,7 +678,9 @@
     var d = e.data;
     if (!d || d.source !== 'neybo-cube-layout' || !d.zones) return;
     try { if (e.source !== deviceFrame.contentWindow) return; } catch (err) { return; }
-    deviceZones = { zones: d.zones, viewport: d.viewport || null };
+    deviceZones = { zones: d.zones, targets: d.targets || null, chips: d.chips || [],
+                    viewport: d.viewport || null };
+    if (d.state) NBRoom.feed(d.state, 'cube-beacon');
   }, false);
   window.NBRoomZones = function () { return deviceZones; };
 
@@ -799,6 +809,65 @@
       ring.classList.add('on');
     }
 
+    /* iframe px -> room px, for anything the cube reported */
+    function toRoom(r) {
+      var data = deviceZones, host = deviceHolder.getBoundingClientRect();
+      if (!r || !data || !data.viewport || !data.viewport.w) return null;
+      var s = host.width / data.viewport.w;
+      return { left: host.left + r.x * s, top: host.top + r.y * s,
+               width: r.w * s, height: r.h * s };
+    }
+
+    function targetBox(key) {
+      var t = deviceZones && deviceZones.targets;
+      return toRoom(t && t[key]);
+    }
+    function chipBox(pattern) {
+      var list = (deviceZones && deviceZones.chips) || [];
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].label.indexOf(pattern) !== -1) return toRoom(list[i]);
+      }
+      return null;
+    }
+
+    function ringBox(box, radius) {
+      if (!box) { ring.classList.remove('on'); return false; }
+      var host = deviceHolder.getBoundingClientRect(), pad = 7;
+      var l = Math.max(host.left + 1, box.left - pad), t = Math.max(host.top + 1, box.top - pad);
+      var r2 = Math.min(host.left + host.width - 1, box.left + box.width + pad);
+      var b2 = Math.min(host.top + host.height - 1, box.top + box.height + pad);
+      ring.style.borderRadius = (radius == null ? 999 : radius) + 'px';
+      ring.style.left = Math.round(l) + 'px';
+      ring.style.top = Math.round(t) + 'px';
+      ring.style.width = Math.round(r2 - l) + 'px';
+      ring.style.height = Math.round(b2 - t) + 'px';
+      ring.classList.add('on');
+      return true;
+    }
+
+    /* what the tester should press right now */
+    function spotTask() {
+      if (!watchingTasks) return;
+      var snap = NBRoom.cube || {};
+      var i = doneFlags.indexOf(false);
+      if (i === -1) { ring.classList.remove('on'); return; }
+      var steps = TASKS[i].steps || [];
+      for (var k = 0; k < steps.length; k++) {
+        var st = steps[k];
+        var isDone = false;
+        try { isDone = !!st.done(snap); } catch (e) {}
+        if (isDone) continue;
+        /* prefer the voice chip once the dock offers it, else the control
+           that leads there */
+        var box = st.chip ? chipBox(st.chip) : null;
+        var radius = 14;
+        if (!box && st.target) { box = targetBox(st.target); radius = 999; }
+        ringBox(box, radius);
+        return;
+      }
+      ring.classList.remove('on');
+    }
+
     function ringOff() { ring.classList.remove('on'); lastZone = null; }
     function highlight(zoneName, fallback) {
       lastZone = [zoneName, fallback];
@@ -810,14 +879,34 @@
       if (lastZone) drawRing(lastZone[0], lastZone[1]);
     });
     /* the cube re-lays out (dock grows per state) — follow it */
-    setInterval(function () { if (lastZone) drawRing(lastZone[0], lastZone[1]); }, 700);
+    setInterval(function () {
+      if (lastZone) drawRing(lastZone[0], lastZone[1]);
+      else if (watchingTasks) spotTask();
+    }, 500);
 
     /* ---------- cube task tracking ---------- */
+    /* Each task carries the controls it needs, in order: the ring moves to the
+       next one as soon as the cube reports the previous is done, so the tester
+       always sees exactly what to press. */
     var TASKS = [
-      { label: 'Pick Moss on the cube',            hit: function (s) { return s.character === 'moss'; } },
-      { label: 'Play Logic Riddles',               hit: function (s) { return s.game === 'riddles'; } },
-      { label: 'Sing karaoke with Luna',           hit: function (s) { return s.game === 'karaoke'; } },
-      { label: 'Have a talk with Ember',           hit: function (s) { return s.state === 'talk-ember'; } }
+      { label: 'Pick Moss on the cube',
+        /* the cube already boots as Moss, so this asks for the actual pick:
+           his meet screen or his own game menu */
+        hit: function (s) { return s.state === 'onboard-meeting' || s.state === 'choose'; },
+        steps: [ { target: 'char.moss',
+                   done: function (s) { return s.state === 'onboard-meeting' || s.state === 'choose'; } } ] },
+      { label: 'Play Logic Riddles',
+        hit: function (s) { return s.game === 'riddles'; },
+        steps: [ { target: 'game.riddles', done: function (s) { return s.game === 'riddles'; } } ] },
+      { label: 'Sing karaoke with Luna',
+        hit: function (s) { return s.game === 'karaoke'; },
+        steps: [ { target: 'char.luna',    done: function (s) { return s.character === 'luna'; } },
+                 { target: 'game.karaoke', done: function (s) { return s.game === 'karaoke'; } } ] },
+      { label: 'Have a talk with Ember',
+        hit: function (s) { return s.state === 'talk-ember'; },
+        steps: [ { target: 'char.ember',   done: function (s) { return s.character === 'ember'; } },
+                 { chip: 'talk', target: 'choose.ember',
+                   done: function (s) { return s.state === 'talk-ember'; } } ] }
     ];
     var doneFlags = [false, false, false, false];
 
@@ -848,8 +937,9 @@
       });
       if (changed) {
         renderTasks();
-        if (doneFlags.every(Boolean)) { watchingTasks = false; setTimeout(stepApp, 1400); }
+        if (doneFlags.every(Boolean)) { watchingTasks = false; ring.classList.remove('on'); setTimeout(stepApp, 1400); return; }
       }
+      spotTask();
     });
 
     /* ---------- has the parent finished setup? ---------- */
@@ -931,6 +1021,7 @@
       watchingTasks = true;
       var s = NBRoom.cube;
       if (s) TASKS.forEach(function (t, i) { if (t.hit(s)) doneFlags[i] = true; });
+      spotTask();
       show({
         eyebrow: 'Your turn on the cube',
         title: 'Four things to try',
@@ -940,6 +1031,7 @@
         actions: [{ label: 'Skip to the app', kind: 'ghost', onClick: function () { watchingTasks = false; hideCard(stepApp); } }]
       });
       renderTasks();
+      spotTask();
     }
 
     function stepApp() {
