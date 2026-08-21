@@ -863,7 +863,7 @@
     function drawRing(zoneName, fallback) {
       var host = deviceHolder.getBoundingClientRect();
       var data = deviceZones;
-      var pad = 8, box = null;
+      var pad = 6, box = null;
 
       if (data && data.zones && data.zones[zoneName] && data.viewport && data.viewport.w) {
         var s = host.width / data.viewport.w;         /* iframe px -> room px */
