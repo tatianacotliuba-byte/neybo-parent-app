@@ -31,6 +31,11 @@
     gap:var(--pane-gap);padding:20px;flex-wrap:nowrap;overflow:hidden;
   }
   .pane{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+  /* the feedback ask slides into a reserved column instead of covering a pane */
+  body.nbux-asking .stage{padding-right:356px}
+  /* while the form is open the cube steps aside and the phone takes the stage */
+  body.nbux-form .pane-device{display:none}
+  body.nbux-form .stage{padding-right:20px}
   /* holder keeps the scaled footprint; the iframe inside keeps its own logical size */
   .holder{
     position:relative;overflow:hidden;flex:none;border-radius:26px;
@@ -203,14 +208,14 @@
 <body>
 
 <main class="stage">
-  <section class="pane">
+  <section class="pane pane-parent">
     <div class="holder" id="parentHolder">
       <iframe id="parentFrame" class="frame" title="Neybo Parent App"
               allow="clipboard-write"></iframe>
     </div>
     <div class="cap" data-cap hidden>Parent App</div>
   </section>
-  <section class="pane">
+  <section class="pane pane-device">
     <div class="holder" id="deviceHolder">
       <iframe id="deviceFrame" class="frame" title="Neybo Device Prototype"></iframe>
     </div>
@@ -388,6 +393,14 @@
     var availH = window.innerHeight - drawer - padY - capH;
     var availW = window.innerWidth - padX - gap;
     if (availH < 200 || availW < 200) return;
+
+    /* form mode: the cube pane is out, so the phone gets the whole stage */
+    if (document.body.classList.contains('nbux-form')) {
+      var sf = Math.min(1.45, Math.max(0.5, availH / BASE_H));
+      place(parentHolder, parentFrame, PARENT_W, sf);
+      place(deviceHolder, deviceFrame, DEVICE_W, sf);
+      return;
+    }
 
     var s = Math.min(availH / BASE_H, availW / (PARENT_W + DEVICE_W));
     s = Math.max(0.35, Math.min(s, 1.6));
@@ -708,7 +721,7 @@
     if (!card || !devicePane || !parentPane) return;
 
     /* ---------- card plumbing ---------- */
-    var anchorTarget = null, anchorBias = 0.5, anchorOver = false;
+    var anchorTarget = null, anchorBias = 0.5, anchorOver = false, anchorSide = false;
 
     function place() {
       if (card.hidden || !anchorTarget) return;
@@ -720,7 +733,10 @@
       card.classList.remove('pt-left', 'pt-right', 'pt-top');
       var top = Math.min(Math.max(EDGE, r.top + r.height * anchorBias - ch / 2),
                          Math.max(EDGE, window.innerHeight - ch - EDGE));
-      if (anchorOver) {                                   /* sit on the target */
+      if (anchorSide) {                                   /* reserved column, right edge */
+        card.style.left = Math.round(Math.max(EDGE, window.innerWidth - cw - 24)) + 'px';
+        card.style.top  = Math.round(Math.max(EDGE, (window.innerHeight - ch) / 2)) + 'px';
+      } else if (anchorOver) {                             /* sit on the target */
         var lft = Math.min(Math.max(EDGE, r.left + r.width / 2 - cw / 2),
                            Math.max(EDGE, window.innerWidth - cw - EDGE));
         card.style.left = Math.round(lft) + 'px';
@@ -765,6 +781,7 @@
       anchorTarget = o.anchor || parentHolder;
       anchorBias   = (o.bias == null) ? 0.5 : o.bias;
       anchorOver   = !!o.over;
+      anchorSide   = !!o.side;
       card.hidden = false;
       place();
       requestAnimationFrame(function () { card.classList.add('show'); });
@@ -895,18 +912,18 @@
         /* the cube already boots as Moss, so this asks for the actual pick:
            his meet screen or his own game menu */
         hit: function (s) { return s.state === 'onboard-meeting' || s.state === 'choose'; },
-        steps: [ { target: 'char.moss',
+        steps: [ { target: 'choose.moss',
                    done: function (s) { return s.state === 'onboard-meeting' || s.state === 'choose'; } } ] },
       { label: 'Play Logic Riddles',
         hit: function (s) { return s.game === 'riddles'; },
         steps: [ { chip: 'riddle',      done: function (s) { return s.game === 'riddles'; } } ] },
       { label: 'Sing karaoke with Luna',
         hit: function (s) { return s.game === 'karaoke'; },
-        steps: [ { target: 'char.luna', done: function (s) { return s.character === 'luna'; } },
+        steps: [ { target: 'choose.luna', done: function (s) { return s.character === 'luna'; } },
                  { chip: 'karaoke',    done: function (s) { return s.game === 'karaoke'; } } ] },
       { label: 'Have a talk with Ember',
         hit: function (s) { return s.state === 'talk-ember'; },
-        steps: [ { target: 'char.ember', done: function (s) { return s.character === 'ember'; } },
+        steps: [ { target: 'choose.ember', done: function (s) { return s.character === 'ember'; } },
                  { chip: 'talk',      done: function (s) { return s.state === 'talk-ember'; } } ] },
       { label: 'Send Neybo to sleep',
         hit: function (s) { return s.state === 'sleep'; },
@@ -1097,24 +1114,57 @@
     var feedbackTimer = null;
     var FEEDBACK_AFTER_MS = 30000;      /* both onboardings done, then a breath */
 
+    /* while the questionnaire is up: cube aside, phone centre stage, nothing
+       else competing for attention. Restored as soon as the sheet closes. */
+    var formWatch = null;
+    function enterFormMode() {
+      document.body.classList.remove('nbux-asking');
+      document.body.classList.add('nbux-form');
+      nbSpotOff();
+      fit();
+      clearInterval(formWatch);
+      var seen = false;
+      formWatch = setInterval(function () {
+        var open = false;
+        try {
+          var d = parentFrame.contentWindow.document;
+          open = !!(d.getElementById('nbux-sheetwrap') || {}).classList &&
+                 d.getElementById('nbux-sheetwrap').classList.contains('show');
+        } catch (e) {}
+        if (open) { seen = true; return; }
+        if (seen) { clearInterval(formWatch); formWatch = null; exitFormMode(); }
+      }, 500);
+    }
+    function exitFormMode() {
+      document.body.classList.remove('nbux-form');
+      fit();
+    }
+
     function askFeedback() {
       if (step !== 'free') return;
       var pw = null, canOpen = false;
       try { pw = parentFrame.contentWindow; canOpen = !!(pw && pw.NBUX && pw.NBUX.feedback); } catch (e) {}
 
-      var ph = parentHolder.getBoundingClientRect();
-      nbSpot({ left: ph.left, top: ph.top, width: ph.width, height: ph.height }, 38, 6);
+      document.body.classList.add('nbux-asking');   /* reserve the column */
+      fit();
 
-      function close(then) { nbSpotOff(); hideCard(then); }
+      function close(then) {
+        document.body.classList.remove('nbux-asking');
+        fit();
+        hideCard(then);
+      }
 
       show({
         eyebrow: 'Whenever you’re ready',
         title: 'Tell us how that went',
         body: 'A few ratings and a few open questions — about the setup, the cube and the app. Two minutes, and it opens in the app.',
-        anchor: parentHolder, bias: 0.45, over: true,
+        side: true,
         actions: canOpen ? [
           { label: 'Give feedback', onClick: function () {
-              close(function () { try { pw.NBUX.feedback(); } catch (e) {} });
+              hideCard(function () {
+                enterFormMode();
+                try { pw.NBUX.feedback(); } catch (e) {}
+              });
             } },
           { label: 'Not now', kind: 'ghost', onClick: function () {
               close();

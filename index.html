@@ -816,6 +816,23 @@ body.nbux-onb #tab{display:none !important;}
 #nbux-root .nbux-card{background:var(--card);border-color:var(--line);}
 #nbux-root .nbux-rings{--nb-ring:rgba(245,200,74,.55);}
 
+
+/* ---------------------------------------------------------------------
+   Final setup screen ("Neybo is ready for …") — fits without scrolling.
+   Scoped with :has() to the one screen that carries summary rows, so the
+   welcome hero and every other step keep their own rhythm.
+   --------------------------------------------------------------------- */
+.nbux-scroll:has(.nbux-sum){padding-top:40px;padding-bottom:8px;}
+.nbux-scroll:has(.nbux-sum) .nbux-prog{margin-bottom:6px;}
+.nbux-scroll:has(.nbux-sum) .nbux-success{padding:0 0 2px;}
+.nbux-scroll:has(.nbux-sum) .neybo-hero-image{width:min(46vw,190px);}
+.nbux-scroll:has(.nbux-sum) .nbux-h1{margin:2px 0 4px;font-size:23px;}
+.nbux-scroll:has(.nbux-sum) .nbux-lead{margin-bottom:8px;font-size:14px;}
+.nbux-scroll:has(.nbux-sum) .nbux-card{padding:4px 14px;margin-bottom:8px;}
+.nbux-scroll:has(.nbux-sum) .nbux-sum{padding:7px 0;}
+.nbux-scroll:has(.nbux-sum) .nbux-cta{padding-top:4px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));}
+.nbux-scroll:has(.nbux-sum) .nbux-sec{padding:6px;min-height:38px;}
+
 @media (prefers-reduced-motion:reduce){
   #nbux-splash .nbxs-cube,#nbux-splash .nbxs-ground,#nbux-splash .nbxs-word b,
   #nbux-splash .nbxs-rule,#nbux-splash .nbxs-tag,#nbux-splash .nbxs-skip{animation:none;opacity:1;transform:none;}
@@ -2663,6 +2680,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     phReady: false,           // PostHog actually loaded (prod only)
     screen: null,             // current screen state object
     lastInteraction: Date.now(),
+    onbMax: 0,               // furthest onboarding step reached (1-based)
+    onbDone: false,          // onboarding_completed already reported
     abandonTimer: null,
     task: null,               // active task runtime
     pendingTask: null,        // finished task row, held until its rating arrives
@@ -2951,9 +2970,68 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   // =========================================================================
   //  Screens
   // =========================================================================
+  /* ---------------------------------------------------------------------
+     Onboarding funnel: how far a participant got, and where they stopped.
+     The order lives here so a funnel needs no hand-sorted screen ids; the
+     furthest step is also registered as a super property, so EVERY later
+     event carries it and drop-off can be segmented without a join.
+     --------------------------------------------------------------------- */
+  var ONB_ORDER = ['onb_welcome', 'onb_account', 'onb_child', 'onb_connect',
+                   'onb_wifi', 'onb_theme', 'onb_ready'];
+  function onbIndex(id) { return ONB_ORDER.indexOf(id) + 1; }        // 1-based, 0 = not onboarding
+  function onbName(id)  { return String(id || '').replace(/^onb_/, ''); }
+
+  function onbEnter(screen_id) {
+    var idx = onbIndex(screen_id);
+    if (!idx) {
+      /* first non-onboarding screen after the flow = setup is over */
+      if (S.onbMax && !S.onbDone) {
+        S.onbDone = true;
+        capture('onboarding_completed', {
+          step_total: ONB_ORDER.length,
+          furthest_step_index: S.onbMax,
+          furthest_step_name: onbName(ONB_ORDER[S.onbMax - 1]),
+          all_steps_seen: S.onbMax === ONB_ORDER.length,
+          landed_on: screen_id
+        });
+      }
+      return;
+    }
+    if (idx > (S.onbMax || 0)) S.onbMax = idx;
+    var props = {
+      step_id: screen_id,
+      step_name: onbName(screen_id),
+      step_index: idx,
+      step_total: ONB_ORDER.length,
+      furthest_step_index: S.onbMax,
+      furthest_step_name: onbName(ONB_ORDER[S.onbMax - 1]),
+      is_furthest: idx === S.onbMax                       // false = they went Back
+    };
+    capture('onboarding_step_viewed', props);
+    if (S.phReady) safe(function () {
+      window.posthog.register({ onboarding_furthest_index: S.onbMax,
+                                onboarding_furthest_step: props.furthest_step_name });
+    });
+  }
+
+  /* where did the tab close happen, if setup was still running */
+  function onbLeave(reason) {
+    if (S.completed || S.onbDone || !S.screen) return;
+    var idx = onbIndex(S.screen.id);
+    if (!idx) return;
+    capture('onboarding_left', {
+      step_id: S.screen.id, step_name: onbName(S.screen.id),
+      step_index: idx, step_total: ONB_ORDER.length,
+      furthest_step_index: S.onbMax || idx,
+      seconds_on_step: Math.round((now() - S.screen.enter) / 1000),
+      reason: reason || 'pagehide'
+    });
+  }
+
   function screenEnter(screen_id, scrollEl) {
     if (S.screen && S.screen.id === screen_id) return;    // dedupe re-render
     screenExit();                                          // close previous
+    onbEnter(screen_id);
     S.screen = {
       id: screen_id, enter: now(), firstAction: null,
       clicks: 0, incorrect: 0, dead: 0, maxScroll: 0, thresholds: {},
@@ -3252,12 +3330,14 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       flushTask(true);
       sessionUpdate({ last_screen: S.screen ? S.screen.id : null, last_task: S.task ? S.task.id : null,
                       completion_status: S.completed ? 'completed' : 'in_progress' }, true);
+      onbLeave('hidden');
       if (S.screen) capture('screen_exited', { screen_id: S.screen.id, reason: 'hidden',
         duration_sec: Math.round((now() - S.screen.enter) / 1000), max_scroll_depth: S.screen.maxScroll, clicks: S.screen.clicks });
     }
   }
   function onPageHide() {
     flushTask(true);
+    onbLeave('pagehide');
     sessionUpdate({ last_screen: S.screen ? S.screen.id : null, last_task: S.task ? S.task.id : null,
                     completion_status: S.completed ? 'completed' : 'in_progress' }, true);
   }
@@ -3299,6 +3379,11 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     setTasks: function (t) { TASKS = t; },
     screenEnter: function (id, el) { safe(function () { screenEnter(id, el); taskScreenReached(id); }); },
     screenExit: function () { safe(screenExit); },
+    onboardingProgress: function () {
+      return { furthest_index: S.onbMax || 0, step_total: ONB_ORDER.length,
+               furthest_step: S.onbMax ? onbName(ONB_ORDER[S.onbMax - 1]) : null,
+               current: S.screen ? S.screen.id : null, completed: !!S.completed };
+    },
     setupSections: function (root) { safe(function () { setupSections(root); }); },
 
     capture: function (e, p) { safe(function () { capture(e, p); }); },
@@ -3960,8 +4045,10 @@ function textFix(root,name){
 /* Single source of truth for the child's display name: trimmed, with a safe
    fallback so a stray test entry never leaks across the whole interface. */
 function childDisplayName(){
+  /* Whatever the parent typed is the child's name — including a single
+     letter, which testers do use. The placeholder is only for an empty field. */
   var v=String((S.child&&S.child.firstName)||'').trim();
-  return (v.length>=2) ? v : 'Alex';
+  return v ? v : 'Alex';
 }
 window.nbChildName=childDisplayName;
 function installNameReplacer(){
@@ -3987,7 +4074,7 @@ window.nbRefreshName=installNameReplacer;
 /* console helper: set the child's name and re-flow the whole interface */
 window.nbSetChildName=function(v){
   var n=String(v||'').trim();
-  if(n.length<2)return false;
+  if(!n)return false;
   S.child.firstName=n;save();installNameReplacer();return n;
 };
 function installNetworkName(){
