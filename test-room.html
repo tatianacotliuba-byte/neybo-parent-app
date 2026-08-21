@@ -404,28 +404,18 @@
 
     /* Put a card next to the phone, pointer aimed at it. Right side when there
        is room, otherwise left, otherwise under it. */
+    /* These cards talk about the app, so they live ON the phone. Putting them
+       beside it would cover the cube — the one thing that must stay visible. */
     function anchor(card, holder, yBias) {
       var r  = holder.getBoundingClientRect();
-      var GAP = 18, EDGE = 14;
+      var EDGE = 14;
       card.style.left = '0px'; card.style.top = '0px';
       var cw = card.offsetWidth || 310, ch = card.offsetHeight || 130;
-      var top = Math.min(
-        Math.max(EDGE, r.top + r.height * (yBias == null ? 0.5 : yBias) - ch / 2),
-        Math.max(EDGE, window.innerHeight - ch - EDGE)
-      );
-      var pointer = card.querySelector('.pointer');
-      card.classList.remove('pt-left', 'pt-top');
-      if (r.right + GAP + cw <= window.innerWidth - EDGE) {
-        card.style.left = Math.round(r.right + GAP) + 'px';
-        card.style.top  = Math.round(top) + 'px';
-        card.classList.add('pt-left');
-        if (pointer) pointer.style.top = Math.round(Math.max(14, Math.min(ch - 24, (r.top + r.height * 0.5) - top - 5))) + 'px';
-      } else {
-        card.style.left = Math.round(Math.min(Math.max(EDGE, r.left + r.width / 2 - cw / 2), window.innerWidth - cw - EDGE)) + 'px';
-        card.style.top  = Math.round(Math.min(r.bottom + GAP, window.innerHeight - ch - EDGE)) + 'px';
-        card.classList.add('pt-top');
-        if (pointer) pointer.style.left = Math.round(Math.max(14, Math.min(cw - 24, r.left + r.width / 2 - parseFloat(card.style.left) - 5))) + 'px';
-      }
+      card.classList.remove('pt-left', 'pt-right', 'pt-top');
+      var left = r.left + r.width / 2 - cw / 2;
+      var top  = r.top + r.height * (yBias == null ? 0.5 : yBias) - ch / 2;
+      card.style.left = Math.round(Math.min(Math.max(EDGE, left), Math.max(EDGE, window.innerWidth - cw - EDGE))) + 'px';
+      card.style.top  = Math.round(Math.min(Math.max(EDGE, top), Math.max(EDGE, window.innerHeight - ch - EDGE))) + 'px';
     }
 
     var timers = [];
@@ -580,7 +570,7 @@
     if (!card || !devicePane || !parentPane) return;
 
     /* ---------- card plumbing ---------- */
-    var anchorTarget = null, anchorBias = 0.5;
+    var anchorTarget = null, anchorBias = 0.5, anchorOver = false;
 
     function place() {
       if (card.hidden || !anchorTarget) return;
@@ -592,7 +582,12 @@
       card.classList.remove('pt-left', 'pt-right', 'pt-top');
       var top = Math.min(Math.max(EDGE, r.top + r.height * anchorBias - ch / 2),
                          Math.max(EDGE, window.innerHeight - ch - EDGE));
-      if (r.left - GAP - cw >= EDGE) {                    /* left of the target */
+      if (anchorOver) {                                   /* sit on the target */
+        var lft = Math.min(Math.max(EDGE, r.left + r.width / 2 - cw / 2),
+                           Math.max(EDGE, window.innerWidth - cw - EDGE));
+        card.style.left = Math.round(lft) + 'px';
+        card.style.top  = Math.round(top) + 'px';
+      } else if (r.left - GAP - cw >= EDGE) {             /* left of the target */
         card.style.left = Math.round(r.left - GAP - cw) + 'px';
         card.style.top  = Math.round(top) + 'px';
         card.classList.add('pt-right');
@@ -631,6 +626,7 @@
       });
       anchorTarget = o.anchor || parentHolder;
       anchorBias   = (o.bias == null) ? 0.5 : o.bias;
+      anchorOver   = !!o.over;
       card.hidden = false;
       place();
       requestAnimationFrame(function () { card.classList.add('show'); });
@@ -716,7 +712,7 @@
         eyebrow: 'Setup complete',
         title: 'Great — the app and Neybo are connected',
         body: 'The link is live: whatever you do in the app reaches the cube straight away.',
-        anchor: parentHolder, bias: 0.42,
+        anchor: parentHolder, bias: 0.42, over: true,
         actions: [{ label: 'Next', onClick: function () { hideCard(stepCubeIntro); } }]
       });
       setTimeout(function () { if (!card.hidden && step === 'connected') hideCard(stepCubeIntro); }, 6000);
@@ -801,7 +797,7 @@
         eyebrow: 'Now the app',
         title: 'Now let’s explore what you can do with the app',
         body: 'No tasks this time — the app will walk you through itself.',
-        anchor: parentHolder, bias: 0.4,
+        anchor: parentHolder, bias: 0.4, over: true,
         actions: [{ label: 'Start the app tour', onClick: startAppTour }]
       });
     }
@@ -835,7 +831,7 @@
         eyebrow: 'All yours',
         title: 'You’re free to explore',
         body: 'Both sides are unlocked now — poke at anything, in any order.',
-        anchor: parentHolder, bias: 0.5,
+        anchor: parentHolder, bias: 0.5, over: true,
         actions: [{ label: 'Got it', onClick: function () { hideCard(); } }]
       });
       setTimeout(function () { if (step === 'free') hideCard(); }, 9000);
