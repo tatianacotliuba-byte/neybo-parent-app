@@ -89,10 +89,11 @@
     background:#25283f;border:1px solid rgba(255,255,255,.15);
   }
   .introcap.pt-left  .pointer{left:-6px;border-right:0;border-top:0}
+  .introcap.pt-right .pointer{right:-6px;border-left:0;border-bottom:0}
   .introcap.pt-top   .pointer{top:-6px;border-right:0;border-bottom:0}
   #introCap1{position:relative;width:360px}
   #introCap1 .pointer{display:none}
-  #introCap2,#introBannerCard{position:fixed;z-index:62}
+  #introCap2,#introBannerCard,#nbCard{position:fixed;z-index:62}
   #introSkip{
     position:fixed;right:16px;bottom:16px;z-index:63;pointer-events:auto;
     font:inherit;font-size:12px;color:var(--room-muted);
@@ -104,6 +105,39 @@
   @media (prefers-reduced-motion:reduce){
     #intro,#introCube,.introcap,.pane,#introBanner{transition-duration:.01ms !important}
   }
+
+  /* ---------- guided script (after setup) ---------- */
+  .pane.dimmed{pointer-events:none}
+  #nbRing{
+    position:fixed;z-index:59;pointer-events:none;border-radius:18px;opacity:0;
+    box-shadow:0 0 0 2px rgba(255,213,92,.95), 0 0 22px 6px rgba(255,205,77,.20);
+    transition:opacity .35s ease, left .4s cubic-bezier(.2,.7,.2,1), top .4s cubic-bezier(.2,.7,.2,1),
+               width .4s cubic-bezier(.2,.7,.2,1), height .4s cubic-bezier(.2,.7,.2,1);
+  }
+  #nbRing.on{opacity:1}
+  #nbCard{pointer-events:auto}
+  #nbCard .note{
+    margin:10px 0 0;padding:9px 11px;border-radius:11px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);
+    font-size:12.5px;line-height:17px;color:rgba(255,250,240,.66);
+  }
+  #nbCard .tasks{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+  #nbCard .tasks li{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;line-height:18px;color:rgba(255,250,240,.82)}
+  #nbCard .tasks .tick{
+    flex:none;width:17px;height:17px;border-radius:50%;margin-top:1px;
+    border:1.5px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;
+    font-size:10px;color:transparent;transition:.2s;
+  }
+  #nbCard .tasks li.done{color:#fffaf0}
+  #nbCard .tasks li.done .tick{background:#5cb88a;border-color:#5cb88a;color:#0f2418}
+  #nbCard .tasks li.now .tick{border-color:#f5c84a;box-shadow:0 0 0 3px rgba(245,200,74,.16)}
+  #nbCard .acts{display:flex;align-items:center;gap:8px;margin-top:15px}
+  #nbCard .acts button{
+    font:inherit;font-size:13px;min-height:36px;padding:0 14px;border-radius:12px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.26);background:transparent;color:inherit;
+  }
+  #nbCard .acts button.primary{background:#f5c84a;color:#15182a;border:0;font-weight:700}
+  #nbCard .acts button.ghost{border:0;text-decoration:underline;text-underline-offset:3px;padding:0 4px;margin-left:auto}
 
   /* ---------- debug drawer (?debug=1 only) ---------- */
   #dbg{
@@ -183,6 +217,16 @@
      and weekly insights so you always know what&#8217;s on their mind.</p>
 </div>
 <button type="button" id="introSkip" hidden>Skip intro</button>
+<div id="nbRing" aria-hidden="true"></div>
+<div class="introcap" id="nbCard" hidden role="dialog" aria-live="polite">
+  <span class="pointer" aria-hidden="true"></span>
+  <span class="eyebrow" id="nbCardEyebrow"></span>
+  <h2 id="nbCardTitle"></h2>
+  <p id="nbCardBody"></p>
+  <p class="note" id="nbCardNote" hidden></p>
+  <ul class="tasks" id="nbCardTasks" hidden></ul>
+  <div class="acts" id="nbCardActs"></div>
+</div>
 <div id="introBanner" hidden><div class="introcap" id="introBannerCard" role="status">
   <span class="pointer" aria-hidden="true"></span>
   <span class="eyebrow">Your turn</span>
@@ -464,6 +508,359 @@
     at(13300, function () { finish(true); });
   })();
 
+  /* ================= cube observer (always on) =================
+     The room listens to the same channel the cube broadcasts on, so it always
+     knows what the cube is doing. The guided script below needs that; the
+     debug drawer just borrows it. Read-only: the room never sends commands. */
+  var NBRoom = (function () {
+    var snapshot = null, listeners = [], statusFns = [], sdkIdx = 0;
+
+    function emit(type) { listeners.forEach(function (f) { try { f(snapshot, type); } catch (e) {} }); }
+    function status(st, err) { statusFns.forEach(function (f) { try { f(st, err); } catch (e) {} }); }
+
+    function onMessage(m) {
+      var p = m && m.payload;
+      if (!p || typeof p !== 'object' || p.source !== 'neybo-cube') return;
+      var snap = p.payload && p.payload.state;
+      if (snap && typeof snap === 'object') { snapshot = snap; emit(p.type || m.event); }
+    }
+
+    function loadSdk() {
+      if (sdkIdx >= SDKS.length) { status('SDK_UNREACHABLE'); return; }
+      var url = SDKS[sdkIdx];
+      var el = document.createElement('script');
+      el.src = url; el.async = true;
+      el.onerror = function () { sdkIdx++; loadSdk(); };
+      el.onload = function () {
+        if (!window.supabase || !window.supabase.createClient) { sdkIdx++; loadSdk(); return; }
+        try {
+          var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: { persistSession: false, autoRefreshToken: false }
+          });
+          var ch = client.channel(channelName, {
+            config: { broadcast: { self: false, ack: false }, private: false }
+          });
+          ch.on('broadcast', { event: '*' }, onMessage);
+          ch.subscribe(function (st, err) { status(st, err); });
+        } catch (e) { status('OBSERVER_FAILED', e); }
+      };
+      document.head.appendChild(el);
+    }
+    loadSdk();
+
+    return {
+      get cube() { return snapshot; },
+      onCube: function (fn) { listeners.push(fn); if (snapshot) { try { fn(snapshot, null); } catch (e) {} } },
+      onStatus: function (fn) { statusFns.push(fn); }
+    };
+  })();
+  window.NBRoom = NBRoom;
+
+
+  /* ================= guided script after setup =================
+     The room is the director: it dims one side, points at the other, sets the
+     four cube tasks, then hands over to the app's own product tour. Cube task
+     progress is read from the channel (NBRoom), never faked. ?guide=0 skips. */
+  (function guide() {
+    if (q.get('guide') === '0') return;
+
+    var DONE_KEY = 'nb_guide_done_' + pid;
+    try { if (sessionStorage.getItem(DONE_KEY) === '1') return; } catch (e) {}
+
+    var devicePane = deviceFrame.closest('.pane');
+    var parentPane = parentFrame.closest('.pane');
+    var card   = document.getElementById('nbCard');
+    var ring   = document.getElementById('nbRing');
+    var elEye  = document.getElementById('nbCardEyebrow');
+    var elTit  = document.getElementById('nbCardTitle');
+    var elBod  = document.getElementById('nbCardBody');
+    var elNote = document.getElementById('nbCardNote');
+    var elTask = document.getElementById('nbCardTasks');
+    var elActs = document.getElementById('nbCardActs');
+    if (!card || !devicePane || !parentPane) return;
+
+    /* ---------- card plumbing ---------- */
+    var anchorTarget = null, anchorBias = 0.5;
+
+    function place() {
+      if (card.hidden || !anchorTarget) return;
+      var r = anchorTarget.getBoundingClientRect();
+      var GAP = 18, EDGE = 14;
+      card.style.left = '0px'; card.style.top = '0px';
+      var cw = card.offsetWidth || 310, ch = card.offsetHeight || 150;
+      var pointer = card.querySelector('.pointer');
+      card.classList.remove('pt-left', 'pt-right', 'pt-top');
+      var top = Math.min(Math.max(EDGE, r.top + r.height * anchorBias - ch / 2),
+                         Math.max(EDGE, window.innerHeight - ch - EDGE));
+      if (r.left - GAP - cw >= EDGE) {                    /* left of the target */
+        card.style.left = Math.round(r.left - GAP - cw) + 'px';
+        card.style.top  = Math.round(top) + 'px';
+        card.classList.add('pt-right');
+        if (pointer) { pointer.style.left = ''; pointer.style.top = Math.round(Math.max(14, Math.min(ch - 24, r.top + r.height * anchorBias - top - 5))) + 'px'; }
+      } else if (r.right + GAP + cw <= window.innerWidth - EDGE) {
+        card.style.left = Math.round(r.right + GAP) + 'px';
+        card.style.top  = Math.round(top) + 'px';
+        card.classList.add('pt-left');
+        if (pointer) pointer.style.top = Math.round(Math.max(14, Math.min(ch - 24, r.top + r.height * anchorBias - top - 5))) + 'px';
+      } else {
+        var left = Math.min(Math.max(EDGE, r.left + r.width / 2 - cw / 2), window.innerWidth - cw - EDGE);
+        card.style.left = Math.round(left) + 'px';
+        card.style.top  = Math.round(Math.min(r.bottom + GAP, window.innerHeight - ch - EDGE)) + 'px';
+        card.classList.add('pt-top');
+        if (pointer) pointer.style.left = Math.round(Math.max(14, Math.min(cw - 24, r.left + r.width / 2 - left - 5))) + 'px';
+      }
+    }
+
+    function show(o) {
+      elEye.textContent = o.eyebrow || '';
+      elTit.textContent = o.title || '';
+      elBod.textContent = o.body || '';
+      elBod.hidden = !o.body;
+      elNote.textContent = o.note || '';
+      elNote.hidden = !o.note;
+      elTask.hidden = !o.tasks;
+      elTask.innerHTML = '';
+      elActs.innerHTML = '';
+      (o.actions || []).forEach(function (a) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = a.kind || 'primary';
+        b.textContent = a.label;
+        b.addEventListener('click', a.onClick);
+        elActs.appendChild(b);
+      });
+      anchorTarget = o.anchor || parentHolder;
+      anchorBias   = (o.bias == null) ? 0.5 : o.bias;
+      card.hidden = false;
+      place();
+      requestAnimationFrame(function () { card.classList.add('show'); });
+    }
+
+    function hideCard(then) {
+      card.classList.remove('show');
+      setTimeout(function () { card.hidden = true; if (then) then(); }, 420);
+    }
+
+    /* ---------- highlight ring over a zone of a pane ---------- */
+    function ringTo(holder, fromFrac, toFrac, inset) {
+      var r = holder.getBoundingClientRect();
+      inset = inset == null ? 6 : inset;
+      ring.style.left   = Math.round(r.left + inset) + 'px';
+      ring.style.width  = Math.round(r.width - inset * 2) + 'px';
+      ring.style.top    = Math.round(r.top + r.height * fromFrac) + 'px';
+      ring.style.height = Math.round(r.height * (toFrac - fromFrac)) + 'px';
+      ring.classList.add('on');
+    }
+    function ringOff() { ring.classList.remove('on'); }
+
+    window.addEventListener('resize', function () {
+      place();
+      if (ring.classList.contains('on') && lastRing) ringTo.apply(null, lastRing);
+    });
+    var lastRing = null;
+    function highlight(holder, a, b) { lastRing = [holder, a, b]; ringTo(holder, a, b); }
+
+    /* ---------- cube task tracking ---------- */
+    var TASKS = [
+      { label: 'Pick Moss on the cube',            hit: function (s) { return s.character === 'moss'; } },
+      { label: 'Play Logic Riddles',               hit: function (s) { return s.game === 'riddles'; } },
+      { label: 'Sing karaoke with Luna',           hit: function (s) { return s.game === 'karaoke'; } },
+      { label: 'Have a talk with Ember',           hit: function (s) { return s.state === 'talk-ember'; } }
+    ];
+    var doneFlags = [false, false, false, false];
+
+    function renderTasks() {
+      elTask.hidden = false;
+      elTask.innerHTML = '';
+      var firstOpen = doneFlags.indexOf(false);
+      TASKS.forEach(function (t, i) {
+        var li = document.createElement('li');
+        li.className = doneFlags[i] ? 'done' : (i === firstOpen ? 'now' : '');
+        var tick = document.createElement('span');
+        tick.className = 'tick';
+        tick.textContent = '✓';
+        var txt = document.createElement('span');
+        txt.textContent = t.label;
+        li.appendChild(tick); li.appendChild(txt);
+        elTask.appendChild(li);
+      });
+      place();
+    }
+
+    var watchingTasks = false;
+    NBRoom.onCube(function (snap) {
+      if (!watchingTasks || !snap) return;
+      var changed = false;
+      TASKS.forEach(function (t, i) {
+        if (!doneFlags[i] && t.hit(snap)) { doneFlags[i] = true; changed = true; }
+      });
+      if (changed) {
+        renderTasks();
+        if (doneFlags.every(Boolean)) { watchingTasks = false; setTimeout(stepApp, 1400); }
+      }
+    });
+
+    /* ---------- has the parent finished setup? ---------- */
+    function appFinishedSetup() {
+      try {
+        var d = parentFrame.contentWindow.document;
+        var root = d.getElementById('nbux-root');
+        var home = d.querySelector('.screen[data-s="home"]');
+        return !!(home && home.classList.contains('active') && (!root || !root.classList.contains('show')));
+      } catch (e) { return false; }
+    }
+
+    /* ================= the steps ================= */
+    function stepConnected() {
+      show({
+        eyebrow: 'Setup complete',
+        title: 'Great — the app and Neybo are connected',
+        body: 'The link is live: whatever you do in the app reaches the cube straight away.',
+        anchor: parentHolder, bias: 0.42,
+        actions: [{ label: 'Next', onClick: function () { hideCard(stepCubeIntro); } }]
+      });
+      setTimeout(function () { if (!card.hidden && step === 'connected') hideCard(stepCubeIntro); }, 6000);
+      step = 'connected';
+    }
+
+    function stepCubeIntro() {
+      step = 'cube-intro';
+      parentPane.classList.add('dimmed');
+      devicePane.classList.remove('dimmed');
+      show({
+        eyebrow: 'Now the cube',
+        title: 'Let’s see what the cube can do',
+        body: 'The app steps back for a moment. Everything on the right is the cube itself.',
+        note: 'This is a demo model — the real Neybo does much more. The prototype is only here to show how it works.',
+        anchor: deviceHolder, bias: 0.35,
+        actions: [{ label: 'Show me', onClick: function () { hideCard(stepTour1); } }]
+      });
+    }
+
+    function stepTour1() {
+      step = 'tour1';
+      highlight(deviceHolder, 0.02, 0.66);
+      show({
+        eyebrow: 'The cube · 1 of 3',
+        title: 'The cube’s own screen',
+        body: 'This is what the child sees and hears. Power, mic and volume sit on the sides — they are simulated, so you can press them.',
+        anchor: deviceHolder, bias: 0.3,
+        actions: [{ label: 'Next', onClick: function () { hideCard(stepTour2); } }]
+      });
+    }
+
+    function stepTour2() {
+      step = 'tour2';
+      highlight(deviceHolder, 0.66, 0.845);
+      show({
+        eyebrow: 'The cube · 2 of 3',
+        title: 'Simulated child voice',
+        body: 'Neybo is voice-first. These chips stand in for what the child says out loud — that is how games get picked and answered.',
+        anchor: deviceHolder, bias: 0.72,
+        actions: [{ label: 'Next', onClick: function () { hideCard(stepTour3); } }]
+      });
+    }
+
+    function stepTour3() {
+      step = 'tour3';
+      highlight(deviceHolder, 0.845, 0.995);
+      show({
+        eyebrow: 'The cube · 3 of 3',
+        title: 'Simulation controls',
+        body: 'Jump through setup, meet Moss, Luna or Ember, start any game, or switch on a service state like muted mic, low battery or offline.',
+        anchor: deviceHolder, bias: 0.86,
+        actions: [{ label: 'Give me a task', onClick: function () { hideCard(stepTasks); } }]
+      });
+    }
+
+    function stepTasks() {
+      step = 'tasks';
+      ringOff();
+      watchingTasks = true;
+      var s = NBRoom.cube;
+      if (s) TASKS.forEach(function (t, i) { if (t.hit(s)) doneFlags[i] = true; });
+      show({
+        eyebrow: 'Your turn on the cube',
+        title: 'Four things to try',
+        body: 'Use the controls under the cube. Each one ticks itself off when the cube reacts.',
+        tasks: true,
+        anchor: deviceHolder, bias: 0.5,
+        actions: [{ label: 'Skip to the app', kind: 'ghost', onClick: function () { watchingTasks = false; hideCard(stepApp); } }]
+      });
+      renderTasks();
+    }
+
+    function stepApp() {
+      if (step === 'app' || step === 'free') return;
+      step = 'app';
+      watchingTasks = false;
+      ringOff();
+      devicePane.classList.add('dimmed');
+      parentPane.classList.remove('dimmed');
+      show({
+        eyebrow: 'Now the app',
+        title: 'Now let’s explore what you can do with the app',
+        body: 'No tasks this time — the app will walk you through itself.',
+        anchor: parentHolder, bias: 0.4,
+        actions: [{ label: 'Start the app tour', onClick: startAppTour }]
+      });
+    }
+
+    function startAppTour() {
+      hideCard();
+      var pw = null;
+      try { pw = parentFrame.contentWindow; } catch (e) {}
+      var started = false;
+      try {
+        if (pw && pw.NeyboTour) { pw.NeyboTour.restart('test-room'); started = true; }
+      } catch (e) {}
+      if (!started) { stepFree(); return; }
+      var waited = 0;
+      var iv = setInterval(function () {
+        waited += 600;
+        var active = false;
+        try { active = !!(pw.NeyboTour && pw.NeyboTour.isActive()); } catch (e) {}
+        if (!active && waited > 1800) { clearInterval(iv); stepFree(); }
+        if (waited > 300000) clearInterval(iv);
+      }, 600);
+    }
+
+    function stepFree() {
+      step = 'free';
+      ringOff();
+      devicePane.classList.remove('dimmed');
+      parentPane.classList.remove('dimmed');
+      try { sessionStorage.setItem(DONE_KEY, '1'); } catch (e) {}
+      show({
+        eyebrow: 'All yours',
+        title: 'You’re free to explore',
+        body: 'Both sides are unlocked now — poke at anything, in any order.',
+        anchor: parentHolder, bias: 0.5,
+        actions: [{ label: 'Got it', onClick: function () { hideCard(); } }]
+      });
+      setTimeout(function () { if (step === 'free') hideCard(); }, 9000);
+    }
+
+    /* ---------- kick off once setup is done ---------- */
+    var step = 'waiting';
+    var poll = setInterval(function () {
+      if (step !== 'waiting') { clearInterval(poll); return; }
+      if (appFinishedSetup()) { clearInterval(poll); setTimeout(stepConnected, 900); }
+    }, 700);
+
+    /* console hooks for dry runs without walking the whole setup */
+    window.NBGuide = {
+      run: function () { step = 'connected'; stepConnected(); },
+      jump: function (name) {
+        var m = { connected: stepConnected, cube: stepCubeIntro, tour1: stepTour1, tour2: stepTour2,
+                  tour3: stepTour3, tasks: stepTasks, app: stepApp, free: stepFree };
+        if (m[name]) { card.hidden = true; card.classList.remove('show'); m[name](); }
+      },
+      get step() { return step; },
+      get tasks() { return doneFlags.slice(); }
+    };
+  })();
+
   if (!DEBUG) return;   /* clean room: nothing else runs */
 
   /* ================= debug mode ================= */
@@ -536,43 +933,17 @@
     }
   }, 1000);
 
-  /* ---- listen on the same channel (read-only) ---- */
-  var sdkIdx = 0;
-  function loadSdk() {
-    if (sdkIdx >= SDKS.length) { $('dRoom2').textContent = 'SDK unreachable'; setDot('dotRoom', 'bad'); return; }
-    var url = SDKS[sdkIdx];
-    var el = document.createElement('script');
-    el.src = url; el.async = true;
-    el.onerror = function () { log('x', 'SDK load failed: ' + url); sdkIdx++; loadSdk(); };
-    el.onload = function () {
-      if (!window.supabase || !window.supabase.createClient) { sdkIdx++; loadSdk(); return; }
-      try {
-        var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-          auth: { persistSession: false, autoRefreshToken: false }
-        });
-        /* the observer joins the SAME channel the parent broadcasts on */
-        var ch = client.channel(channelName, {
-          config: { broadcast: { self: false, ack: false }, private: false }
-        });
-        ch.on('broadcast', { event: '*' }, function (m) {
-          var p = m && m.payload;
-          var t = (p && p.type) || m.event || 'message';
-          var who = (p && p.source) || '?';
-          log('e', who + ' · ' + t + ' ' + (p && p.payload ? JSON.stringify(p.payload) : ''));
-        });
-        ch.subscribe(function (st, err) {
-          $('dRoom2').textContent = st;
-          setDot('dotRoom', st === 'SUBSCRIBED' ? 'ok' :
-                            (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') ? 'bad' : '');
-          log(st === 'SUBSCRIBED' ? 'e' : 'w',
-              'observer ' + st + (err ? (' — ' + (err.message || err)) : ''));
-        });
-      } catch (e) { log('x', 'observer failed: ' + (e && e.message)); setDot('dotRoom', 'bad'); }
-    };
-    document.head.appendChild(el);
-  }
-  loadSdk();
   log('w', 'room ready · participant ' + pid);
+  NBRoom.onCube(function (snap, type) {
+    if (type) log('e', 'cube · ' + type + ' · ' + snap.state +
+                      (snap.game ? ' / ' + snap.game : '') + ' · ' + snap.character);
+  });
+  NBRoom.onStatus(function (st, err) {
+    $('dRoom2').textContent = st;
+    setDot('dotRoom', st === 'SUBSCRIBED' ? 'ok' :
+                      (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') ? 'bad' : '');
+    log(st === 'SUBSCRIBED' ? 'e' : 'w', 'observer ' + st + (err ? (' — ' + (err.message || err)) : ''));
+  });
 })();
 </script>
 </body>
