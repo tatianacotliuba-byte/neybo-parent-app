@@ -912,13 +912,16 @@
 
     function ringBox(box, radius) {
       if (!box) { ring.classList.remove('on'); return false; }
-      /* the glow spreads past the ring and the pane has rounded corners —
-         keep the whole thing inside so it never bleeds onto the room */
-      var host = deviceHolder.getBoundingClientRect(), pad = 6, edge = 16;
-      var l = Math.max(host.left + edge, box.left - pad), t = Math.max(host.top + edge, box.top - pad);
-      var r2 = Math.min(host.left + host.width - edge, box.left + box.width + pad);
-      var b2 = Math.min(host.top + host.height - edge, box.top + box.height + pad);
-      ring.style.borderRadius = (radius == null ? 999 : radius) + 'px';
+      /* Keep the ring inside the pane, but never let that clamp cut into the
+         control itself — a ring that crosses the button reads as crooked. */
+      var host = deviceHolder.getBoundingClientRect(), pad = 3, edge = 4;
+      var l  = Math.min(box.left, Math.max(host.left + edge, box.left - pad));
+      var t  = Math.min(box.top,  Math.max(host.top + edge, box.top - pad));
+      var r2 = Math.max(box.left + box.width,  Math.min(host.left + host.width - edge, box.left + box.width + pad));
+      var b2 = Math.max(box.top + box.height, Math.min(host.top + host.height - edge, box.top + box.height + pad));
+      /* hug the control: a pill gets exactly its own curvature, not an ellipse */
+      var rr = (radius == null) ? Math.round((b2 - t) / 2) : radius;
+      ring.style.borderRadius = rr + 'px';
       ring.style.left = Math.round(l) + 'px';
       ring.style.top = Math.round(t) + 'px';
       ring.style.width = Math.round(r2 - l) + 'px';
@@ -942,8 +945,8 @@
         /* prefer the voice chip once the dock offers it, else the control
            that leads there */
         var box = st.chip ? chipBox(st.chip) : null;
-        var radius = 14;
-        if (!box && st.target) { box = targetBox(st.target); radius = 999; }
+        var radius = 12;
+        if (!box && st.target) { box = targetBox(st.target); radius = null; }  /* pill: own curvature */
         ringBox(box, radius);
         return;
       }

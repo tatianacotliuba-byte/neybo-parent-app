@@ -3803,26 +3803,71 @@ STEP.connect=function(){
    usual: the ones that do not apply come back as bad_state and change
    nothing, the ones that do walk it forward. No protocol change. */
 var NB_SETUP_LOG = [];
+var NB_SENT_AT={};                                   /* per command, for recency */
 function nbSendSetup(type,payload){
   NB_SETUP_LOG.push({type:type,payload:payload||{}});
+  nbLastSendAt=Date.now(); NB_SENT_AT[type]=nbLastSendAt;
   try{window.nbSend&&nbSend(type,payload||{});}catch(e){}
 }
-var nbResyncing=false, nbCubeSettled=false, nbResyncAt=0, nbResyncTries=0;
+var nbResyncing=false, nbCubeSettled=false, nbResyncAt=0, nbResyncTries=0, nbLastSendAt=0;
 var NB_CUBE_BUSY=/^(off|boot)$/;                     /* nothing can be applied yet */
+
+/* How far through setup each cube state is, and what each command needs and
+   produces. The walk uses this to send ONLY the steps the cube has not reached
+   yet — replaying a step it already passed is what made screens flicker past
+   or get skipped. */
+var NB_STAGE={ 'off':0,'boot':1,'onboard-qr':2,'onboard-pair':3,'onboard-wifi':4,
+               'onboard-profile':5,'onboard-character':6 };
+var NB_CMD_STAGE={
+  'setup.start':     { needs:2, gives:3 },
+  'pairing.confirm': { needs:3, gives:3 },          /* same state, new screen */
+  'wifi.connect':    { needs:3, gives:4 },
+  'profile.save':    { needs:5, gives:5 },
+  'setup.complete':  { needs:2, gives:99 }
+};
+function nbCubeStage(){
+  var dev=null; try{dev=window.NBLink&&NBLink.deviceState;}catch(e){}
+  if(!dev||!dev.state)return -1;
+  if(dev.firstRunDone)return 99;                     /* setup already finished */
+  var st=NB_STAGE[dev.state];
+  return st===undefined ? 90 : st;                   /* past onboarding screens */
+}
+/* is this command still worth sending? */
+function nbCmdApplies(type){
+  var m=NB_CMD_STAGE[type];
+  var stage=nbCubeStage();
+  if(stage<0)return false;
+  if(!m)return false;
+  if(stage>=99)return false;                         /* nothing left to set up */
+  if(type==='pairing.confirm')return stage===3;
+  return stage>=m.needs && stage<m.gives;
+}
+
 function nbResyncSetup(why){
   if(nbResyncing||!NB_SETUP_LOG.length)return;
   var dev=null; try{dev=window.NBLink&&NBLink.deviceState;}catch(e){}
   if(!dev||!dev.state||NB_CUBE_BUSY.test(dev.state))return;
-  if(Date.now()-nbResyncAt<2500)return;               /* one walk at a time */
-  if(nbResyncTries>=4)return;                         /* never loop forever */
+  if(Date.now()-nbResyncAt<2000)return;               /* one walk at a time */
+  if(Date.now()-nbLastSendAt<1200)return;             /* a command is in flight */
+  if(nbResyncTries>=6)return;                         /* never loop forever */
   nbResyncing=true; nbResyncAt=Date.now(); nbResyncTries++;
   try{log('cube resync',{why:why,steps:NB_SETUP_LOG.length,attempt:nbResyncTries});}catch(e){}
-  var i=0;
-  (function next(){
-    if(i>=NB_SETUP_LOG.length){nbResyncing=false;return;}
-    var c=NB_SETUP_LOG[i++];
+
+  var i=0, deadline=Date.now()+20000;
+  (function step(){
+    if(i>=NB_SETUP_LOG.length||Date.now()>deadline){nbResyncing=false;return;}
+    var c=NB_SETUP_LOG[i];
+    /* the cube may have moved on its own between steps, so look every time */
+    if(!nbCmdApplies(c.type)){ i++; return step(); }
+    /* the same command may still be in flight from the parent's own tap — wait
+       for it to land or fail instead of firing a duplicate. pairing.confirm is
+       exempt: it changes no state, and its confirmation screen is exactly what
+       gets missed when the parent taps ahead of the cube. */
+    if(c.type!=='pairing.confirm'&&Date.now()-(NB_SENT_AT[c.type]||0)<2000) return setTimeout(step,1200);
+    NB_SENT_AT[c.type]=Date.now();
     try{window.nbSend&&nbSend(c.type,c.payload);}catch(e){}
-    setTimeout(next,1200);
+    i++;
+    setTimeout(step,1400);
   })();
 }
 window.nbResyncSetup=nbResyncSetup;                   /* console handle */
