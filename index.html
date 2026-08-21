@@ -1595,6 +1595,7 @@ function neyContent(mode){var dk=neyThemeDark();
   if(mode==='power-off')return{img:dk?HERO.offDark:HERO.offLight,title:'Neybo is off',sub:'Turn Neybo on for remote control.'};
   if(mode==='offline')return{img:dk?HERO.offDark:HERO.offLight,title:'Neybo is offline',sub:'Local play continues. New commands will sync when Neybo reconnects. · Last connected 6 min ago'};
   if(mode==='mic-off')return{img:dk?HERO.micDark:HERO.micLight,title:'Microphone is off',sub:'Turn the mic on so Neybo can hear you.'};
+  if(NEY_LIVE)return{img:dk?HERO.onDark:HERO.onLight,title:NEY_LIVE.title,sub:NEY_LIVE.sub};
   return{img:dk?HERO.onDark:HERO.onLight,title:'Playing Story Forge',sub:'Story Forge · 12 min in'};}
 function neySetAvail(id,ok){var el=document.getElementById(id);if(!el)return;el.disabled=!ok;el.setAttribute('aria-disabled',(!ok).toString());}
 function neySetReason(id,txt){var el=document.getElementById(id);if(!el)return;if(txt){el.textContent=txt;el.style.display='block';}else{el.style.display='none';el.textContent='';}}
@@ -1651,6 +1652,45 @@ function neyVolume(){var b=document.getElementById('volBtn');if(b&&b.disabled)re
 function neyFind(){var b=document.getElementById('findBtn');if(b&&b.disabled)return;go('c-find');}
 function neyListen(){var b=document.getElementById('listenBtn');if(b&&b.disabled)return;go('c-listen');}
 function neyNote(){var b=document.getElementById('noteBtn');if(b&&b.disabled)return;if(!NEY.online){NEY.queue++;renderHome();neyToast('Note queued · will send when Neybo reconnects');return;}go('c-announce');}
+/* ===== live activity: the hero mirrors what the cube is really doing =====
+   Fed by device.state / command.ack over the bridge (NBLink.onDevice).
+   NEY_LIVE stays null until the cube speaks, so the demo copy is the fallback. */
+var NEY_LIVE=null;
+var NEY_CHARNAME={moss:'Moss',luna:'Luna',ember:'Ember'};
+var NEY_GAMENAME={riddles:'Logic Riddles',charging:'Charging Break',karaoke:'Karaoke',
+  paint:'Paint With Words',dress:'Dress-Up',story:'Book Reading',
+  'talk-moss':'Talk to Moss','talk-luna':'Talk to Luna','talk-ember':'Talk to Ember'};
+var NEY_SETUPSUB={'onboard-qr':'Waiting for this app','onboard-pair':'Confirm the code shown on Neybo',
+  'onboard-wifi':'Joining Wi-Fi','onboard-profile':'Waiting for the child profile',
+  'onboard-character':'Waiting for a character','group-intro':'Group Mode intro'};
+function neyActivity(st){
+  if(!st||typeof st.state!=='string')return null;
+  var s=st.state,who=NEY_CHARNAME[st.character]||'Neybo';
+  var game=st.gameLabel||NEY_GAMENAME[st.game]||null;
+  if(s==='off')return null;
+  if(s==='boot')return{title:'Neybo is waking up',sub:'Starting up\u2026'};
+  if(s.indexOf('onboard-meeting')===0)return{title:'Meeting '+who,sub:'Setup \u00b7 saying hello'};
+  if(s.indexOf('onboard-')===0||s==='group-intro')
+    return{title:'Setting up Neybo',sub:NEY_SETUPSUB[s]||'Setup in progress'};
+  if(s.indexOf('choose')===0||s==='wake')return{title:'Choosing a game',sub:who+' is waiting for a pick'};
+  if(s==='mode-select')return{title:'Choosing a mode',sub:'On Neybo\u2019s screen'};
+  if(s==='idle')return{title:'Neybo is listening',sub:'Ready \u00b7 nothing playing right now'};
+  if(s==='sleep')return{title:'Neybo is resting',sub:'Screen asleep'};
+  if(s==='charging')return{title:'Charging',sub:(st.battery!=null?('Battery '+st.battery+'%'):'On the charger')};
+  if(s.indexOf('talk-')===0)return{title:'Talking with '+who,sub:'Open conversation'};
+  if(s.indexOf('end')===0)return{title:'Wrapping up',sub:(game?(game+' \u00b7 '):'')+'saying goodbye'};
+  if(s==='karaoke-praise')return{title:'Playing Karaoke',sub:'Karaoke \u00b7 '+who+' is cheering'};
+  if(game)return{title:'Playing '+game,sub:game+' \u00b7 with '+who};
+  return{title:'Neybo is busy',sub:'On Neybo: '+s};
+}
+window.NBonDeviceState=function(st){
+  NEY_LIVE=neyActivity(st);
+  if(st&&typeof st.state==='string')NEY.power=(st.state!=='off');
+  if(st&&typeof st.muted==='boolean'){NEY.mic=!st.muted;NEY.micSaved=NEY.mic;}
+  if(window.renderHome)renderHome();
+};
+try{if(window.NBLink&&NBLink.onDevice)NBLink.onDevice(window.NBonDeviceState);}catch(e){}
+
 updateHero=renderHome;
 renderHome();
 </script>
