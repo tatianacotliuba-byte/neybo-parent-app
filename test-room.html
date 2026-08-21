@@ -546,6 +546,18 @@
   })();
   window.NBRoom = NBRoom;
 
+  /* The device iframe is cross-origin, so it tells us where its own regions
+     are (layout numbers only). The guided tour rings those exact rects
+     instead of guessing with fractions. */
+  var deviceZones = null;
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || d.source !== 'neybo-cube-layout' || !d.zones) return;
+    try { if (e.source !== deviceFrame.contentWindow) return; } catch (err) { return; }
+    deviceZones = { zones: d.zones, viewport: d.viewport || null };
+  }, false);
+  window.NBRoomZones = function () { return deviceZones; };
+
 
   /* ================= guided script after setup =================
      The room is the director: it dims one side, points at the other, sets the
@@ -637,24 +649,51 @@
       setTimeout(function () { card.hidden = true; if (then) then(); }, 420);
     }
 
-    /* ---------- highlight ring over a zone of a pane ---------- */
-    function ringTo(holder, fromFrac, toFrac, inset) {
-      var r = holder.getBoundingClientRect();
-      inset = inset == null ? 6 : inset;
-      ring.style.left   = Math.round(r.left + inset) + 'px';
-      ring.style.width  = Math.round(r.width - inset * 2) + 'px';
-      ring.style.top    = Math.round(r.top + r.height * fromFrac) + 'px';
-      ring.style.height = Math.round(r.height * (toFrac - fromFrac)) + 'px';
+    /* ---------- highlight ring ----------
+       Draws around a real region reported by the cube. Falls back to a
+       proportional band if the beacon has not arrived (older cube build). */
+    var lastZone = null;
+
+    function drawRing(zoneName, fallback) {
+      var host = deviceHolder.getBoundingClientRect();
+      var data = deviceZones;
+      var pad = 8, box = null;
+
+      if (data && data.zones && data.zones[zoneName] && data.viewport && data.viewport.w) {
+        var s = host.width / data.viewport.w;         /* iframe px -> room px */
+        var z = data.zones[zoneName];
+        box = { left: host.left + z.x * s, top: host.top + z.y * s,
+                width: z.w * s, height: z.h * s };
+      } else if (fallback) {
+        box = { left: host.left + 8, top: host.top + host.height * fallback[0],
+                width: host.width - 16, height: host.height * (fallback[1] - fallback[0]) };
+      }
+      if (!box) { ring.classList.remove('on'); return; }
+
+      /* keep the ring inside the pane so it never floats over the room */
+      var left = Math.max(host.left + 2, box.left - pad);
+      var top  = Math.max(host.top + 2, box.top - pad);
+      var right  = Math.min(host.left + host.width - 2, box.left + box.width + pad);
+      var bottom = Math.min(host.top + host.height - 2, box.top + box.height + pad);
+      ring.style.left   = Math.round(left) + 'px';
+      ring.style.top    = Math.round(top) + 'px';
+      ring.style.width  = Math.round(right - left) + 'px';
+      ring.style.height = Math.round(bottom - top) + 'px';
       ring.classList.add('on');
     }
-    function ringOff() { ring.classList.remove('on'); }
+
+    function ringOff() { ring.classList.remove('on'); lastZone = null; }
+    function highlight(zoneName, fallback) {
+      lastZone = [zoneName, fallback];
+      drawRing(zoneName, fallback);
+    }
 
     window.addEventListener('resize', function () {
       place();
-      if (ring.classList.contains('on') && lastRing) ringTo.apply(null, lastRing);
+      if (lastZone) drawRing(lastZone[0], lastZone[1]);
     });
-    var lastRing = null;
-    function highlight(holder, a, b) { lastRing = [holder, a, b]; ringTo(holder, a, b); }
+    /* the cube re-lays out (dock grows per state) — follow it */
+    setInterval(function () { if (lastZone) drawRing(lastZone[0], lastZone[1]); }, 700);
 
     /* ---------- cube task tracking ---------- */
     var TASKS = [
@@ -735,7 +774,7 @@
 
     function stepTour1() {
       step = 'tour1';
-      highlight(deviceHolder, 0.02, 0.66);
+      highlight('screen', [0.03, 0.62]);
       show({
         eyebrow: 'The cube · 1 of 3',
         title: 'The cube’s own screen',
@@ -747,7 +786,7 @@
 
     function stepTour2() {
       step = 'tour2';
-      highlight(deviceHolder, 0.66, 0.845);
+      highlight('voice', [0.63, 0.82]);
       show({
         eyebrow: 'The cube · 2 of 3',
         title: 'Simulated child voice',
@@ -759,7 +798,7 @@
 
     function stepTour3() {
       step = 'tour3';
-      highlight(deviceHolder, 0.845, 0.995);
+      highlight('controls', [0.83, 0.99]);
       show({
         eyebrow: 'The cube · 3 of 3',
         title: 'Simulation controls',
