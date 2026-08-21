@@ -4190,6 +4190,10 @@ function applyAccount(){
 /* ================= research controls ================= */
 function buildResearchBar(){
   if(document.getElementById('nbux-research'))return;
+  /* Framed by the Test Room? The room shows Restart beside the phone, so the
+     in-phone pill would be a second one sitting on top of the UI. */
+  var framed=false; try{framed=window.parent!==window;}catch(e){framed=true;}
+  if(framed)return;
   var bar=make('div',null);bar.id='nbux-research';
   var html='<button id="nbux-restart" aria-label="Restart usability test">Restart test</button>';
   if(research)html+='<button id="nbux-export" aria-label="Export test log">Export log</button>';
@@ -4263,6 +4267,7 @@ window.NBUX={
     var b=$('#nbux-restore-go');if(b)b.addEventListener('click',function(){closeSheet();goStep('account');});
   },
   restart:restartTest,
+  exportLog:function(){try{exportLog();}catch(e){}},
   feedback:function(){try{openFeedback();}catch(e){}}
 };
 

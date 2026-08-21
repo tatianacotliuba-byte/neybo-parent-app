@@ -118,6 +118,20 @@
   #introCap1{position:relative;width:360px}
   #introCap1 .pointer{display:none}
   #introCap2,#introBannerCard,#nbCard{position:fixed;z-index:62}
+  #nbRestart{
+    position:fixed;left:16px;bottom:16px;z-index:63;pointer-events:auto;
+    font:inherit;font-size:12px;color:var(--room-muted);
+    background:rgba(255,255,255,.7);border:1px solid var(--room-line);
+    border-radius:999px;padding:6px 14px;cursor:pointer;
+    transition:color .15s ease, background .15s ease, border-color .15s ease;
+  }
+  #nbRestart:hover{color:var(--room-ink)}
+  #nbRestart.armed{
+    color:#7a2f22;background:#f7e0d8;border-color:#e0b7ab;font-weight:600;
+  }
+  body.debug #nbRestart{bottom:314px}
+  body.debug.dbg-min #nbRestart{bottom:48px}
+
   #introSkip{
     position:fixed;right:16px;bottom:16px;z-index:63;pointer-events:auto;
     font:inherit;font-size:12px;color:var(--room-muted);
@@ -248,6 +262,7 @@
   <p>No ads, no algorithms, no surprises. Just a curious companion your child loves —
      and weekly insights so you always know what&#8217;s on their mind.</p>
 </div>
+<button type="button" id="nbRestart" title="Start the whole test over with a fresh participant">Restart test</button>
 <button type="button" id="introSkip" hidden>Skip intro</button>
 <div id="nbRing" aria-hidden="true"></div>
 <div class="introcap" id="nbCard" hidden role="dialog" aria-live="polite">
@@ -625,6 +640,58 @@
       nbSpotOff();
     });
     at(13300, function () { finish(true); });
+  })();
+
+  /* ================= restart the whole test =================
+     A restart is a brand-new participant: the app wipes its state and consent,
+     the cube forgets it was ever provisioned (its first-run flag is keyed by
+     participant), and the room replays the intro and the guided script. One
+     reload with a fresh id does all three — no partial resets to keep in sync. */
+  (function restartControl() {
+    var btn = document.getElementById('nbRestart');
+    if (!btn) return;
+    var armed = false, armTimer = null;
+
+    function disarm() {
+      armed = false;
+      btn.classList.remove('armed');
+      btn.textContent = 'Restart test';
+      clearTimeout(armTimer);
+    }
+
+    btn.addEventListener('click', function () {
+      if (!armed) {
+        armed = true;
+        btn.classList.add('armed');
+        btn.textContent = 'Start over? Tap again';
+        clearTimeout(armTimer);
+        armTimer = setTimeout(disarm, 4000);
+        return;
+      }
+      disarm();
+      btn.textContent = 'Starting over…';
+
+      /* tell the app to drop its session first — it clears its own storage and
+         reports the abandon to analytics; the reload below does the rest */
+      try {
+        var pw = parentFrame.contentWindow;
+        if (pw && pw.NBA && pw.NBA.sessionUpdate) pw.NBA.sessionUpdate({ completion_status: 'abandoned' });
+      } catch (e) {}
+
+      var np = uuid();
+      try { localStorage.setItem(PID_KEY, np); } catch (e) {}
+      try {
+        Object.keys(sessionStorage).forEach(function (k) {
+          if (k.indexOf('nb_guide_done_') === 0) sessionStorage.removeItem(k);
+        });
+      } catch (e) {}
+
+      var q2 = new URLSearchParams(location.search);
+      q2.set('participantId', np);
+      q2.delete('intro');            /* the newcomer sees the intro again */
+      q2.delete('guide');
+      setTimeout(function () { location.search = '?' + q2.toString(); }, 120);
+    });
   })();
 
   /* ================= cube observer (always on) =================
