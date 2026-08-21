@@ -766,10 +766,14 @@
      four cube tasks, then hands over to the app's own product tour. Cube task
      progress is read from the channel (NBRoom), never faked. ?guide=0 skips. */
   (function guide() {
-    if (q.get('guide') === '0') return;
+    /* The feedback ask waits for this flag: the whole guided run — cube tour,
+       cube tasks, then the app tour — has to be behind the tester first. */
+    if (q.get('guide') === '0') { window.NBRoomGuideDone = true; return; }
 
     var DONE_KEY = 'nb_guide_done_' + pid;
-    try { if (sessionStorage.getItem(DONE_KEY) === '1') return; } catch (e) {}
+    try {
+      if (sessionStorage.getItem(DONE_KEY) === '1') { window.NBRoomGuideDone = true; return; }
+    } catch (e) {}
 
     var devicePane = deviceFrame.closest('.pane');
     var parentPane = parentFrame.closest('.pane');
@@ -1202,6 +1206,8 @@
        bridge and the cube, then asks on its own schedule. */
     function stepFree() {
       step = 'free';
+      window.NBRoomGuideDone = true;          /* free exploration starts here */
+      window.NBRoomGuideFreeAt = Date.now();
       ringOff();
       devicePane.classList.remove('dimmed');
       parentPane.classList.remove('dimmed');
@@ -1772,12 +1778,16 @@
     var r = {
       app_setup_done:   appOnboardingDone(),
       device_setup_done: !!(snap && snap.firstRunDone && !CUBE_NOT_READY.test(snap.state || 'off')),
+      /* the guided run — cube tour, cube tasks, app tour — has to be over:
+         the ask belongs to free exploration, not to the middle of a tutorial */
+      guided_run_done:  !!window.NBRoomGuideDone,
       same_participant: !!(link && PID && link.participantId === PID),
       app_subscribed:   !!(link && link.subscribed),
       room_subscribed:  roomSubscribed,
       cube_state:       snap ? snap.state : null
     };
-    r.ok = r.app_setup_done && r.device_setup_done && r.same_participant && r.app_subscribed && r.room_subscribed;
+    r.ok = r.app_setup_done && r.device_setup_done && r.guided_run_done &&
+           r.same_participant && r.app_subscribed && r.room_subscribed;
     return r;
   }
 
@@ -1867,6 +1877,7 @@
       'feedback · pid ' + (PID || '—') + '\n' +
       'ready ' + (r.ok ? 'yes' : 'no') +
       ' (app ' + (r.app_setup_done ? 1 : 0) + ' cube ' + (r.device_setup_done ? 1 : 0) +
+      ' guide ' + (r.guided_run_done ? 1 : 0) +
       ' link ' + (r.app_subscribed ? 1 : 0) + ' room ' + (r.room_subscribed ? 1 : 0) +
       ' pid ' + (r.same_participant ? 1 : 0) + ')\n' +
       'prompt ' + (st.prompt_count || 0) + ' · later ' + (st.later_count || 0) +
