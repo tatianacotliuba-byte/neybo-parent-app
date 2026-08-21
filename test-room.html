@@ -876,11 +876,13 @@
       }
       if (!box) { ring.classList.remove('on'); return; }
 
-      /* keep the ring inside the pane so it never floats over the room */
-      var left = Math.max(host.left + 2, box.left - pad);
-      var top  = Math.max(host.top + 2, box.top - pad);
-      var right  = Math.min(host.left + host.width - 2, box.left + box.width + pad);
-      var bottom = Math.min(host.top + host.height - 2, box.top + box.height + pad);
+      /* keep the ring inside the pane; a zone that reaches the pane edge is
+         inset on purpose, so the line never looks clipped */
+      var inset = 8;
+      var left = Math.max(host.left + inset, box.left - pad);
+      var top  = Math.max(host.top + inset, box.top - pad);
+      var right  = Math.min(host.left + host.width - inset, box.left + box.width + pad);
+      var bottom = Math.min(host.top + host.height - inset, box.top + box.height + pad);
       ring.style.borderRadius = '18px';
       ring.style.left   = Math.round(left) + 'px';
       ring.style.top    = Math.round(top) + 'px';
@@ -912,6 +914,9 @@
 
     function ringBox(box, radius) {
       if (!box) { ring.classList.remove('on'); return false; }
+      /* round before padding: a fractional box makes one side a pixel wider */
+      box = { left: Math.round(box.left), top: Math.round(box.top),
+              width: Math.round(box.width), height: Math.round(box.height) };
       /* Keep the ring inside the pane, but never let that clamp cut into the
          control itself — a ring that crosses the button reads as crooked. */
       var host = deviceHolder.getBoundingClientRect(), pad = 3, edge = 4;
