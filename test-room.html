@@ -31,11 +31,6 @@
     gap:var(--pane-gap);padding:20px;flex-wrap:nowrap;overflow:hidden;
   }
   .pane{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
-  /* the feedback ask slides into a reserved column instead of covering a pane */
-  body.nbux-asking .stage{padding-right:356px}
-  /* while the form is open the cube steps aside and the phone takes the stage */
-  body.nbux-form .pane-device{display:none}
-  body.nbux-form .stage{padding-right:20px}
   /* holder keeps the scaled footprint; the iframe inside keeps its own logical size */
   .holder{
     position:relative;overflow:hidden;flex:none;border-radius:26px;
@@ -409,14 +404,6 @@
     var availW = window.innerWidth - padX - gap;
     if (availH < 200 || availW < 200) return;
 
-    /* form mode: the cube pane is out, so the phone gets the whole stage */
-    if (document.body.classList.contains('nbux-form')) {
-      var sf = Math.min(1.45, Math.max(0.5, availH / BASE_H));
-      place(parentHolder, parentFrame, PARENT_W, sf);
-      place(deviceHolder, deviceFrame, DEVICE_W, sf);
-      return;
-    }
-
     var s = Math.min(availH / BASE_H, availW / (PARENT_W + DEVICE_W));
     s = Math.max(0.35, Math.min(s, 1.6));
 
@@ -699,14 +686,16 @@
      knows what the cube is doing. The guided script below needs that; the
      debug drawer just borrows it. Read-only: the room never sends commands. */
   var NBRoom = (function () {
-    var snapshot = null, listeners = [], statusFns = [], sdkIdx = 0;
+    var snapshot = null, listeners = [], statusFns = [], rawFns = [], sdkIdx = 0;
 
     function emit(type) { listeners.forEach(function (f) { try { f(snapshot, type); } catch (e) {} }); }
     function status(st, err) { statusFns.forEach(function (f) { try { f(st, err); } catch (e) {} }); }
 
     function onMessage(m) {
       var p = m && m.payload;
-      if (!p || typeof p !== 'object' || p.source !== 'neybo-cube') return;
+      if (!p || typeof p !== 'object') return;
+      rawFns.forEach(function (f) { try { f(p); } catch (e) {} });
+      if (p.source !== 'neybo-cube') return;
       var snap = p.payload && p.payload.state;
       if (snap && typeof snap === 'object') { snapshot = snap; emit(p.type || m.event); }
     }
@@ -738,6 +727,12 @@
       get cube() { return snapshot; },
       onCube: function (fn) { listeners.push(fn); if (snapshot) { try { fn(snapshot, null); } catch (e) {} } },
       onStatus: function (fn) { statusFns.push(fn); },
+      /* raw channel payloads (read-only) — used for latency and error counts */
+      onAny: function (fn) { if (typeof fn === 'function') rawFns.push(fn); },
+      /* debug=1 only: drive the observer locally, so the room's own flows can
+         be exercised without a live channel. Never reachable in clean mode. */
+      simulateStatus: function (st) { if (DEBUG) status(st); },
+      simulateMessage: function (payload) { if (DEBUG) onMessage({ payload: payload }); },
       /* second, local source for the same snapshot (the cube's layout beacon):
          keeps the guided tasks honest if realtime is slow or blocked */
       feed: function (snap, type) {
@@ -749,6 +744,7 @@
     };
   })();
   window.NBRoom = NBRoom;
+  window.NBRoomPid = function () { return pid; };
 
   /* The device iframe is cross-origin, so it tells us where its own regions
      are (layout numbers only). The guided tour rings those exact rects
@@ -1177,75 +1173,11 @@
       }, 600);
     }
 
-    /* ---------- the ask, once the tester has had a moment ---------- */
-    var feedbackTimer = null;
-    var FEEDBACK_AFTER_MS = 30000;      /* both onboardings done, then a breath */
-
-    /* while the questionnaire is up: cube aside, phone centre stage, nothing
-       else competing for attention. Restored as soon as the sheet closes. */
-    var formWatch = null;
-    function enterFormMode() {
-      document.body.classList.remove('nbux-asking');
-      document.body.classList.add('nbux-form');
-      nbSpotOff();
-      fit();
-      clearInterval(formWatch);
-      var seen = false;
-      formWatch = setInterval(function () {
-        var open = false;
-        try {
-          var d = parentFrame.contentWindow.document;
-          open = !!(d.getElementById('nbux-sheetwrap') || {}).classList &&
-                 d.getElementById('nbux-sheetwrap').classList.contains('show');
-        } catch (e) {}
-        if (open) { seen = true; return; }
-        if (seen) { clearInterval(formWatch); formWatch = null; exitFormMode(); }
-      }, 500);
-    }
-    function exitFormMode() {
-      document.body.classList.remove('nbux-form');
-      fit();
-    }
-
-    function askFeedback() {
-      if (step !== 'free') return;
-      var pw = null, canOpen = false;
-      try { pw = parentFrame.contentWindow; canOpen = !!(pw && pw.NBUX && pw.NBUX.feedback); } catch (e) {}
-
-      document.body.classList.add('nbux-asking');   /* reserve the column */
-      fit();
-
-      function close(then) {
-        document.body.classList.remove('nbux-asking');
-        fit();
-        hideCard(then);
-      }
-
-      show({
-        eyebrow: 'Whenever you’re ready',
-        title: 'Tell us how that went',
-        body: 'A few ratings and a few open questions — about the setup, the cube and the app. Two minutes, and it opens in the app.',
-        side: true,
-        actions: canOpen ? [
-          { label: 'Give feedback', onClick: function () {
-              hideCard(function () {
-                enterFormMode();
-                try { pw.NBUX.feedback(); } catch (e) {}
-              });
-            } },
-          { label: 'Not now', kind: 'ghost', onClick: function () {
-              close();
-              clearTimeout(feedbackTimer);
-              feedbackTimer = setTimeout(askFeedback, 120000);   /* ask again later */
-            } }
-        ] : [ { label: 'Got it', onClick: function () { close(); } } ]
-      });
-    }
-
+    /* Feedback now lives in the room's own flow (see TEST ROOM · FEEDBACK
+       FLOW at the end of this file): it waits for both onboardings, the
+       bridge and the cube, then asks on its own schedule. */
     function stepFree() {
       step = 'free';
-      clearTimeout(feedbackTimer);
-      feedbackTimer = setTimeout(askFeedback, FEEDBACK_AFTER_MS);
       ringOff();
       devicePane.classList.remove('dimmed');
       parentPane.classList.remove('dimmed');
@@ -1270,7 +1202,6 @@
     /* console hooks for dry runs without walking the whole setup */
     window.NBGuide = {
       run: function () { step = 'connected'; stepConnected(); },
-      askFeedback: function () { step = 'free'; askFeedback(); },
       jump: function (name) {
         var m = { connected: stepConnected, cube: stepCubeIntro, tour1: stepTour1, tour2: stepTour2,
                   tour3: stepTour3, tasks: stepTasks, app: stepApp, free: stepFree };
@@ -1366,5 +1297,906 @@
   });
 })();
 </script>
+
+<!-- ===================================================================
+     TEST ROOM · FEEDBACK FLOW
+     -------------------------------------------------------------------
+     Asks for feedback 30s after BOTH onboardings are really finished (the
+     Parent App reached its Home screen, the cube is provisioned and awake,
+     both sides of the bridge are subscribed on this participantId), then
+     runs a five-section questionnaire as a modal over the room.
+
+     Everything lives here: the Device Prototype, the bridge protocol, the
+     channel, the participantId and the Parent App's own screens are not
+     touched. Analytics goes through the Parent App's existing wrapper
+     (window.NBA) — no second analytics service.
+
+     State is per participant (localStorage), so a reload resumes: prompt
+     count, "Later" count, the draft and a completed submission all survive.
+     =================================================================== -->
+<style id="nbfb-css">
+  :root{
+    --fb-bg:#121326; --fb-card:#1E213A; --fb-raised:#292C49; --fb-field:#23263F;
+    --fb-ink:#F7F3E8; --fb-body:#C7C4DC; --fb-muted:#B5B1C8; --fb-line:#353957;
+    --fb-strong:#74719A; --fb-accent:#F5C84A; --fb-accent-ink:#3A2E06;
+    --fb-mint:#7FCB93; --fb-coral:#FF8E71;
+  }
+
+  /* ---------- invitation ---------- */
+  #fbPrompt{
+    position:fixed;right:18px;bottom:64px;z-index:70;width:320px;max-width:calc(100vw - 32px);
+    background:#25283f;color:var(--fb-ink);border:1px solid rgba(255,255,255,.15);
+    border-radius:18px;padding:16px 18px;
+    box-shadow:0 18px 46px rgba(0,0,0,.42),0 4px 14px rgba(0,0,0,.26);
+    opacity:0;transform:translateY(14px);pointer-events:none;
+    transition:opacity .45s ease, transform .45s cubic-bezier(.2,.7,.2,1);
+  }
+  #fbPrompt.show{opacity:1;transform:none;pointer-events:auto}
+  #fbPrompt[hidden]{display:none}
+  #fbPrompt .eyebrow{
+    display:block;margin:0 0 7px;font-size:11px;line-height:15px;letter-spacing:.08em;
+    text-transform:uppercase;font-weight:700;color:var(--fb-accent);
+  }
+  #fbPrompt h2{margin:0;font-size:17px;line-height:22px;font-weight:600}
+  #fbPrompt p{margin:7px 0 0;font-size:13.5px;line-height:19px;color:rgba(255,250,240,.82)}
+  #fbPrompt .acts{display:flex;align-items:center;gap:8px;margin-top:15px}
+  #fbPrompt button{
+    font:inherit;font-size:13px;min-height:36px;padding:0 14px;border-radius:12px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.26);background:transparent;color:inherit;
+  }
+  #fbPrompt button.primary{background:var(--fb-accent);color:var(--fb-accent-ink);border:0;font-weight:700}
+  #fbPrompt button.ghost{border:0;text-decoration:underline;text-underline-offset:3px;padding:0 4px;margin-left:auto}
+
+  /* ---------- the small standing button ---------- */
+  #fbOpen{
+    position:fixed;right:18px;bottom:16px;z-index:69;
+    font:inherit;font-size:12px;font-weight:600;color:#3A2E06;
+    background:rgba(245,200,74,.92);border:1px solid rgba(245,200,74,.5);
+    border-radius:999px;padding:7px 15px;cursor:pointer;
+    box-shadow:0 10px 24px rgba(0,0,0,.18);
+  }
+  #fbOpen:hover{background:#f5c84a}
+  #fbOpen[hidden]{display:none}
+  body.debug #fbOpen{bottom:314px}
+  body.debug #fbPrompt{bottom:362px}
+  body.debug.dbg-min #fbOpen{bottom:48px}
+  body.debug.dbg-min #fbPrompt{bottom:96px}
+
+  /* ---------- modal ---------- */
+  #fbModal{
+    position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+    padding:24px;background:rgba(6,7,18,.66);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+    opacity:0;transition:opacity .3s ease;
+  }
+  #fbModal.show{opacity:1}
+  #fbModal[hidden]{display:none}
+  .fb-panel{
+    width:min(560px,100%);max-height:min(88vh,900px);display:flex;flex-direction:column;
+    background:var(--fb-bg);color:var(--fb-ink);border:1px solid var(--fb-line);border-radius:22px;
+    box-shadow:0 30px 80px rgba(0,0,0,.5);overflow:hidden;
+    font-family:'Nunito Sans','Nunito',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    transform:translateY(12px);transition:transform .32s cubic-bezier(.2,.7,.2,1);
+  }
+  #fbModal.show .fb-panel{transform:none}
+  .fb-head{padding:18px 22px 14px;border-bottom:1px solid var(--fb-line);flex:none;position:relative}
+  .fb-head .fb-kicker{
+    font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--fb-accent);
+  }
+  .fb-head h2{margin:6px 0 0;font-size:19px;line-height:24px;font-weight:600}
+  .fb-head .fb-step{margin-top:3px;font-size:12.5px;color:var(--fb-muted)}
+  #fbClose{
+    position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;
+    background:var(--fb-raised);border:1px solid var(--fb-line);color:var(--fb-body);
+    font:inherit;font-size:16px;line-height:1;cursor:pointer;
+  }
+  #fbClose:hover{color:var(--fb-ink)}
+  .fb-bar{height:4px;background:var(--fb-raised);flex:none}
+  .fb-bar>i{display:block;height:100%;width:0;background:var(--fb-accent);transition:width .3s ease}
+  .fb-body{padding:18px 22px 6px;overflow-y:auto;flex:1;min-height:0}
+  .fb-q{margin:0 0 20px}
+  .fb-q > p{margin:0 0 9px;font-size:14.5px;line-height:20px;color:var(--fb-ink)}
+  .fb-scale{display:flex;gap:7px}
+  .fb-scale button{
+    flex:1;min-width:0;height:44px;border-radius:12px;cursor:pointer;
+    border:1.5px solid var(--fb-strong);background:var(--fb-card);color:var(--fb-ink);
+    font:inherit;font-weight:700;font-size:15px;
+  }
+  .fb-scale button:hover{border-color:#A7A3C4}
+  .fb-scale button[aria-pressed="true"]{
+    background:var(--fb-accent);border-color:var(--fb-accent);color:var(--fb-accent-ink);
+    box-shadow:0 0 0 3px rgba(245,200,74,.22);
+  }
+  .fb-poles{display:flex;justify-content:space-between;margin-top:6px;font-size:11.5px;color:var(--fb-muted)}
+  .fb-legend{
+    margin:0 0 16px;padding:9px 12px;border-radius:11px;background:var(--fb-raised);
+    border:1px solid var(--fb-line);font-size:12px;line-height:17px;color:var(--fb-muted);
+  }
+  .fb-q textarea{
+    width:100%;box-sizing:border-box;min-height:86px;resize:vertical;
+    background:var(--fb-field);border:1.5px solid var(--fb-strong);border-radius:14px;
+    color:var(--fb-ink);font:inherit;font-size:15px;padding:12px 14px;
+  }
+  .fb-q textarea::placeholder{color:#9490AD;opacity:1}
+  .fb-q textarea:focus{outline:none;border-color:var(--fb-accent);box-shadow:0 0 0 3px rgba(245,200,74,.22)}
+  .fb-count{margin-top:5px;font-size:11.5px;color:var(--fb-muted);text-align:right}
+  .fb-count.near{color:var(--fb-accent)}
+  .fb-req{color:var(--fb-coral);font-size:12.5px;margin:6px 0 0;display:none}
+  .fb-req.show{display:block}
+  .fb-opt{color:var(--fb-muted);font-weight:400}
+  .fb-foot{
+    flex:none;display:flex;align-items:center;gap:10px;padding:14px 22px 18px;
+    border-top:1px solid var(--fb-line);background:linear-gradient(to top,var(--fb-bg) 70%,transparent);
+  }
+  .fb-foot button{
+    font:inherit;font-size:14.5px;min-height:44px;padding:0 18px;border-radius:14px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.26);background:transparent;color:var(--fb-ink);font-weight:600;
+  }
+  .fb-foot button.primary{background:var(--fb-accent);color:var(--fb-accent-ink);border:0;font-weight:700;margin-left:auto}
+  .fb-foot button.primary:disabled{background:var(--fb-raised);color:#9A97B4;cursor:not-allowed}
+  .fb-foot .fb-note{font-size:12px;color:var(--fb-muted)}
+  .fb-done{padding:34px 26px 30px;text-align:center}
+  .fb-done .tick{
+    width:62px;height:62px;border-radius:50%;margin:0 auto 16px;
+    background:rgba(127,203,147,.14);border:2px solid rgba(127,203,147,.6);
+    display:flex;align-items:center;justify-content:center;font-size:29px;color:var(--fb-mint);
+  }
+  .fb-done h3{margin:0;font-size:19px;line-height:25px;font-weight:600}
+  .fb-done p{margin:9px 0 0;font-size:14px;line-height:20px;color:var(--fb-body)}
+  .fb-error{
+    margin:0 22px 12px;padding:11px 13px;border-radius:12px;
+    background:rgba(255,142,113,.10);border:1px solid rgba(255,142,113,.45);
+    font-size:13px;line-height:18px;color:#FFC2AF;
+  }
+  .fb-error[hidden]{display:none}
+
+  /* debug-only status line */
+  #fbDebug{
+    position:fixed;left:16px;bottom:56px;z-index:64;display:none;
+    font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8b93a6;
+    background:rgba(20,24,33,.86);border:1px solid #262c39;border-radius:10px;padding:6px 9px;
+    max-width:330px;white-space:pre-wrap;
+  }
+  body.debug #fbDebug{display:block;bottom:352px}
+
+  @media (max-width:560px){
+    .fb-panel{max-height:94vh;border-radius:18px}
+    #fbModal{padding:10px}
+    .fb-head{padding:15px 16px 12px}
+    .fb-body{padding:15px 16px 4px}
+    .fb-foot{padding:12px 16px 15px}
+    .fb-scale button{height:46px;font-size:15px}
+    #fbPrompt{right:12px;left:12px;width:auto}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #fbPrompt,#fbModal,.fb-panel,.fb-bar>i{transition:none}
+  }
+</style>
+
+<div id="fbPrompt" hidden role="status" aria-live="polite">
+  <span class="eyebrow">Whenever you’re ready</span>
+  <h2>Help us improve Neybo</h2>
+  <p>It takes about 3 minutes.</p>
+  <div class="acts">
+    <button type="button" class="primary" id="fbPromptGo">Give feedback</button>
+    <button type="button" class="ghost" id="fbPromptLater">Later</button>
+  </div>
+</div>
+
+<button type="button" id="fbOpen" hidden>Give feedback</button>
+<div id="fbDebug" aria-hidden="true"></div>
+
+<div id="fbModal" hidden role="dialog" aria-modal="true" aria-labelledby="fbTitle">
+  <div class="fb-panel">
+    <div class="fb-head">
+      <span class="fb-kicker">Feedback</span>
+      <h2 id="fbTitle">Setup</h2>
+      <div class="fb-step" id="fbStep">Section 1 of 5</div>
+      <button type="button" id="fbClose" aria-label="Close — your answers are kept">✕</button>
+    </div>
+    <div class="fb-bar"><i id="fbBar"></i></div>
+    <div class="fb-body" id="fbBody"></div>
+    <div class="fb-error" id="fbError" hidden></div>
+    <div class="fb-foot" id="fbFoot"></div>
+  </div>
+</div>
+
+<script id="nbfb-js">
+(function () {
+  'use strict';
+
+  /* ---------------------------------------------------------------- config */
+  var VERSION            = 1;
+  var PROMPT_DELAY_MS    = 30000;
+  var LATER_DELAY_MS     = 120000;
+  var TEXT_MAX           = 1000;
+  var APP_VERSION        = 'parent-app-proto-1';
+
+  var SCALE_LABELS = [
+    '1 — Strongly disagree',
+    '2 — Disagree',
+    '3 — Neither agree nor disagree',
+    '4 — Agree',
+    '5 — Strongly agree'
+  ];
+
+  var SECTIONS = [
+    { id: 'setup', title: 'Setup', ratings: [
+        ['setup_easy',            'Setting up Neybo was easy.'],
+        ['instructions_clear',    'The instructions clearly explained what I needed to do.'],
+        ['next_step_clear',       'I always knew what to do next.'],
+        ['setup_confidence',      'After setup, I felt confident that Neybo was ready to use.']
+      ], texts: [] },
+    { id: 'app_and_neybo', title: 'App + Neybo', ratings: [
+        ['relationship_clear',    'I understood how the Parent App and Neybo work together.'],
+        ['cause_effect_clear',    'It was clear which actions in the app caused changes on Neybo.'],
+        ['response_speed',        'Neybo responded quickly enough to my actions.'],
+        ['device_status_clear',   'The app made it clear what Neybo was currently doing.'],
+        ['switching_easy',        'Moving my attention between the app and Neybo felt natural.']
+      ], texts: [] },
+    { id: 'parent_app', title: 'Parent App', ratings: [
+        ['controls_easy_to_find',      'It was easy to find the controls I needed in the Parent App.'],
+        ['information_useful',         'The app showed the information I needed without feeling overwhelming.'],
+        ['parent_control_confidence',  'The app gave me the right level of control over Neybo.']
+      ], texts: [] },
+    { id: 'trust_and_value', title: 'Trust and value', ratings: [
+        ['device_intuitive',      'Interacting directly with Neybo felt intuitive.'],
+        ['child_independence',    'I would feel comfortable letting my child use Neybo independently.'],
+        ['trust',                 'I felt comfortable with and understood what Neybo was doing.'],
+        ['family_value',          'Neybo could provide meaningful value for my family.']
+      ], texts: [] },
+    { id: 'your_thoughts', title: 'Your thoughts', ratings: [], texts: [
+        ['confusing_moment',   'Describe the moment when you felt most confused or unsure. What were you trying to do?'],
+        ['expected_vs_actual', 'Did anything behave differently from what you expected? What did you expect to happen?'],
+        ['app_change',         'If you could change one thing about the Parent App, what would it be and why?'],
+        ['device_change',      'If you could change one thing about Neybo itself, what would it be and why?'],
+        ['home_scenario',      'Imagine Neybo in your home. When would your family use it, and who would usually start the interaction?'],
+        ['adoption_blocker',   'What, if anything, would stop you from using Neybo with your family?'],
+        ['most_valuable',      'What part of the experience felt most valuable to you?'],
+        ['anything_else',      'Is there anything else you would like us to know?']
+      ] }
+  ];
+
+  var SCORES = {
+    feedback_setup_score:      ['setup_easy', 'instructions_clear', 'next_step_clear', 'setup_confidence'],
+    feedback_connection_score: ['relationship_clear', 'cause_effect_clear', 'response_speed', 'device_status_clear', 'switching_easy'],
+    feedback_app_score:        ['controls_easy_to_find', 'information_useful', 'parent_control_confidence'],
+    feedback_value_score:      ['device_intuitive', 'child_independence', 'trust', 'family_value']
+  };
+
+  /* ------------------------------------------------------------ plumbing */
+  var PID = (function () {
+    try { return (window.NBRoomPid && window.NBRoomPid()) || null; } catch (e) { return null; }
+  })();
+  if (!PID) {
+    try {
+      var m = location.search.match(/[?&]participantId=([A-Za-z0-9_-]{1,64})/);
+      PID = m ? m[1] : null;
+    } catch (e) {}
+  }
+  var KEY = 'nbfb_v1_' + (PID || 'anon');
+  var DEBUG = /[?&]debug=1(?:&|$)/.test(location.search);
+
+  function nowMs() { return Date.now(); }
+  function uuid() {
+    try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+    return 'sid-' + Math.random().toString(36).slice(2) + '-' + nowMs().toString(36);
+  }
+  function appWin() { try { return document.getElementById('parentFrame').contentWindow; } catch (e) { return null; } }
+  function nba() { var w = appWin(); return (w && w.NBA) ? w.NBA : null; }
+
+  /* the Parent App's own analytics wrapper is the only sink */
+  function track(event, props) {
+    var a = nba();
+    if (!a || typeof a.capture !== 'function') return false;
+    var before = 0;
+    try { before = a._captures ? a._captures.length : 0; } catch (e) {}
+    try { a.capture(event, props || {}); } catch (e) { return false; }
+    try { return a._captures ? a._captures.length > before : true; } catch (e) { return true; }
+  }
+
+  /* ------------------------------------------------------------- state */
+  var st = {
+    started_at: nowMs(),
+    setup_done_at: null,
+    prompt_count: 0,
+    later_count: 0,
+    submitted: false,
+    submission_id: null,
+    draft: { ratings: {}, texts: {} },
+    section: 0,
+    pending: null            /* a payload that failed to send */
+  };
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      var o = JSON.parse(raw);
+      if (o && typeof o === 'object') {
+        Object.keys(st).forEach(function (k) { if (o[k] !== undefined) st[k] = o[k]; });
+        if (!st.draft || typeof st.draft !== 'object') st.draft = { ratings: {}, texts: {} };
+        st.draft.ratings = st.draft.ratings || {};
+        st.draft.texts   = st.draft.texts   || {};
+      }
+    } catch (e) {}
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  load(); save();
+
+  /* -------------------------------------------------------- diagnostics */
+  var diag = {
+    back_count: 0,
+    repeated_click_count: 0,
+    failed_command_count: 0,
+    bridge_error_count: 0,
+    app_interaction_count: 0,
+    device_interaction_count: 0,
+    app_device_attention_switch_count: 0,
+    latencies: [],
+    features_opened: 0,
+    features_started: 0,
+    prompt_state: null
+  };
+  var lastClickSig = null, lastClickAt = 0, lastSide = null;
+  var pendingCmds = {};                    /* requestId -> sent at */
+  var lastCmdAt = 0;                       /* any parent command, for attribution */
+
+  function markSide(side) {
+    if (lastSide && lastSide !== side) diag.app_device_attention_switch_count++;
+    lastSide = side;
+  }
+
+  /* app-side interactions: same origin, listener only, nothing is changed */
+  var appHooked = false;
+  function hookApp() {
+    if (appHooked) return;
+    var w = appWin();
+    if (!w || !w.document || !w.document.body) return;
+    try {
+      w.document.addEventListener('click', function (e) {
+        diag.app_interaction_count++;
+        markSide('app');
+        var t = e.target && e.target.closest ? e.target.closest('button,[role="button"],a,.nbux-chip,.nbux-check,.nbux-modecard,.nbux-themecard') : null;
+        if (t) {
+          if (t.classList && (t.classList.contains('nbux-back') || t.classList.contains('topback'))) diag.back_count++;
+          var sig = (t.id || t.className || t.tagName) + '';
+          if (sig === lastClickSig && nowMs() - lastClickAt < 800) diag.repeated_click_count++;
+          lastClickSig = sig; lastClickAt = nowMs();
+        }
+      }, true);
+      appHooked = true;
+    } catch (e) {}
+  }
+
+  /* channel traffic: latency, errors, and what the cube actually did */
+  var lastCubeState = null;
+  function onChannel(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    var type = payload.type || '';
+    if (payload.source === 'neybo-parent') {
+      lastCmdAt = nowMs();
+      if (payload.requestId) pendingCmds[payload.requestId] = nowMs();
+      return;
+    }
+    if (payload.source !== 'neybo-cube') return;
+
+    if (type === 'command.ack' || type === 'command.error') {
+      var sent = payload.requestId ? pendingCmds[payload.requestId] : null;
+      if (sent) {
+        diag.latencies.push(nowMs() - sent);
+        delete pendingCmds[payload.requestId];
+      }
+      if (type === 'command.error') { diag.failed_command_count++; diag.bridge_error_count++; }
+    }
+    var snap = payload.payload && payload.payload.state;
+    if (snap && snap.state && snap.state !== lastCubeState) {
+      var prev = lastCubeState;
+      lastCubeState = snap.state;
+      /* a cube change that no recent command explains reads as a touch on the
+         cube itself — the ack is matched and dropped above, so the timestamp
+         of the last command is what attribution has to go by */
+      if (nowMs() - lastCmdAt > 1500) { diag.device_interaction_count++; markSide('cube'); }
+      if (/^choose/.test(snap.state) || snap.state === 'wake') diag.features_opened++;
+      if (/^(play|dance|karaoke|paint|dress|story|talk-)/.test(snap.state)) diag.features_started++;
+    }
+  }
+  try { if (window.NBRoom && window.NBRoom.onAny) window.NBRoom.onAny(onChannel); } catch (e) {}
+  try {
+    if (window.NBRoom && window.NBRoom.onStatus) window.NBRoom.onStatus(function (s) {
+      if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'OBSERVER_FAILED' || s === 'SDK_UNREACHABLE') diag.bridge_error_count++;
+    });
+  } catch (e) {}
+
+  function avg(a) { return a.length ? Math.round(a.reduce(function (x, y) { return x + y; }, 0) / a.length) : null; }
+  function diagnostics() {
+    return {
+      back_count: diag.back_count,
+      repeated_click_count: diag.repeated_click_count,
+      failed_command_count: diag.failed_command_count,
+      bridge_error_count: diag.bridge_error_count,
+      app_to_device_latency_average_ms: avg(diag.latencies),
+      app_to_device_latency_max_ms: diag.latencies.length ? Math.max.apply(null, diag.latencies) : null,
+      app_interaction_count: diag.app_interaction_count,
+      device_interaction_count: diag.device_interaction_count,
+      app_device_attention_switch_count: diag.app_device_attention_switch_count,
+      features_opened: diag.features_opened,
+      features_started: diag.features_started,
+      prompt_shown_in_state: diag.prompt_state
+    };
+  }
+
+  /* ------------------------------------------------------- readiness */
+  function appOnboardingDone() {
+    try {
+      var d = appWin().document;
+      var root = d.getElementById('nbux-root');
+      var home = d.querySelector('.screen[data-s="home"]');
+      return !!(home && home.classList.contains('active') && (!root || !root.classList.contains('show')));
+    } catch (e) { return false; }
+  }
+  function appLink() {
+    try { return appWin().NBLink.status(); } catch (e) { return null; }
+  }
+  function cubeSnap() {
+    try { return (window.NBRoom && window.NBRoom.cube) || null; } catch (e) { return null; }
+  }
+  var roomSubscribed = false;
+  try { if (window.NBRoom && window.NBRoom.onStatus) window.NBRoom.onStatus(function (s) { roomSubscribed = (s === 'SUBSCRIBED'); }); } catch (e) {}
+
+  var CUBE_NOT_READY = /^(off|boot|onboard-)/;
+  function readiness() {
+    var link = appLink(), snap = cubeSnap();
+    var r = {
+      app_setup_done:   appOnboardingDone(),
+      device_setup_done: !!(snap && snap.firstRunDone && !CUBE_NOT_READY.test(snap.state || 'off')),
+      same_participant: !!(link && PID && link.participantId === PID),
+      app_subscribed:   !!(link && link.subscribed),
+      room_subscribed:  roomSubscribed,
+      cube_state:       snap ? snap.state : null
+    };
+    r.ok = r.app_setup_done && r.device_setup_done && r.same_participant && r.app_subscribed && r.room_subscribed;
+    return r;
+  }
+
+  /* --------------------------------------------------------- the prompt */
+  var elPrompt = document.getElementById('fbPrompt');
+  var elOpen   = document.getElementById('fbOpen');
+  var promptTimer = null, laterTimer = null, promptVisible = false;
+
+  function elapsed() { return Math.round((nowMs() - st.started_at) / 1000); }
+  function setupSeconds() {
+    return st.setup_done_at ? Math.round((st.setup_done_at - st.started_at) / 1000) : null;
+  }
+
+  function showPrompt() {
+    if (st.submitted || promptVisible || modalOpen) return;
+    var r = readiness();
+    if (!r.ok) return;
+    st.prompt_count = (st.prompt_count || 0) + 1;
+    diag.prompt_state = r.cube_state;
+    save();
+    elPrompt.hidden = false;
+    requestAnimationFrame(function () { elPrompt.classList.add('show'); });
+    promptVisible = true;
+    elOpen.hidden = false;                       /* the standing button stays from now on */
+    track('feedback_prompt_shown', {
+      participant_id: PID,
+      trigger_delay_seconds: st.prompt_count === 1 ? PROMPT_DELAY_MS / 1000 : LATER_DELAY_MS / 1000,
+      prompt_attempt: st.prompt_count,
+      test_elapsed_seconds: elapsed()
+    });
+  }
+  function hidePrompt() {
+    promptVisible = false;
+    elPrompt.classList.remove('show');
+    setTimeout(function () { elPrompt.hidden = true; }, 420);
+  }
+
+  document.getElementById('fbPromptGo').addEventListener('click', function () {
+    track('feedback_prompt_action', { participant_id: PID, action: 'opened',
+      prompt_attempt: st.prompt_count, test_elapsed_seconds: elapsed() });
+    hidePrompt();
+    openModal();
+  });
+  document.getElementById('fbPromptLater').addEventListener('click', function () {
+    st.later_count = (st.later_count || 0) + 1;
+    save();
+    track('feedback_prompt_action', { participant_id: PID, action: 'later',
+      prompt_attempt: st.prompt_count, test_elapsed_seconds: elapsed() });
+    hidePrompt();
+    if (st.later_count < 2) {                    /* one more ask, then never again */
+      clearTimeout(laterTimer);
+      laterTimer = setTimeout(showPrompt, LATER_DELAY_MS);
+    }
+  });
+  elOpen.addEventListener('click', function () {
+    track('feedback_prompt_action', { participant_id: PID, action: 'opened',
+      prompt_attempt: st.prompt_count, test_elapsed_seconds: elapsed() });
+    hidePrompt();
+    openModal();
+  });
+
+  /* watch for readiness, then wait the 30 seconds */
+  var armed = false;
+  var watch = setInterval(function () {
+    hookApp();
+    var r = readiness();
+    if (DEBUG) renderDebug(r);
+    if (st.submitted) { elOpen.hidden = true; return; }
+    if (!r.ok) return;
+    if (!st.setup_done_at) { st.setup_done_at = nowMs(); save(); }
+    if (armed) return;
+    armed = true;
+    if (st.prompt_count > 0) {
+      /* resumed after a reload: honour where the ask had got to */
+      elOpen.hidden = false;
+      if (st.later_count === 1) { clearTimeout(laterTimer); laterTimer = setTimeout(showPrompt, LATER_DELAY_MS); }
+      return;
+    }
+    clearTimeout(promptTimer);
+    promptTimer = setTimeout(showPrompt, PROMPT_DELAY_MS);
+  }, 1000);
+
+  function renderDebug(r) {
+    var el = document.getElementById('fbDebug');
+    if (!el) return;
+    el.textContent =
+      'feedback · pid ' + (PID || '—') + '\n' +
+      'ready ' + (r.ok ? 'yes' : 'no') +
+      ' (app ' + (r.app_setup_done ? 1 : 0) + ' cube ' + (r.device_setup_done ? 1 : 0) +
+      ' link ' + (r.app_subscribed ? 1 : 0) + ' room ' + (r.room_subscribed ? 1 : 0) +
+      ' pid ' + (r.same_participant ? 1 : 0) + ')\n' +
+      'prompt ' + (st.prompt_count || 0) + ' · later ' + (st.later_count || 0) +
+      ' · submitted ' + (st.submitted ? 'yes' : 'no') + '\n' +
+      'setup ' + (setupSeconds() == null ? '—' : setupSeconds() + 's') +
+      ' · elapsed ' + elapsed() + 's · cube ' + (r.cube_state || '—') + '\n' +
+      'back ' + diag.back_count + ' · rep ' + diag.repeated_click_count +
+      ' · err ' + diag.failed_command_count + ' · lat ' + (avg(diag.latencies) == null ? '—' : avg(diag.latencies) + 'ms') + '\n' +
+      'app ' + diag.app_interaction_count + ' · cube ' + diag.device_interaction_count +
+      ' · switches ' + diag.app_device_attention_switch_count;
+  }
+
+  /* ---------------------------------------------------------- the modal */
+  var elModal = document.getElementById('fbModal');
+  var elBody  = document.getElementById('fbBody');
+  var elFoot  = document.getElementById('fbFoot');
+  var elTitle = document.getElementById('fbTitle');
+  var elStep  = document.getElementById('fbStep');
+  var elBar   = document.getElementById('fbBar');
+  var elErr   = document.getElementById('fbError');
+  var modalOpen = false, sending = false, openedAt = 0;
+
+  function lowRatingPresent() {
+    return Object.keys(st.draft.ratings).some(function (k) {
+      var v = st.draft.ratings[k];
+      return v === 1 || v === 2;
+    });
+  }
+  function confusingRequired() { return lowRatingPresent(); }
+
+  function openModal() {
+    if (st.submitted) { renderDone(true); }
+    modalOpen = true;
+    openedAt = nowMs();
+    elModal.hidden = false;
+    requestAnimationFrame(function () { elModal.classList.add('show'); });
+    if (!st.submitted) {
+      track('feedback_started', { participant_id: PID, test_elapsed_seconds: elapsed() });
+      renderSection(Math.min(st.section || 0, SECTIONS.length - 1));
+    }
+  }
+  function closeModal() {
+    modalOpen = false;
+    save();                                     /* the draft is already in st */
+    elModal.classList.remove('show');
+    setTimeout(function () { elModal.hidden = true; }, 300);
+  }
+  document.getElementById('fbClose').addEventListener('click', closeModal);
+  elModal.addEventListener('click', function (e) { if (e.target === elModal) closeModal(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modalOpen && !sending) closeModal();
+  });
+
+  function ratingBlock(field, prompt) {
+    var wrap = document.createElement('div');
+    wrap.className = 'fb-q';
+    var p = document.createElement('p');
+    p.textContent = prompt;
+    wrap.appendChild(p);
+    var row = document.createElement('div');
+    row.className = 'fb-scale';
+    row.setAttribute('role', 'group');
+    row.setAttribute('aria-label', prompt);
+    for (var i = 1; i <= 5; i++) {
+      (function (v) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = String(v);
+        b.setAttribute('aria-label', SCALE_LABELS[v - 1]);
+        b.setAttribute('aria-pressed', st.draft.ratings[field] === v ? 'true' : 'false');
+        b.addEventListener('click', function () {
+          st.draft.ratings[field] = v;
+          save();
+          Array.prototype.forEach.call(row.children, function (c, idx) {
+            c.setAttribute('aria-pressed', idx + 1 === v ? 'true' : 'false');
+          });
+          req.classList.remove('show');
+          syncFoot();
+        });
+        row.appendChild(b);
+      })(i);
+    }
+    wrap.appendChild(row);
+    var poles = document.createElement('div');
+    poles.className = 'fb-poles';
+    poles.innerHTML = '<span>Strongly disagree</span><span>Strongly agree</span>';
+    wrap.appendChild(poles);
+    var req = document.createElement('p');
+    req.className = 'fb-req';
+    req.textContent = 'Please pick a number from 1 to 5.';
+    wrap.appendChild(req);
+    wrap._field = field;
+    wrap._req = req;
+    return wrap;
+  }
+
+  function textBlock(field, prompt, required) {
+    var wrap = document.createElement('div');
+    wrap.className = 'fb-q';
+    var p = document.createElement('p');
+    p.textContent = prompt;
+    if (!required) {
+      var opt = document.createElement('span');
+      opt.className = 'fb-opt';
+      opt.textContent = '  (optional)';
+      p.appendChild(opt);
+    }
+    wrap.appendChild(p);
+    var ta = document.createElement('textarea');
+    ta.maxLength = TEXT_MAX;
+    ta.value = st.draft.texts[field] || '';
+    ta.setAttribute('aria-label', prompt);
+    ta.placeholder = required ? 'A sentence or two is plenty' : '';
+    var count = document.createElement('div');
+    count.className = 'fb-count';
+    var req = document.createElement('p');
+    req.className = 'fb-req';
+    req.textContent = 'A rating of 1 or 2 means something went wrong — please tell us what.';
+    function refresh() {
+      var len = ta.value.length;
+      count.textContent = len + ' / ' + TEXT_MAX;
+      count.classList.toggle('near', len > TEXT_MAX - 100);
+    }
+    ta.addEventListener('input', function () {
+      st.draft.texts[field] = ta.value.slice(0, TEXT_MAX);
+      refresh();
+      if (ta.value.trim()) req.classList.remove('show');
+      save();
+      syncFoot();
+    });
+    refresh();
+    wrap.appendChild(ta);
+    wrap.appendChild(count);
+    wrap.appendChild(req);
+    wrap._field = field;
+    wrap._req = req;
+    wrap._textarea = ta;
+    return wrap;
+  }
+
+  var blocks = [];
+  function renderSection(idx) {
+    st.section = idx; save();
+    var sec = SECTIONS[idx];
+    elTitle.textContent = sec.title;
+    elStep.textContent = 'Section ' + (idx + 1) + ' of ' + SECTIONS.length;
+    elBar.style.width = Math.round(((idx) / SECTIONS.length) * 100) + '%';
+    elErr.hidden = true;
+    elBody.innerHTML = '';
+    blocks = [];
+
+    if (sec.ratings.length) {
+      var legend = document.createElement('div');
+      legend.className = 'fb-legend';
+      legend.textContent = SCALE_LABELS.join(' · ');
+      elBody.appendChild(legend);
+    }
+    sec.ratings.forEach(function (r) {
+      var b = ratingBlock(r[0], r[1]);
+      blocks.push({ kind: 'rating', field: r[0], el: b });
+      elBody.appendChild(b);
+    });
+    sec.texts.forEach(function (t) {
+      var required = t[0] === 'confusing_moment' && confusingRequired();
+      var b = textBlock(t[0], t[1], required);
+      blocks.push({ kind: 'text', field: t[0], el: b, required: required });
+      elBody.appendChild(b);
+    });
+    elBody.scrollTop = 0;
+
+    track('feedback_section_viewed', { participant_id: PID, section: sec.id, section_index: idx + 1 });
+    renderFoot(idx);
+  }
+
+  function sectionComplete(idx) {
+    var sec = SECTIONS[idx];
+    var ok = sec.ratings.every(function (r) {
+      var v = st.draft.ratings[r[0]];
+      return v >= 1 && v <= 5;
+    });
+    if (!ok) return false;
+    if (idx === SECTIONS.length - 1 && confusingRequired()) {
+      var t = (st.draft.texts.confusing_moment || '').trim();
+      if (!t) return false;
+    }
+    return true;
+  }
+  function markMissing(idx) {
+    blocks.forEach(function (b) {
+      if (b.kind === 'rating' && !(st.draft.ratings[b.field] >= 1)) b.el._req.classList.add('show');
+      if (b.kind === 'text' && b.required && !(st.draft.texts[b.field] || '').trim()) b.el._req.classList.add('show');
+    });
+    var first = elBody.querySelector('.fb-req.show');
+    if (first && first.scrollIntoView) first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
+  var footBtn = null;
+  function renderFoot(idx) {
+    elFoot.innerHTML = '';
+    if (idx > 0) {
+      var back = document.createElement('button');
+      back.type = 'button';
+      back.textContent = 'Back';
+      back.addEventListener('click', function () { renderSection(idx - 1); });
+      elFoot.appendChild(back);
+    }
+    var note = document.createElement('span');
+    note.className = 'fb-note';
+    note.textContent = idx === SECTIONS.length - 1 ? 'Open questions are optional' : 'All ratings needed';
+    elFoot.appendChild(note);
+
+    footBtn = document.createElement('button');
+    footBtn.type = 'button';
+    footBtn.className = 'primary';
+    footBtn.textContent = idx === SECTIONS.length - 1 ? 'Submit feedback' : 'Continue';
+    footBtn.addEventListener('click', function () {
+      if (sending) return;
+      if (!sectionComplete(idx)) { markMissing(idx); return; }
+      if (idx === SECTIONS.length - 1) submit();
+      else renderSection(idx + 1);
+    });
+    elFoot.appendChild(footBtn);
+    syncFoot();
+  }
+  function syncFoot() {
+    if (!footBtn) return;
+    footBtn.disabled = sending || !sectionComplete(st.section);
+  }
+
+  /* ---------------------------------------------------------- submitting */
+  function mean(fields) {
+    var vals = fields.map(function (f) { return st.draft.ratings[f]; }).filter(function (v) { return v >= 1; });
+    if (!vals.length) return null;
+    return Math.round((vals.reduce(function (a, b) { return a + b; }, 0) / vals.length) * 100) / 100;
+  }
+  function parentName() {
+    try {
+      var n = appWin().NBUX.parentName();
+      return { first: (n && n.first) || null, last: (n && n.last) || null };
+    } catch (e) { return { first: null, last: null }; }
+  }
+
+  function buildPayload() {
+    if (!st.submission_id) { st.submission_id = uuid(); save(); }
+    var n = parentName();
+    var d = diagnostics();
+    var p = {
+      participant_id: PID,
+      submission_id: st.submission_id,
+      parent_first_name: n.first,
+      parent_last_name: n.last,
+      submitted_at: new Date().toISOString(),
+      feedback_version: VERSION,
+      app_version: APP_VERSION,
+      test_duration_seconds: elapsed(),
+      setup_duration_seconds: setupSeconds(),
+      feedback_completion_seconds: Math.round((nowMs() - openedAt) / 1000),
+      feedback_prompt_delay_seconds: PROMPT_DELAY_MS / 1000,
+      prompt_attempts: st.prompt_count,
+      later_count: st.later_count,
+      ratings: {},
+      diagnostics: d
+    };
+    Object.keys(SCORES).forEach(function (k) { p[k] = mean(SCORES[k]); });
+    SECTIONS.forEach(function (sec) {
+      sec.ratings.forEach(function (r) {
+        var v = st.draft.ratings[r[0]];
+        p.ratings[r[0]] = v == null ? null : v;
+        p['rating_' + r[0]] = v == null ? null : v;      /* flat, for charts */
+      });
+      sec.texts.forEach(function (t) {
+        var v = (st.draft.texts[t[0]] || '').trim();
+        /* prefixed answer_*, not text_*: the app's PII guard drops any property
+           whose name contains "text" */
+        p['answer_' + t[0]] = v || null;
+      });
+    });
+    Object.keys(d).forEach(function (k) { p['diagnostic_' + k] = d[k]; });
+    return p;
+  }
+
+  function submit() {
+    if (sending || st.submitted) return;
+    sending = true;
+    footBtn.disabled = true;
+    footBtn.textContent = 'Sending…';
+    elErr.hidden = true;
+
+    var payload = st.pending || buildPayload();
+    st.pending = payload; save();               /* survives a failed attempt */
+
+    var ok = track('feedback_submitted', payload);
+    setTimeout(function () {
+      sending = false;
+      if (ok) {
+        st.submitted = true;
+        st.pending = null;
+        save();
+        elBar.style.width = '100%';
+        renderDone(false);
+        elOpen.hidden = true;
+        clearTimeout(promptTimer); clearTimeout(laterTimer);
+      } else {
+        footBtn.disabled = false;
+        footBtn.textContent = 'Retry submit';
+        elErr.hidden = false;
+        elErr.textContent = 'That did not go through — your answers are saved. Check the connection and try again.';
+      }
+    }, 350);
+  }
+
+  function renderDone(already) {
+    elTitle.textContent = 'Feedback';
+    elStep.textContent = already ? 'Already sent' : 'Sent';
+    elBar.style.width = '100%';
+    elErr.hidden = true;
+    elBody.innerHTML = '';
+    var d = document.createElement('div');
+    d.className = 'fb-done';
+    d.innerHTML = '<div class="tick">✓</div>' +
+      '<h3>Thank you — your feedback will help shape Neybo.</h3>' +
+      '<p>' + (already ? 'This session’s answers are already with the team.'
+                       : 'Nothing else to do. You can keep exploring the app and Neybo.') + '</p>';
+    elBody.appendChild(d);
+    elFoot.innerHTML = '';
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'primary';
+    close.textContent = 'Close';
+    close.addEventListener('click', closeModal);
+    elFoot.appendChild(close);
+  }
+
+  /* the standing button belongs to the session, not to this page load: once the
+     ask has happened it stays available until the feedback is in */
+  elOpen.hidden = !(st.prompt_count > 0 && !st.submitted);
+
+  /* console handle for dry runs; no PII, no answers */
+  window.NBFeedback = {
+    get state() {
+      return { pid: PID, prompt_count: st.prompt_count, later_count: st.later_count,
+               submitted: !!st.submitted, section: st.section,
+               ratings_answered: Object.keys(st.draft.ratings).length,
+               texts_answered: Object.keys(st.draft.texts).filter(function (k) { return (st.draft.texts[k] || '').trim(); }).length,
+               ready: readiness(), diagnostics: diagnostics() };
+    },
+    prompt: showPrompt,
+    open: openModal,
+    close: closeModal,
+    payloadPreview: buildPayload,
+    reset: function () { try { localStorage.removeItem(KEY); } catch (e) {} }
+  };
+})();
+</script>
+
 </body>
 </html>

@@ -2873,7 +2873,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   /* The parent's own name on the feedback event is deliberate: the consent
      gate tells the participant it is visible to the team, and the research
      needs answers attributable to a person. Nothing else is exempt. */
-  var PII_ALLOW = { parent_name: true };
+  var PII_ALLOW = { parent_name: true, parent_first_name: true, parent_last_name: true };
   function stripPII(props) {
     if (!props) return props;
     try {
@@ -4268,6 +4268,10 @@ window.NBUX={
   },
   restart:restartTest,
   exportLog:function(){try{exportLog();}catch(e){}},
+  /* canonical first/last name as typed on the consent screen — read-only, so
+     the Test Room's feedback flow never has to ask for it again */
+  parentName:function(){return {first:(S.parent&&S.parent.firstName)||null,
+                               last:(S.parent&&S.parent.lastName)||null};},
   feedback:function(){try{openFeedback();}catch(e){}}
 };
 
