@@ -1258,6 +1258,19 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
     get channel() { return channelName; },
     get lastError() { return lastError; },
     ping: function () { send('device.ping', { at: new Date().toISOString() }); },
+    /* ---- inbound API ---- */
+    get deviceState() { return deviceState; },
+    isDeviceOn: function () { return deviceIsOn(); },
+    refreshState: function () { send('state.get', {}); },
+    onDevice: function (cb) {
+      if (typeof cb !== 'function') return function () {};
+      deviceListeners.push(cb);
+      if (deviceState) { try { cb(deviceState); } catch (e) {} }
+      return function () {
+        var i = deviceListeners.indexOf(cb);
+        if (i >= 0) deviceListeners.splice(i, 1);
+      };
+    },
     reconnect: function () { tries = 0; sdkIdx = 0; loading = false; loadSdk(); },
     setParticipantId: function (id) {
       var v = clean(id);
@@ -1343,16 +1356,43 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
     }
   }
 
+  /* ---- inbound: what the cube reports (device.hello / device.state / command.ack) ----
+     Read-only. The app still never *acts* on the cube's behalf; it only learns
+     whether the cube is powered on so the UI can stop lying. */
+  var deviceState     = null;
+  var deviceListeners = [];
+
+  function deviceIsOn() {
+    return !!(deviceState && deviceState.state && deviceState.state !== 'off');
+  }
+  function notifyDevice() {
+    for (var i = 0; i < deviceListeners.length; i++) {
+      try { deviceListeners[i](deviceState); } catch (e) { fail('onDevice listener', e); }
+    }
+  }
+  function onDeviceBroadcast(m) {
+    var p = m && m.payload;
+    if (!p || typeof p !== 'object' || p.source !== 'neybo-cube') return;
+    if (p.participantId && p.participantId !== pid) return;
+    var st = p.payload && p.payload.state;
+    if (!st || typeof st !== 'object') return;
+    var was = deviceState && deviceState.state;
+    deviceState = st;
+    if (was !== st.state) L('<- ' + p.type + ' | device state =', st.state);
+    notifyDevice();
+  }
+
   function subscribe() {
     try {
       channel = client.channel(channelName, {
         config: { broadcast: { self: false, ack: false }, private: false }
       });
+      channel.on('broadcast', { event: '*' }, onDeviceBroadcast);
       L('subscribing to', channelName, '...');
       channel.subscribe(function (st, err) {
         L('status:', st, err ? ('err=' + (err.message || err)) : '');
         ready = (st === 'SUBSCRIBED');
-        if (ready) { lastError = null; tries = 0; drain(); return; }
+        if (ready) { lastError = null; tries = 0; drain(); send('state.get', {}); return; }
         if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') {
           lastError = 'subscribe status ' + st + (err ? (' / ' + (err.message || err)) : '');
           var wait = RETRY_MS[Math.min(tries, RETRY_MS.length - 1)];
@@ -3187,6 +3227,23 @@ function clearTest(){lsDel(NS);lsDel(LOG);
 var didReset=false;
 if(q.get('reset')==='true'){clearTest();didReset=true;}
 
+/* The test room hands us a participantId. A NEW id means a new participant:
+   wipe the stored session so the app opens at the very start of Setup instead
+   of resuming the previous person's progress. Same id = normal reload. */
+try{
+  var _roomPid=sanId(q.get('participantId')||q.get('participant_id')||q.get('pid')||q.get('participant')||'');
+  if(_roomPid){
+    var _roomPidWas=null;
+    try{_roomPidWas=localStorage.getItem('nb_room_participant');}catch(e){}
+    if(_roomPidWas!==_roomPid){
+      clearTest();didReset=true;
+      try{['nb_participant_code','nb_test_session_id','nb_consented','nb_consent_r','nb_tour_seen','nb_tour_done']
+        .forEach(function(k){sessionStorage.removeItem(k);});}catch(e){}
+      try{localStorage.setItem('nb_room_participant',_roomPid);}catch(e){}
+    }
+  }
+}catch(e){}
+
 var S = Object.assign(defState(), lsGet(NS)||{});
 // deep-ensure nested shapes after a version change
 ['parent','child','device','setupPreferences','wifi','flags'].forEach(function(k){S[k]=Object.assign(defState()[k],S[k]||{});});
@@ -3370,7 +3427,7 @@ STEP.child=function(){
 
 /* --- Connect (Bluetooth simulated) --- */
 STEP.connect=function(){
-  var found=false;
+  var found=false,connected=false;
   paint(header(3)+
   '<h1 class="nbux-h1">Let&#8217;s find your Neybo</h1>'
   +'<p class="nbux-lead">Turn Neybo on, then double-tap the top to wake it.</p>'
@@ -3392,6 +3449,23 @@ STEP.connect=function(){
   });
 
   var rings=$('#cn-rings'),status=$('#cn-status'),cta=$('#cn-cta');
+
+  /* Pairing requires a cube that is actually powered on at the device.
+     The device reports its state over the same channel; until it says
+     anything other than "off", Connect is inert. */
+  function cubeOn(){try{return !!(window.NBLink&&NBLink.isDeviceOn&&NBLink.isDeviceOn());}catch(e){return false;}}
+  function gateConnect(){
+    if(!found||connected)return;
+    var on=cubeOn();
+    cta.disabled=!on;
+    cta.style.opacity=on?'':'0.55';
+    cta.style.cursor=on?'':'not-allowed';
+    cta.setAttribute('aria-disabled',on?'false':'true');
+    status.textContent=on?'Neybo found':'Turn Neybo on to continue';
+  }
+  try{if(window.NBLink&&NBLink.onDevice)NBLink.onDevice(gateConnect);}catch(e){}
+  try{if(window.NBLink&&NBLink.refreshState)NBLink.refreshState();}catch(e){}
+
   cta.addEventListener('click',function(){
     if(!found){
       try{window.nbSend&&nbSend('setup.start',{});}catch(e){}
@@ -3400,8 +3474,16 @@ STEP.connect=function(){
         rings.classList.remove('nbux-searching');ctaBusy(cta,false);
         found=true;status.textContent='Neybo found';
         $('#cn-found').style.display='block';cta.textContent='Connect';
+        gateConnect();
       },1600);
     } else {
+      if(!cubeOn()){
+        gateConnect();
+        toast('Turn Neybo on first');
+        log('task blocked',{task:'pairing_needs_power'});
+        return;
+      }
+      connected=true;
       try{window.nbSend&&nbSend('pairing.confirm',{deviceId:'7F2A'});}catch(e){}
       ctaBusy(cta,true);status.textContent='Connecting…';
       setTimeout(function(){
