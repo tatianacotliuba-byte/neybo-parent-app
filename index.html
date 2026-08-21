@@ -655,7 +655,9 @@ body.nbux-onb #tab{display:none !important;}
   color:var(--ink);font:inherit;font-weight:700;font-size:16px;cursor:pointer;}
 .nbux-scalebtn:active{background:var(--pill);}
 .nbux-scalebtn.on{background:var(--yellow);border-color:var(--ystrong);color:#3a2e06;}
-.nbux-fbrow{margin-bottom:12px;}
+.nbux-fbrow{margin-bottom:14px;}
+.nbux-fbpoles{display:flex;justify-content:space-between;margin-top:5px;font-size:11.5px;color:var(--muted);}
+.nbux-fbsep{height:1px;background:var(--line);margin:18px 0 16px;}
 .nbux-fblabel{font-size:13.5px;color:var(--body);margin-bottom:6px;}
 #nb-taskbar{position:absolute;left:10px;right:10px;top:8px;z-index:9;display:flex;align-items:center;gap:10px;
   background:var(--ink);color:var(--cream);border-radius:14px;padding:10px 12px;box-shadow:0 10px 26px rgba(0,0,0,.28);
@@ -2655,8 +2657,6 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     phReady: false,           // PostHog actually loaded (prod only)
     screen: null,             // current screen state object
     lastInteraction: Date.now(),
-    onbMax: 0,               // furthest onboarding step reached (1-based)
-    onbDone: false,          // onboarding_completed already reported
     abandonTimer: null,
     task: null,               // active task runtime
     pendingTask: null,        // finished task row, held until its rating arrives
@@ -2845,10 +2845,15 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 
   // Belt-and-braces: strip anything that looks like PII from any property bag.
   var PII_KEYS = /(first_?name|last_?name|full_?name|email|phone|password|message|comment|text|child_?name|participant_?name)/i;
+  /* The parent's own name on the feedback event is deliberate: the consent
+     gate tells the participant it is visible to the team, and the research
+     needs answers attributable to a person. Nothing else is exempt. */
+  var PII_ALLOW = { parent_name: true };
   function stripPII(props) {
     if (!props) return props;
     try {
       Object.keys(props).forEach(function (k) {
+        if (PII_ALLOW[k]) return;
         if (PII_KEYS.test(k)) delete props[k];
       });
     } catch (e) {}
@@ -2940,68 +2945,9 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   // =========================================================================
   //  Screens
   // =========================================================================
-  /* ---------------------------------------------------------------------
-     Onboarding funnel: how far a participant got, and where they stopped.
-     The order lives here so a funnel needs no hand-sorted screen ids; the
-     furthest step is also registered as a super property, so EVERY later
-     event carries it and drop-off can be segmented without a join.
-     --------------------------------------------------------------------- */
-  var ONB_ORDER = ['onb_welcome', 'onb_account', 'onb_child', 'onb_connect',
-                   'onb_wifi', 'onb_theme', 'onb_ready'];
-  function onbIndex(id) { return ONB_ORDER.indexOf(id) + 1; }        // 1-based, 0 = not onboarding
-  function onbName(id)  { return String(id || '').replace(/^onb_/, ''); }
-
-  function onbEnter(screen_id) {
-    var idx = onbIndex(screen_id);
-    if (!idx) {
-      /* first non-onboarding screen after the flow = setup is over */
-      if (S.onbMax && !S.onbDone) {
-        S.onbDone = true;
-        capture('onboarding_completed', {
-          step_total: ONB_ORDER.length,
-          furthest_step_index: S.onbMax,
-          furthest_step_name: onbName(ONB_ORDER[S.onbMax - 1]),
-          all_steps_seen: S.onbMax === ONB_ORDER.length,
-          landed_on: screen_id
-        });
-      }
-      return;
-    }
-    if (idx > (S.onbMax || 0)) S.onbMax = idx;
-    var props = {
-      step_id: screen_id,
-      step_name: onbName(screen_id),
-      step_index: idx,
-      step_total: ONB_ORDER.length,
-      furthest_step_index: S.onbMax,
-      furthest_step_name: onbName(ONB_ORDER[S.onbMax - 1]),
-      is_furthest: idx === S.onbMax                       // false = they went Back
-    };
-    capture('onboarding_step_viewed', props);
-    if (S.phReady) safe(function () {
-      window.posthog.register({ onboarding_furthest_index: S.onbMax,
-                                onboarding_furthest_step: props.furthest_step_name });
-    });
-  }
-
-  /* where did the tab close happen, if setup was still running */
-  function onbLeave(reason) {
-    if (S.completed || S.onbDone || !S.screen) return;
-    var idx = onbIndex(S.screen.id);
-    if (!idx) return;
-    capture('onboarding_left', {
-      step_id: S.screen.id, step_name: onbName(S.screen.id),
-      step_index: idx, step_total: ONB_ORDER.length,
-      furthest_step_index: S.onbMax || idx,
-      seconds_on_step: Math.round((now() - S.screen.enter) / 1000),
-      reason: reason || 'pagehide'
-    });
-  }
-
   function screenEnter(screen_id, scrollEl) {
     if (S.screen && S.screen.id === screen_id) return;    // dedupe re-render
     screenExit();                                          // close previous
-    onbEnter(screen_id);
     S.screen = {
       id: screen_id, enter: now(), firstAction: null,
       clicks: 0, incorrect: 0, dead: 0, maxScroll: 0, thresholds: {},
@@ -3300,14 +3246,12 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       flushTask(true);
       sessionUpdate({ last_screen: S.screen ? S.screen.id : null, last_task: S.task ? S.task.id : null,
                       completion_status: S.completed ? 'completed' : 'in_progress' }, true);
-      onbLeave('hidden');
       if (S.screen) capture('screen_exited', { screen_id: S.screen.id, reason: 'hidden',
         duration_sec: Math.round((now() - S.screen.enter) / 1000), max_scroll_depth: S.screen.maxScroll, clicks: S.screen.clicks });
     }
   }
   function onPageHide() {
     flushTask(true);
-    onbLeave('pagehide');
     sessionUpdate({ last_screen: S.screen ? S.screen.id : null, last_task: S.task ? S.task.id : null,
                     completion_status: S.completed ? 'completed' : 'in_progress' }, true);
   }
@@ -3349,11 +3293,6 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     setTasks: function (t) { TASKS = t; },
     screenEnter: function (id, el) { safe(function () { screenEnter(id, el); taskScreenReached(id); }); },
     screenExit: function () { safe(screenExit); },
-    onboardingProgress: function () {
-      return { furthest_index: S.onbMax || 0, step_total: ONB_ORDER.length,
-               furthest_step: S.onbMax ? onbName(ONB_ORDER[S.onbMax - 1]) : null,
-               current: S.screen ? S.screen.id : null, completed: !!S.completed };
-    },
     setupSections: function (root) { safe(function () { setupSections(root); }); },
 
     capture: function (e, p) { safe(function () { capture(e, p); }); },
@@ -3375,13 +3314,61 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     completeSession: function () { safe(completeSession); },
     resumed: function () { safe(function () { capture('test_resumed', {}); }); },
 
+    /* One submit, two destinations:
+       - Supabase gets the columns the feedback table actually has (the new
+         ratings and open answers have no column yet — see the migration note
+         in the commit — so they are not sent there and cannot break the row);
+       - PostHog gets the whole questionnaire, so the answers are queryable
+         next to the rest of the session.
+       The parent's name travels as one `parent_name` property. The consent
+       gate states the entered name is visible to the team, and stripPII is
+       told about this one field explicitly rather than being worked around. */
     submitFeedback: function (fb) {
       safe(function () {
-        post('nb-feedback', Object.assign({ test_session_id: S.session }, fb), { retries: 2, needsSupabase: true });
-        capture('feedback_submitted', {
-          has_ease: fb.ease_score != null, has_control: fb.control_score != null,
-          has_trust: fb.trust_score != null, has_room_audio: fb.room_audio_clarity_score != null,
+        fb = fb || {};
+        var name = [fb.parent_first_name, fb.parent_last_name]
+          .filter(function (x) { return x; }).join(' ').trim() || null;
+
+        post('nb-feedback', {
+          test_session_id: S.session,
+          ease_score:    fb.ease_score,
+          control_score: fb.control_score,
+          trust_score:   fb.trust_score,
+          most_confusing: fb.most_confusing,
+          missing_feature: fb.missing_feature,
+          concern:       fb.concern,
+          would_use:     fb.would_use
+        }, { retries: 2, needsSupabase: true });
+
+        var scores = {
+          score_ease:           fb.ease_score           != null ? fb.ease_score           : null,
+          score_clarity:        fb.clarity_score        != null ? fb.clarity_score        : null,
+          score_control:        fb.control_score        != null ? fb.control_score        : null,
+          score_trust:          fb.trust_score          != null ? fb.trust_score          : null,
+          score_cube_appeal:    fb.cube_appeal_score    != null ? fb.cube_appeal_score    : null,
+          score_app_useful:     fb.app_useful_score     != null ? fb.app_useful_score     : null,
+          score_insights_value: fb.insights_value_score != null ? fb.insights_value_score : null,
+          score_recommend:      fb.recommend_score      != null ? fb.recommend_score      : null
+        };
+        var filled = 0, sum = 0;
+        Object.keys(scores).forEach(function (k) { if (scores[k] != null) { filled++; sum += scores[k]; } });
+
+        capture('feedback_submitted', Object.assign({}, scores, {
+          scores_answered: filled,
+          scores_average: filled ? Math.round((sum / filled) * 10) / 10 : null,
           would_use: fb.would_use != null ? !!fb.would_use : null,
+          parent_name: name,
+          answer_confusing: fb.most_confusing || null,
+          answer_missing:   fb.missing_feature || null,
+          answer_expected:  fb.expected || null,
+          answer_own_words: fb.own_words || null,
+          answer_concern:   fb.concern || null,
+          open_answers_given: ['most_confusing', 'missing_feature', 'expected', 'own_words', 'concern']
+            .filter(function (k) { return !!fb[k]; }).length
+        }));
+
+        if (name && S.phReady) safe(function () {
+          window.posthog.setPersonProperties({ parent_name: name });
         });
       });
     },
@@ -4177,7 +4164,8 @@ window.NBUX={
       +'<button class="nbux-btn" id="nbux-restore-go" style="margin-top:4px">Continue setup</button>');
     var b=$('#nbux-restore-go');if(b)b.addEventListener('click',function(){closeSheet();goStep('account');});
   },
-  restart:restartTest
+  restart:restartTest,
+  feedback:function(){try{openFeedback();}catch(e){}}
 };
 
 /* ================= usability tasks (config, separate from UI) ================= */
@@ -4250,32 +4238,76 @@ function gateSubmit(){
 /* ================= post-test feedback ================= */
 window.nbFinishTest=function(){try{openFeedback();}catch(e){}};
 function openFeedback(){
-  function scale(id,label){var b='';for(var i=1;i<=5;i++)b+='<button type="button" class="nbux-scalebtn" data-v="'+i+'">'+i+'</button>';
-    return '<div class="nbux-fbrow"><div class="nbux-fblabel">'+label+'</div><div class="nbux-scale" id="'+id+'">'+b+'</div></div>';}
+  /* Post-test questionnaire. Eight 1-5 ratings and five open questions —
+     enough to compare participants on numbers and still hear them in words.
+     Scores + answers go to analytics on submit (see NBA.submitFeedback). */
+  function scale(id,label,lo,hi){
+    var b='';for(var i=1;i<=5;i++)b+='<button type="button" class="nbux-scalebtn" data-v="'+i+'" aria-label="'+i+' of 5">'+i+'</button>';
+    return '<div class="nbux-fbrow"><div class="nbux-fblabel">'+label+'</div>'
+      +'<div class="nbux-scale" id="'+id+'" role="group" aria-label="'+esc(label)+'">'+b+'</div>'
+      +'<div class="nbux-fbpoles"><span>'+lo+'</span><span>'+hi+'</span></div></div>';
+  }
+  function text(id,label,ph){
+    return '<div class="nbux-field"><label>'+label+' <span class="opt">(optional)</span></label>'
+      +'<textarea class="nbux-input" id="'+id+'" rows="2" placeholder="'+esc(ph||'')+'"></textarea></div>';
+  }
   sheet('How did it go?',
-    scale('fb-ease','Overall, how easy was the app to use?')
-   +scale('fb-control','How in control did you feel?')
-   +scale('fb-trust','How much did you trust it with your child?')
-   +scale('fb-room','How clear was the room-audio feature?')
-   +'<div class="nbux-field" style="margin-top:6px"><label>Most confusing part <span class="opt">(optional)</span></label><textarea class="nbux-input" id="fb-confusing" rows="2"></textarea></div>'
-   +'<div class="nbux-field"><label>Anything missing? <span class="opt">(optional)</span></label><textarea class="nbux-input" id="fb-missing" rows="2"></textarea></div>'
-   +'<div class="nbux-field"><label>Any concern? <span class="opt">(optional)</span></label><textarea class="nbux-input" id="fb-concern" rows="2"></textarea></div>'
+    '<p class="nbux-sub" style="margin:0 0 14px">Your answers go to the Neybo team only. Nothing here is shared with anyone else.</p>'
+   +scale('fb-ease','Overall, how easy was it to set Neybo up?','Hard','Easy')
+   +scale('fb-clarity','How clear was what to do at each step?','Confusing','Clear')
+   +scale('fb-control','How in control of Neybo did you feel?','Not at all','Fully')
+   +scale('fb-trust','How much would you trust Neybo with your child?','Not at all','Completely')
+   +scale('fb-cube','How appealing is the cube itself?','Not for us','Love it')
+   +scale('fb-app','How useful does the Parent App look?','Not useful','Very useful')
+   +scale('fb-insights','How valuable would the weekly insights be?','Not valuable','Very valuable')
+   +scale('fb-recommend','How likely are you to recommend Neybo to another parent?','Not likely','Very likely')
+   +'<div class="nbux-fbsep"></div>'
+   +text('fb-confusing','What was the most confusing part?','The moment you had to stop and think…')
+   +text('fb-missing','What felt missing?','Something you expected to find and did not')
+   +text('fb-expected','What did you expect Neybo to do that it did not?')
+   +text('fb-words','How would you describe Neybo to another parent?','In your own words')
+   +text('fb-concern','Any concern about having it at home?')
    +'<div class="nbux-check" id="fb-would" role="checkbox" aria-checked="false" tabindex="0"><span class="nbux-box">'+CHECK+'</span><span>I would use Neybo with my child.</span></div>'
    +'<button class="nbux-btn" id="fb-submit" style="margin-top:14px">Submit feedback</button>');
+
   var picks={};
   sheetWrap.querySelectorAll('.nbux-scale').forEach(function(sc){sc.addEventListener('click',function(e){
     var b=e.target.closest('.nbux-scalebtn');if(!b)return;sc.querySelectorAll('.nbux-scalebtn').forEach(function(x){x.classList.remove('on');});
     b.classList.add('on');picks[sc.id]=parseInt(b.getAttribute('data-v'),10);});});
-  var wb=$('#fb-would');wb.addEventListener('click',function(){var on=wb.getAttribute('aria-checked')!=='true';wb.setAttribute('aria-checked',on?'true':'false');wb.classList.toggle('on',on);});
+  var wb=$('#fb-would');
+  function togWould(){var on=wb.getAttribute('aria-checked')!=='true';wb.setAttribute('aria-checked',on?'true':'false');wb.classList.toggle('on',on);}
+  wb.addEventListener('click',togWould);
+  wb.addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();togWould();}});
+
   $('#fb-submit').addEventListener('click',function(){
-    var fb={ease_score:picks['fb-ease']||null,control_score:picks['fb-control']||null,trust_score:picks['fb-trust']||null,
-      room_audio_clarity_score:picks['fb-room']||null,most_confusing:$('#fb-confusing').value.trim()||null,
-      missing_feature:$('#fb-missing').value.trim()||null,concern:$('#fb-concern').value.trim()||null,
-      would_use:wb.getAttribute('aria-checked')==='true'};
+    function val(id){var el=$('#'+id);return el&&el.value.trim()?el.value.trim():null;}
+    var fb={
+      /* ratings */
+      ease_score:picks['fb-ease']||null,
+      clarity_score:picks['fb-clarity']||null,
+      control_score:picks['fb-control']||null,
+      trust_score:picks['fb-trust']||null,
+      cube_appeal_score:picks['fb-cube']||null,
+      app_useful_score:picks['fb-app']||null,
+      insights_value_score:picks['fb-insights']||null,
+      recommend_score:picks['fb-recommend']||null,
+      /* open answers */
+      most_confusing:val('fb-confusing'),
+      missing_feature:val('fb-missing'),
+      expected:val('fb-expected'),
+      own_words:val('fb-words'),
+      concern:val('fb-concern'),
+      would_use:wb.getAttribute('aria-checked')==='true',
+      /* who answered — the consent gate states the entered name is visible */
+      parent_first_name:(S.parent&&S.parent.firstName)||null,
+      parent_last_name:(S.parent&&S.parent.lastName)||null
+    };
     try{if(window.NBA){NBA.submitFeedback(fb);NBA.completeSession();}}catch(e){}
+    log('task completed',{task:'feedback'});
     closeSheet();toast('Thanks — feedback recorded');
   });
 }
+window.nbOpenFeedback=openFeedback;
 
 /* Guided usability tasks are parked in nbux-tasks.disabled.js (not injected).
    Re-enable by following the instructions at the top of that file. */

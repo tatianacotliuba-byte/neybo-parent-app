@@ -1093,8 +1093,42 @@
       }, 600);
     }
 
+    /* ---------- the ask, once the tester has had a moment ---------- */
+    var feedbackTimer = null;
+    var FEEDBACK_AFTER_MS = 30000;      /* both onboardings done, then a breath */
+
+    function askFeedback() {
+      if (step !== 'free') return;
+      var pw = null, canOpen = false;
+      try { pw = parentFrame.contentWindow; canOpen = !!(pw && pw.NBUX && pw.NBUX.feedback); } catch (e) {}
+
+      var ph = parentHolder.getBoundingClientRect();
+      nbSpot({ left: ph.left, top: ph.top, width: ph.width, height: ph.height }, 38, 6);
+
+      function close(then) { nbSpotOff(); hideCard(then); }
+
+      show({
+        eyebrow: 'Whenever you’re ready',
+        title: 'Tell us how that went',
+        body: 'A few ratings and a few open questions — about the setup, the cube and the app. Two minutes, and it opens in the app.',
+        anchor: parentHolder, bias: 0.45, over: true,
+        actions: canOpen ? [
+          { label: 'Give feedback', onClick: function () {
+              close(function () { try { pw.NBUX.feedback(); } catch (e) {} });
+            } },
+          { label: 'Not now', kind: 'ghost', onClick: function () {
+              close();
+              clearTimeout(feedbackTimer);
+              feedbackTimer = setTimeout(askFeedback, 120000);   /* ask again later */
+            } }
+        ] : [ { label: 'Got it', onClick: function () { close(); } } ]
+      });
+    }
+
     function stepFree() {
       step = 'free';
+      clearTimeout(feedbackTimer);
+      feedbackTimer = setTimeout(askFeedback, FEEDBACK_AFTER_MS);
       ringOff();
       devicePane.classList.remove('dimmed');
       parentPane.classList.remove('dimmed');
@@ -1119,6 +1153,7 @@
     /* console hooks for dry runs without walking the whole setup */
     window.NBGuide = {
       run: function () { step = 'connected'; stepConnected(); },
+      askFeedback: function () { step = 'free'; askFeedback(); },
       jump: function (name) {
         var m = { connected: stepConnected, cube: stepCubeIntro, tour1: stepTour1, tour2: stepTour2,
                   tour3: stepTour3, tasks: stepTasks, app: stepApp, free: stepFree };
