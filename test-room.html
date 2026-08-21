@@ -46,6 +46,65 @@
   body.debug{padding-bottom:300px}
   body.debug .stage{height:calc(100vh - 300px)}
 
+  /* ---------- intro choreography ---------- */
+  .pane{transition:opacity .75s ease}
+  body.intro .pane{opacity:0}
+  body.intro .pane.reveal{opacity:1}
+  .pane.dimmed{opacity:.26}
+  #intro{
+    position:fixed;inset:0;z-index:60;pointer-events:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;
+    background:var(--room-bg);transition:background .9s ease;
+  }
+  #intro.clear{background:transparent}
+  #intro[hidden]{display:none}
+  #introCube{
+    width:min(40vh,360px);opacity:0;transform:scale(.88);
+    filter:drop-shadow(0 26px 60px rgba(0,0,0,.24));
+    transition:opacity .9s ease, transform 1.15s cubic-bezier(.2,.68,.2,1);
+  }
+  #intro.lit #introCube{opacity:1;transform:scale(1)}
+  #intro.gone #introCube{opacity:0}
+  .introcap{
+    max-width:min(600px,86vw);text-align:center;opacity:0;transform:translateY(12px);
+    transition:opacity .6s ease, transform .6s ease;
+  }
+  .introcap.show{opacity:1;transform:none}
+  .introcap .eyebrow{
+    font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--room-muted);
+    display:block;margin-bottom:10px;
+  }
+  .introcap h2{margin:0 0 12px;font-size:27px;line-height:1.2;font-weight:600;color:var(--room-ink)}
+  .introcap p{margin:0;font-size:15.5px;line-height:1.6;color:#5f5c55}
+  #introCap2{
+    position:fixed;z-index:61;
+    background:rgba(255,254,250,.94);border:1px solid var(--room-line);
+    border-radius:20px;padding:24px 26px;
+    box-shadow:0 22px 60px rgba(0,0,0,.14);
+    max-width:min(430px,84vw);text-align:left;
+  }
+  #introCap2 h2{font-size:22px}
+  #introCap2 p{font-size:14.5px}
+  #introSkip{
+    position:fixed;right:16px;bottom:16px;z-index:63;pointer-events:auto;
+    font:inherit;font-size:12px;color:var(--room-muted);
+    background:rgba(255,255,255,.7);border:1px solid var(--room-line);
+    border-radius:999px;padding:6px 14px;cursor:pointer;
+  }
+  #introSkip:hover{color:var(--room-ink)}
+  #introBanner{
+    position:fixed;left:50%;top:20px;z-index:62;
+    transform:translate(-50%,-16px);opacity:0;pointer-events:none;
+    background:#22262e;color:#f6f3ea;border-radius:999px;
+    padding:11px 20px;font-size:13.5px;font-weight:500;
+    box-shadow:0 14px 34px rgba(0,0,0,.24);
+    transition:opacity .5s ease, transform .5s ease;
+  }
+  #introBanner.show{opacity:1;transform:translate(-50%,0)}
+  @media (prefers-reduced-motion:reduce){
+    #intro,#introCube,.introcap,.pane,#introBanner{transition-duration:.01ms !important}
+  }
+
   /* ---------- debug drawer (?debug=1 only) ---------- */
   #dbg{
     position:fixed;left:0;right:0;bottom:0;height:300px;z-index:50;
@@ -105,6 +164,24 @@
     <div class="cap" data-cap hidden>Device</div>
   </section>
 </main>
+
+<div id="intro" hidden aria-hidden="true">
+  <img id="introCube" src="assets/images/onboarding-cube.png" alt="">
+  <div class="introcap" id="introCap1">
+    <span class="eyebrow">Meet the device</span>
+    <h2>This is Neybo</h2>
+    <p>A voice companion for kids 4+ — curious, funny, and endlessly patient.
+       Sparks real conversations, builds vocabulary, and answers the big questions.</p>
+  </div>
+</div>
+<div class="introcap" id="introCap2" hidden>
+  <span class="eyebrow">And this is the Parent App</span>
+  <h2>You see everything. They stay safe.</h2>
+  <p>No ads, no algorithms, no surprises. Just a curious companion your child loves —
+     and weekly insights so you always know what&#8217;s on their mind.</p>
+</div>
+<button type="button" id="introSkip" hidden>Skip intro</button>
+<div id="introBanner" role="status">Start by filling in your details in the app &#8594;</div>
 
 <aside id="dbg" aria-label="Diagnostics">
   <div id="dbgBar">
@@ -249,6 +326,98 @@
   fit();
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
+
+  /* ================= intro choreography =================
+     The cube is introduced alone, travels to its place, the app follows, and
+     only then does the test begin. Presentation only: both frames are already
+     loaded and connected underneath, so nothing about the session depends on
+     this running. ?intro=0 skips it. */
+  (function intro() {
+    var RUN = q.get('intro') !== '0';
+    var stage       = document.querySelector('.stage');
+    var panes       = document.querySelectorAll('.pane');
+    var devicePane  = deviceFrame.closest('.pane');
+    var parentPane  = parentFrame.closest('.pane');
+    var wrap        = document.getElementById('intro');
+    var cube        = document.getElementById('introCube');
+    var cap1        = document.getElementById('introCap1');
+    var cap2        = document.getElementById('introCap2');
+    var skip        = document.getElementById('introSkip');
+    var banner      = document.getElementById('introBanner');
+    if (!wrap || !devicePane || !parentPane) return;
+
+    var timers = [];
+    function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
+    function clearAll() { timers.forEach(clearTimeout); timers = []; }
+
+    function finish(showBanner) {
+      clearAll();
+      wrap.hidden = true;
+      cap2.hidden = true;
+      skip.hidden = true;
+      document.body.classList.remove('intro');
+      Array.prototype.forEach.call(panes, function (p) {
+        p.classList.add('reveal');
+        p.classList.remove('dimmed');
+      });
+      if (showBanner) {
+        banner.classList.add('show');
+        setTimeout(function () { banner.classList.remove('show'); }, 9000);
+      }
+    }
+
+    if (!RUN) { finish(false); return; }
+
+    document.body.classList.add('intro');
+    wrap.hidden = false;
+    skip.hidden = false;
+    skip.addEventListener('click', function () { finish(true); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !wrap.hidden) finish(true);
+    });
+
+    /* 1 · the cube alone, centre stage */
+    at(260,  function () { wrap.classList.add('lit'); });
+    at(1000, function () { cap1.classList.add('show'); });
+
+    /* 2 · it takes its place, the device panel materialises around it */
+    at(5200, function () {
+      cap1.classList.remove('show');
+      var from = cube.getBoundingClientRect();
+      var to   = deviceHolder.getBoundingClientRect();
+      if (from.width && to.width) {
+        var k  = Math.min(1, (to.height * 0.62) / from.height);
+        var dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+        var dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+        cube.style.transform = 'translate(' + Math.round(dx) + 'px,' + Math.round(dy) + 'px) scale(' + k.toFixed(3) + ')';
+      }
+      wrap.classList.add('clear');
+    });
+    at(6100, function () {
+      devicePane.classList.add('reveal');
+      wrap.classList.add('gone');
+    });
+
+    /* 3 · then the app, with the cube politely stepping back */
+    at(7000, function () {
+      wrap.hidden = true;
+      parentPane.classList.add('reveal');
+      devicePane.classList.add('dimmed');
+      var r = deviceHolder.getBoundingClientRect();
+      cap2.hidden = false;
+      cap2.style.left = Math.round(Math.max(16, r.left + r.width / 2 - Math.min(430, r.width * 0.9) / 2)) + 'px';
+      cap2.style.top  = Math.round(Math.max(16, r.top + r.height / 2 - 110)) + 'px';
+      cap2.style.width = Math.round(Math.min(430, Math.max(280, r.width * 0.9))) + 'px';
+      requestAnimationFrame(function () { cap2.classList.add('show'); });
+    });
+
+    /* 4 · the test begins */
+    at(12600, function () {
+      cap2.classList.remove('show');
+      devicePane.classList.remove('dimmed');
+    });
+    at(13300, function () { finish(true); });
+  })();
 
   if (!DEBUG) return;   /* clean room: nothing else runs */
 

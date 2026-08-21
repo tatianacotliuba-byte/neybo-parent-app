@@ -3502,6 +3502,9 @@ STEP.connect=function(){
 
   var rings=$('#cn-rings'),status=$('#cn-status'),cta=$('#cn-cta');
 
+  /* This is the moment the cube should ask to be switched on — not earlier. */
+  try{window.nbSend&&nbSend('hint.set',{hint:'power_on'});}catch(e){}
+
   /* Pairing requires a cube that is actually powered on at the device.
      The device reports its state over the same channel; until it says
      anything other than "off", Connect is inert. */
