@@ -1003,14 +1003,36 @@
         steps: [ { target: 'choose.luna', done: function (s) { return s.character === 'luna'; } },
                  { chip: 'karaoke',    done: function (s) { return s.game === 'karaoke'; } } ] },
       { label: 'Have a talk with Ember',
-        hit: function (s) { return s.state === 'talk-ember'; },
+        /* Reaching the screen is not the task — the talk is. So the ring walks
+           the whole way: Ember's menu, the ask to talk, the mic consent under
+           the cube, and finally the line telling the parent to say hello, which
+           stays lit long enough to actually be read and answered. */
+        hit: function (s) { return talkGreeted(s); },
         steps: [ { target: 'choose.ember', done: function (s) { return s.character === 'ember'; } },
-                 { chip: 'talk',      done: function (s) { return s.state === 'talk-ember'; } } ] },
+                 { chip: 'talk',           done: function (s) { return s.state === 'talk-ember'; } },
+                 { target: 'talk.connect', done: function (s) { return talkStarted(s); } },
+                 { target: 'talk.hello',   done: function (s) { return talkGreeted(s); } } ] },
       { label: 'Send Neybo to sleep',
         hit: function (s) { return s.state === 'sleep'; },
         steps: [ { target: 'device.sleep', done: function (s) { return s.state === 'sleep'; } } ] }
     ];
     var doneFlags = [false, false, false, false, false];
+
+    /* The cube reports a phase, not a conversation. "Connecting has begun" is
+       readable straight from it; "the parent has said hello" is not, so the
+       room times it: once the avatar is live, the ask stands for SAY_HELLO_MS
+       and then the task counts as done. */
+    var SAY_HELLO_MS = 9000;
+    var liveSince = 0;
+    function talkStarted(s) {
+      var p = s && s.talkPhase;
+      return !!p && p !== 'idle' && p !== 'error';
+    }
+    function talkGreeted(s) {
+      if (!s || s.talkPhase !== 'active') return false;
+      if (!liveSince) liveSince = Date.now();
+      return (Date.now() - liveSince) > SAY_HELLO_MS;
+    }
 
     function renderTasks() {
       elTask.hidden = false;
@@ -1031,18 +1053,24 @@
     }
 
     var watchingTasks = false;
-    NBRoom.onCube(function (snap) {
+    function checkTasks(snap) {
       if (!watchingTasks || !snap) return;
       var changed = false;
       TASKS.forEach(function (t, i) {
-        if (!doneFlags[i] && t.hit(snap)) { doneFlags[i] = true; changed = true; }
+        var hit = false;
+        try { hit = !!t.hit(snap); } catch (e) {}
+        if (!doneFlags[i] && hit) { doneFlags[i] = true; changed = true; }
       });
       if (changed) {
         renderTasks();
         if (doneFlags.every(Boolean)) { watchingTasks = false; ring.classList.remove('on'); setTimeout(stepApp, 1400); return; }
       }
       spotTask();
-    });
+    }
+    NBRoom.onCube(checkTasks);
+    /* A task that finishes on a clock rather than on a cube event would
+       otherwise wait for the next report, and a live avatar reports nothing. */
+    setInterval(function () { if (watchingTasks) checkTasks(NBRoom.cube); }, 1000);
 
     /* ---------- has the parent finished setup? ---------- */
     function appFinishedSetup() {
