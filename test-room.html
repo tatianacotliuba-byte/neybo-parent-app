@@ -1648,15 +1648,35 @@
   function appWin() { try { return document.getElementById('parentFrame').contentWindow; } catch (e) { return null; } }
   function nba() { var w = appWin(); return (w && w.NBA) ? w.NBA : null; }
 
-  /* the Parent App's own analytics wrapper is the only sink */
-  function track(event, props) {
+  /* The Parent App's own analytics wrapper is the only sink. "Sent" has to
+     mean sent: the app keeps captures in an internal list and buffers them
+     until PostHog is really loaded, so a list that grew proves nothing. Only
+     phReady does — without it the answers sit in a buffer in this tab and
+     reach nobody, and reporting success would lose them silently. */
+  function trackWhy(event, props) {
     var a = nba();
-    if (!a || typeof a.capture !== 'function') return false;
+    if (!a || typeof a.capture !== 'function') return 'no_analytics';
+    var st = null;
+    try { st = a.state; } catch (e) {}
+    if (!st) return 'no_analytics';
+    if (!st.consentA) return 'no_consent';
+    if (!st.phReady)  return 'analytics_not_loaded';
     var before = 0;
     try { before = a._captures ? a._captures.length : 0; } catch (e) {}
-    try { a.capture(event, props || {}); } catch (e) { return false; }
-    try { return a._captures ? a._captures.length > before : true; } catch (e) { return true; }
+    try { a.capture(event, props || {}); } catch (e) { return 'capture_threw'; }
+    var grew = true;
+    try { grew = a._captures ? a._captures.length > before : true; } catch (e) {}
+    return grew ? null : 'capture_dropped';
   }
+  function track(event, props) { return trackWhy(event, props) === null; }
+
+  var SEND_FAIL_COPY = {
+    no_analytics:         'The app’s analytics is not answering — reload the room and try again.',
+    no_consent:           'Analytics consent is off for this session, so nothing can be recorded.',
+    analytics_not_loaded: 'Analytics has not connected yet — your answers are saved. Check the connection (an ad blocker also does this) and try again.',
+    capture_threw:        'That did not go through — your answers are saved. Try again.',
+    capture_dropped:      'That did not go through — your answers are saved. Try again.'
+  };
 
   /* ------------------------------------------------------------- state */
   var st = {
@@ -2230,7 +2250,8 @@
     var payload = st.pending || buildPayload();
     st.pending = payload; save();               /* survives a failed attempt */
 
-    var ok = track('feedback_submitted', payload);
+    var why = trackWhy('feedback_submitted', payload);
+    var ok = (why === null);
     setTimeout(function () {
       sending = false;
       if (ok) {
@@ -2245,7 +2266,9 @@
         footBtn.disabled = false;
         footBtn.textContent = 'Retry submit';
         elErr.hidden = false;
-        elErr.textContent = 'That did not go through — your answers are saved. Check the connection and try again.';
+        elErr.textContent = SEND_FAIL_COPY[why] ||
+          'That did not go through — your answers are saved. Check the connection and try again.';
+        try { console.warn('[feedback] not sent:', why); } catch (e) {}
       }
     }, 350);
   }
