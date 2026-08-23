@@ -1670,13 +1670,60 @@
   }
   function track(event, props) { return trackWhy(event, props) === null; }
 
+  /* The database is the sink that answers. PostHog cannot: capture() is
+     fire-and-forget and any tracker blocker kills it without a word, so a
+     submit judged by analytics alone is a guess. This endpoint returns a
+     status code, and that is what decides whether the answers are safe. */
+  var DB_ENDPOINT = '/.netlify/functions/nb-feedback-full';
+  var DB_TIMEOUT_MS = 15000;
+
+  function appSessionId() {
+    try { var st2 = nba().state; return (st2 && st2.session) || null; } catch (e) { return null; }
+  }
+
+  function saveToDb(payload, done) {
+    var ctrl = null, timer = null;
+    try { ctrl = new AbortController(); } catch (e) {}
+    if (ctrl) timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, DB_TIMEOUT_MS);
+    var settled = false;
+    function finish(ok, reason) {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      done(ok, reason);
+    }
+    try {
+      fetch(DB_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        keepalive: true,
+        signal: ctrl ? ctrl.signal : undefined,
+        body: JSON.stringify({
+          submission_id: payload.submission_id,
+          participant_code: PID,
+          test_session_id: appSessionId(),
+          payload: payload
+        })
+      }).then(function (res) {
+        finish(res.ok, res.ok ? null : 'http_' + res.status);
+      }, function (err) {
+        finish(false, (err && err.name === 'AbortError') ? 'timeout' : 'network');
+      });
+    } catch (e) { finish(false, 'network'); }
+  }
+
   var SEND_FAIL_COPY = {
-    no_analytics:         'The app’s analytics is not answering — reload the room and try again.',
-    no_consent:           'Analytics consent is off for this session, so nothing can be recorded.',
-    analytics_not_loaded: 'Analytics has not connected yet — your answers are saved. Check the connection (an ad blocker also does this) and try again.',
-    capture_threw:        'That did not go through — your answers are saved. Try again.',
-    capture_dropped:      'That did not go through — your answers are saved. Try again.'
+    network:   'No answer from the server — your answers are saved here. Check the connection and try again.',
+    timeout:   'The server took too long — your answers are saved here. Try again.',
+    http_503:  'Storage is not switched on for this deploy yet — your answers are saved here. Tell the team.',
+    http_413:  'These answers are too long to store. Shorten the longest one and try again.',
+    http_400:  'The server refused these answers — your answers are saved here. Tell the team.'
   };
+  function sendFailCopy(reason) {
+    if (SEND_FAIL_COPY[reason]) return SEND_FAIL_COPY[reason];
+    return 'That did not go through — your answers are saved here. Try again.';
+  }
 
   /* ------------------------------------------------------------- state */
   var st = {
@@ -2250,9 +2297,10 @@
     var payload = st.pending || buildPayload();
     st.pending = payload; save();               /* survives a failed attempt */
 
-    var why = trackWhy('feedback_submitted', payload);
-    var ok = (why === null);
-    setTimeout(function () {
+    /* Analytics is fired alongside and is never allowed to fail the submit:
+       charts are nice, the answers are the point. */
+    var analytics = trackWhy('feedback_submitted', payload);
+    saveToDb(payload, function (ok, why) {
       sending = false;
       if (ok) {
         st.submitted = true;
@@ -2266,11 +2314,11 @@
         footBtn.disabled = false;
         footBtn.textContent = 'Retry submit';
         elErr.hidden = false;
-        elErr.textContent = SEND_FAIL_COPY[why] ||
-          'That did not go through — your answers are saved. Check the connection and try again.';
-        try { console.warn('[feedback] not sent:', why); } catch (e) {}
+        elErr.textContent = sendFailCopy(why);
+        try { console.warn('[feedback] not stored:', why); } catch (e) {}
       }
-    }, 350);
+      try { console.info('[feedback] stored:', ok, '· analytics:', analytics || 'ok'); } catch (e) {}
+    });
   }
 
   function renderDone(already) {
