@@ -42,7 +42,20 @@
     position:absolute;top:0;left:0;border:0;display:block;background:transparent;
     transform-origin:0 0;
   }
-  .cap{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--room-muted);flex:none}
+  /* Which half is which: testers kept mixing up "the app" and "Neybo", so each
+     pane says what it is. Name in caps, plain-language qualifier after it. */
+  .cap{
+    flex:none;display:flex;align-items:baseline;gap:8px;
+    padding:5px 12px;border-radius:999px;
+    background:rgba(255,255,255,.62);border:1px solid var(--room-line);
+    box-shadow:0 1px 2px rgba(0,0,0,.04);
+  }
+  .cap strong{
+    font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--room-ink);
+  }
+  .cap span{ font-size:11.5px;color:var(--room-muted); }
+  .cap span::before{ content:'·';margin-right:7px;color:var(--room-line) }
   body.debug{padding-bottom:300px}
   body.debug .stage{height:calc(100vh - 300px)}
 
@@ -218,13 +231,14 @@
 
 <main class="stage">
   <section class="pane pane-parent">
+    <div class="cap" data-cap><strong>Parent app</strong><span>on the phone</span></div>
     <div class="holder" id="parentHolder">
       <iframe id="parentFrame" class="frame" title="Neybo Parent App"
               allow="clipboard-write"></iframe>
     </div>
-    <div class="cap" data-cap hidden>Parent App</div>
   </section>
   <section class="pane pane-device">
+    <div class="cap" data-cap><strong>Neybo</strong><span>the cube</span></div>
     <div class="holder" id="deviceHolder">
       <!-- Talk mode needs the microphone, and a cross-origin frame gets none
            unless the page that embeds it says so. Without this attribute
@@ -234,7 +248,6 @@
       <iframe id="deviceFrame" class="frame" title="Neybo Device Prototype"
               allow="microphone; autoplay"></iframe>
     </div>
-    <div class="cap" data-cap hidden>Device</div>
   </section>
 </main>
 
@@ -404,7 +417,11 @@
     var gap     = parseFloat(cs.gap) || 36;
     var drawer  = document.body.classList.contains('debug')
                     ? (document.body.classList.contains('dbg-min') ? 34 : 300) : 0;
-    var capH    = document.body.classList.contains('debug') ? 26 : 0;
+    /* the labels sit in the flow above each pane, so their height is part of
+       what the panes have to fit into */
+    var capEl   = document.querySelector('[data-cap]');
+    var capGap  = parseFloat(getComputedStyle(document.querySelector('.pane')).gap) || 8;
+    var capH    = capEl ? Math.ceil(capEl.getBoundingClientRect().height + capGap) : 26;
 
     var availH = window.innerHeight - drawer - padY - capH;
     var availW = window.innerWidth - padX - gap;
@@ -1280,7 +1297,6 @@
 
   /* ================= debug mode ================= */
   document.body.classList.add('debug');
-  Array.prototype.forEach.call(document.querySelectorAll('[data-cap]'), function (c) { c.hidden = false; });
 
   var $ = function (id) { return document.getElementById(id); };
   $('dPid').textContent    = pid;
