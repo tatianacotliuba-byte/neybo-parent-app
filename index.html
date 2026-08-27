@@ -2674,6 +2674,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     booted: false,
     consentA: false,          // analytics consent
     consentR: false,          // session-recording consent
+    participantLabel: null,   // a readable id from the link, when it was not a uuid
     participant: null,        // participant_code (uuid)
     session: null,            // test_session_id (uuid)
     device: deviceType(),
@@ -2895,6 +2896,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   function superProps() {
     return {
       participant_code: S.participant,
+      participant_label: S.participantLabel,
       test_session_id: S.session,
       test_version: CFG.test_version,
       surface: 'parent_app',
@@ -2921,7 +2923,14 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   function beginSession(o) {
     // o = { participant_code, test_session_id, consent_analytics, consent_session_recording,
     //       first_name, last_name, email, child_age_group }
-    S.participant = o.participant_code || uuid();
+    /* participants.participant_code is a uuid column, so a readable id from
+       the link ("tester3") can never be stored there. Keep it as a label for
+       analytics and give the database an id it can actually accept. */
+    var given = o.participant_code || null;
+    var isUuidCode = !!given && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(given);
+    S.participant = isUuidCode ? given : uuid();
+    S.participantLabel = (given && !isUuidCode) ? given : null;
+    if (given && !isUuidCode) log('participant code is not a uuid — stored as a label', given);
     S.session = o.test_session_id || uuid();
     S.consentA = !!o.consent_analytics;
     S.consentR = !!o.consent_session_recording;
@@ -3490,7 +3499,11 @@ var q   = new URLSearchParams(location.search);
 function lsGet(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
-function sanId(s){return String(s||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,24);}
+/* 64, not 24: a UUID is 36 characters, and cutting it produced a code that
+   looked fine in the browser but failed the server's uuid check — so every
+   participant who arrived with an id in the link was written to PostHog and
+   to nothing else. */
+function sanId(s){return String(s||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,64);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
 function defState(){return{
