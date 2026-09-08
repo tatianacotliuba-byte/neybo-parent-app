@@ -379,12 +379,17 @@
     try { history.replaceState(null, '', location.pathname + '?' + q.toString()); } catch (e) {}
   }
 
-  var parentSrc = PARENT_BASE + '?participantId=' + encodeURIComponent(pid);
+  /* Release-1 preview: the room passes ?r1=1 straight through to both frames,
+     so one link shows the whole methodology revision. Without it, both panes
+     are the build the testers are already using. */
+  var R1 = q.get('r1') === '1' ? '&r1=1' : '';
+
+  var parentSrc = PARENT_BASE + '?participantId=' + encodeURIComponent(pid) + R1;
   /* A test room must never show a cached build of the prototype: every room
      load pulls the current one. (Cheap — it is a single HTML document.) */
   var cacheBust = 'r' + String(Math.floor(Math.random() * 1e9));
   var deviceSrc = DEVICE_BASE + '?embed=1&participantId=' + encodeURIComponent(pid) +
-                  '&nocache=' + cacheBust;
+                  '&nocache=' + cacheBust + R1;
 
   var parentFrame = document.getElementById('parentFrame');
   var deviceFrame = document.getElementById('deviceFrame');
