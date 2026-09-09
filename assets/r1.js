@@ -1347,6 +1347,18 @@
     return true;
   }
 
+  /* The band strip and the child's own albums belong to the main view. In
+     Popular, New, Saved and in search results the reader is scanning a list
+     of titles, and a band control plus two album rows on top of that list is
+     furniture in the way. */
+  function syncOwnBlocks() {
+    var main = (window.LV === 'for-eve') && !(window.LQ && LQ.trim());
+    ['[data-r1-band-strip]', '[data-r1-albums]'].forEach(function (sel) {
+      var el = document.querySelector(sel);
+      if (el) el.hidden = !main;
+    });
+  }
+
   function apply4() {
     mountBandStrip();
     bookScreen();
@@ -1365,11 +1377,17 @@
     });
     if (window.renderLib) {
       var _renderLib = window.renderLib;
-      window.renderLib = function () { var r = _renderLib.apply(this, arguments); trimPicks(); return r; };
+      window.renderLib = function () {
+        var r = _renderLib.apply(this, arguments);
+        trimPicks();
+        syncOwnBlocks();
+        return r;
+      };
     }
     wirePresets();
     fixStarTrail();
     paintLimits();
+    syncOwnBlocks();
     if (window.renderLib) try { renderLib(); } catch (e) {}
 
     /* the presets and the trail live on screens built by the earlier pass,
@@ -1380,7 +1398,7 @@
       if (id === 'm-parent') wirePresets();
       if (id === 'insights') fixStarTrail();
       if (id === 'gc-limits') paintLimits();
-      if (id === 'library') { mountBandStrip(); trimPicks(); }
+      if (id === 'library') { mountBandStrip(); trimPicks(); syncOwnBlocks(); }
       return r;
     };
   }
