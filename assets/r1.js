@@ -61,8 +61,8 @@
       help:'reasoning and honest not-knowing.' },
     { id:'sound-lab', e:'🔊', t:'Sound Lab', c:'m', ch:'Moss', cov:'m', m:'solo', tier:'free',
       topics:['science','thinking'], ag:[4,10], dur:'10 min', pop:0, nw:true, pub:20260904,
-      desc:'Eve teaches Neybo a sound, then tests it. Moss answers with his real confidence and says "I am not sure yet" when he is not — nothing is staged.',
-      help:'listening, categories and how learning actually works.' },
+      desc:'Eve names a sound and Moss plays a real one back from his library. Nothing is generated, and nothing Eve says or makes is recorded.',
+      help:'noticing sounds and learning to name them.' },
     { id:'paper-lab', e:'📐', t:'Paper Experiment Lab', c:'m', ch:'Moss', cov:'m', m:'solo', tier:'free',
       topics:['science','creativity'], ag:[5,10], dur:'10–15 min', pop:0, nw:true, pub:20260904,
       desc:'Experiments that need nothing but paper and a pencil. Eve predicts, tries it, and tells Moss what actually happened.',
@@ -73,8 +73,8 @@
       help:'logic and problem-solving.' },
     { id:'charging-break', e:'🔋', t:'Charging Break', c:'m', ch:'Moss', cov:'m', m:'solo', tier:'free',
       topics:['play','calm'], ag:[4,10], dur:'3–5 min', pop:52, nw:false, pub:20260108, last:'2 days ago',
-      desc:'Moss names a few moves, Eve picks the ones she likes, gives the routine a name and performs it. The dance she built is the reward.',
-      help:'movement, sequencing and inventing something of her own.' },
+      desc:'Moss already knows the dance and shows it — Eve copies. He calls the beat out loud and never waits for an answer; say stop and he pauses.',
+      help:'moving, rhythm and body awareness.' },
 
     /* --- Luna · Emotions --------------------------------------------------- */
     { id:'gc-luna', e:'💛', t:'Emotions', c:'l', ch:'Luna', cov:'l', m:'solo', tier:'free',
@@ -609,4 +609,415 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply);
   else apply();
+})();
+
+
+/* ---------------------------------------------------------------------------
+   Second pass — the solo game scripts, August 2026.
+
+   The methodology said what release 1 contains. The scripts say how each
+   activity actually behaves: the age bands children are really split into,
+   how long a session runs in each, and — the part no screen showed until now
+   — what Neybo keeps afterwards and what it throws away.
+
+   Where the two documents disagree the methodology wins, so Sound Lab keeps
+   its honest-confidence rounds and Charging Break keeps the routine the child
+   assembles. Everything here is the part they agree on.
+
+   Same rule as the first pass: nothing renames anything, and it is all inert
+   without ?r1=1.
+--------------------------------------------------------------------------- */
+(function () {
+  'use strict';
+
+  if (!/(^|[?&])r1=1(&|$)/.test(location.search)) return;
+
+  /* ------------------------------------------------------------- age bands
+     The scripts use 4–6 / 6–8 / 8–10 throughout, with a different wait time,
+     choice shape and session length in each. The app was filtering by
+     4-5 / 6-8 / 9+, and the middle chip was mislabelled "Ages 4–6". */
+
+  var BANDS = {
+    '4-6':  { range: [4, 6],  label: 'Ages 4–6',  wait: '8s + 4s', session: '4–7 min',
+              choice: 'Two named options — one word is enough' },
+    '6-8':  { range: [6, 8],  label: 'Ages 6–8',  wait: '6s + 4s', session: '7–11 min',
+              choice: 'Open question first, two options if stuck' },
+    '8-10': { range: [8, 10], label: 'Ages 8–10', wait: '5s + 3s', session: '10–15 min',
+              choice: 'Open, and one harder follow-up is allowed' }
+  };
+
+  function bandOf(age) {
+    if (age <= 6) return '4-6';
+    if (age <= 8) return '6-8';
+    return '8-10';
+  }
+
+  /* The shipped filter reads its band table from a literal inside the
+     function, so the whole predicate is replaced rather than patched. Same
+     logic, new bands. */
+  window.matchesFilterSet = function (x, f) {
+    if (f.char !== 'all' && x.c !== f.char) return false;
+    if (f.mode !== 'all' && x.m !== f.mode) return false;
+    if (f.access !== 'all' && x.tier !== f.access) return false;
+    if (f.age !== 'all') {
+      var b = BANDS[f.age];
+      if (!b) return true;
+      if (!window.ageOverlap(x, b.range[0], b.range[1])) return false;
+    }
+    return true;
+  };
+
+  /* chips() also carried its own label table, and would have printed
+     "undefined" for a band it had never heard of. */
+  window.chips = function () {
+    var LB = {
+      char:   { e: 'Ember', m: 'Moss', l: 'Luna' },
+      mode:   { solo: 'Solo', parent: 'Grown-Up', group: 'Group' },
+      access: { free: 'Free', neybo: 'Neybo+', family: 'Family+' }
+    };
+    var out = '';
+    ['char', 'mode', 'access', 'age'].forEach(function (k) {
+      if (window.APP[k] === 'all') return;
+      var label = (k === 'age') ? (BANDS[APP.age] ? BANDS[APP.age].label : APP.age) : LB[k][APP[k]];
+      out += '<span class="lchip" onclick="removeChip(\'' + k + '\')">' + label +
+             '<span class="x">✕</span></span>';
+    });
+    return out ? '<div class="lchips">' + out + '</div>' : '';
+  };
+
+  if (window.FLT) {
+    FLT.forEach(function (g) {
+      if (g[1] !== 'age') return;
+      g[2] = [['all', 'All'], ['4-6', '4–6'], ['6-8', '6–8'], ['8-10', '8–10']];
+    });
+  }
+
+  /* --------------------------------------------------------------- memory
+     Every script section ends with a memory rule, and they are not the same
+     rule. A parent screen that says "we keep some things" where the spec says
+     "book id, pause point, finished flag, date — discard the audio" is the
+     screen doing less than the product. */
+
+  var KEEPS = {
+    'gc-ember':   'Topic tags for this sitting and the date. No audio, no transcript.',
+    'gc-moss':    'Topic tags for this sitting and the date. No audio, no transcript.',
+    'gc-luna':    'A topic tag such as "sad about school", and the date. Never the words, never anything kept as a confidence.',
+    'story-forge':'The story itself, and only if Eve says yes when Ember asks to keep it.',
+    'book-reading':'Which book, where she stopped, whether it was finished, and the date. The audio is discarded.',
+    'paint-with-words':'The picture’s name, if she keeps it. Nothing else.',
+    'dress-up':   'How many sessions, and when.',
+    'sound-lab':  'Session count and date. No audio Eve makes is ever recorded, and no sound is generated.',
+    'paper-lab':  'Session count. The drawing stays with Eve.',
+    'logic-riddles':'Session count and date — no score. A riddle she engaged with is a riddle won.',
+    'charging-break':'How many dances, and when. No form notes, no score, no video.',
+    'breathing':  'Session count and date.',
+    'gratitude':  'One good thing a day, stored as a date and a tag. Never the sentence.',
+    'karaoke':    'Session count and date. Her singing is not recorded.',
+    'craft-studio':'Which activity, and how long.',
+    'kitchen-science':'Which experiment, and how long.',
+    'family-trivia':'Which activity, and how long.',
+    'star-checkup':'One mark a day for the week’s trail. A mark says the ritual happened, not how the day went.',
+    '_group':     'Nothing about any individual child. No names, no headcount, no visitor profiles.'
+  };
+
+  var LISTEN = 'While the book is playing Eve can say <b>pause</b>, <b>go</b>, <b>slower</b> or ' +
+               '<b>I’m done</b>. Ember asks nothing mid-book and never checks whether she is ' +
+               'still there — if she goes quiet, he keeps reading to the end.';
+
+  var _detailHTML = window.detailHTML;
+  if (typeof _detailHTML === 'function') {
+    window.detailHTML = function (x) {
+      var html = _detailHTML(x);
+      var keep = KEEPS[x.id] || (x.m === 'group' ? KEEPS._group : null);
+      if (!keep) return html;
+      var band = BANDS[bandOf(window.EVE_AGE || 7)];
+      var extra =
+        '<div class="lbl" style="margin-top:14px">What Neybo keeps</div>' +
+        '<div class="card" style="box-shadow:none">' +
+          '<div style="font-size:13.5px;line-height:1.55;color:var(--muted)">' + keep + '</div>' +
+          (x.id === 'book-reading'
+            ? '<div class="divider"></div><div style="font-size:13.5px;line-height:1.55;color:var(--muted)">' + LISTEN + '</div>'
+            : '') +
+          '<div class="divider"></div>' +
+          '<div style="font-size:13px;line-height:1.5;color:var(--muted)">' +
+          'At ' + band.label.toLowerCase() + ' Neybo waits ' + band.wait + ' before offering help, ' +
+          'and a session runs ' + band.session + '. ' + band.choice + '.</div>' +
+        '</div>';
+      return html + extra;
+    };
+  }
+
+  /* ------------------------------------------------------- limits, by band
+     The conversation clock is a parent setting, but the scripts recommend a
+     different length per band, so the screen should say which one it is
+     recommending rather than offering four equal-looking chips. */
+
+  function bandCard() {
+    var scr = document.querySelector('.screen[data-s="gc-limits"]');
+    if (!scr || scr.querySelector('[data-r1-band]')) return;
+    var d = document.createElement('div');
+    d.setAttribute('data-r1-band', '1');
+    var rows = Object.keys(BANDS).map(function (k) {
+      var b = BANDS[k], now = (k === bandOf(window.EVE_AGE || 7));
+      return '<div class="trow2"' + (now ? ' style="background:rgba(193,138,0,.07);border-radius:10px;padding:8px 10px;margin:0 -10px"' : '') + '>' +
+        '<div><div class="n">' + b.label + (now ? ' · Eve' : '') + '</div>' +
+        '<div class="d">Waits ' + b.wait + ' before offering help</div></div>' +
+        '<div style="font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap">' + b.session + '</div></div>';
+    }).join('<div class="divider"></div>');
+    d.innerHTML = '<div class="lbl">Recommended by age</div><div class="card">' + rows +
+      '<div style="font-size:13px;color:var(--muted);line-height:1.5;margin-top:10px">' +
+      'Younger children need a longer pause and a shorter session. Neybo never fills the silence ' +
+      'with chatter — it waits, offers one breath cue, then two choices, and only then takes a turn ' +
+      'itself.</div></div>';
+    var save = scr.querySelector('.btnbig');
+    if (save) scr.insertBefore(d, save); else scr.appendChild(d);
+  }
+
+  /* ------------------------------------------------------------- albums
+     Two things a child makes that belong to her rather than to a session:
+     the stories she kept, and the good thing from each day. The scripts keep
+     them apart from the book library on purpose. */
+
+  var STORIES = [
+    ['Jam-Door Country', 'Made with Ember · 4 Sep', 'The bell tasted of strawberry when it rang.'],
+    ['The Sock That Went North', 'Made with Ember · 1 Sep', 'It left a note. The note was also a sock.'],
+    ['Pancake Rocket', 'Made with Ember · 28 Aug', 'Fuel: syrup. Crew: two fireflies.']
+  ];
+  var GRATITUDE = [
+    ['8 Sep', 'something she made'], ['7 Sep', 'someone kind'], ['5 Sep', 'something she ate'],
+    ['4 Sep', 'a place she went'], ['3 Sep', 'something she made']
+  ];
+
+  function albumScreens() {
+    var host = document.querySelector('.screen[data-s="library"]');
+    if (!host || document.querySelector('.screen[data-s="lib-created"]')) return;
+
+    function add(key, html) {
+      var s = document.createElement('section');
+      s.className = 'screen';
+      s.setAttribute('data-s', key);
+      s.setAttribute('data-r1', '1');
+      s.innerHTML = html;
+      host.parentNode.appendChild(s);
+      if (window.TAB) TAB[key] = 'library';
+    }
+    var back = '<div class="topback" onclick="go(\'library\')">' +
+      '<svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" ' +
+      'stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Library</div>';
+
+    add('lib-created', back +
+      '<div class="h1">Created Stories</div>' +
+      '<div class="subh">Hers, not Neybo’s · kept only when she says yes</div>' +
+      '<div class="card">' + STORIES.map(function (s, i) {
+        return (i ? '<div class="divider"></div>' : '') +
+          '<div class="trow2"><div><div class="n">' + s[0] + '</div>' +
+          '<div class="d">' + s[1] + '</div>' +
+          '<div class="d" style="margin-top:3px">' + s[2] + '</div></div></div>';
+      }).join('') + '</div>' +
+      '<div class="card" style="box-shadow:none"><div style="font-size:13.5px;line-height:1.55;color:var(--muted)">' +
+      'Ember asks at the end: shall I keep this? Nothing lands here without that yes. This album is ' +
+      'separate from the twenty books he reads — those are his, these are hers.</div></div>');
+
+    add('lib-gratitude', back +
+      '<div class="h1">Good things</div>' +
+      '<div class="subh">One a day, from the check-up with Luna</div>' +
+      '<div class="card">' + GRATITUDE.map(function (g, i) {
+        return (i ? '<div class="divider"></div>' : '') +
+          '<div class="trow2"><div><div class="n">' + g[0] + '</div>' +
+          '<div class="d">' + g[1] + '</div></div><span style="font-size:18px">⭐</span></div>';
+      }).join('') + '</div>' +
+      '<div class="card" style="box-shadow:none"><div style="font-size:13.5px;line-height:1.55;color:var(--muted)">' +
+      'Only the date and a tag are stored — never what Eve actually said. If you want to know what ' +
+      'the good thing was, the answer is to ask her.</div></div>');
+  }
+
+  function albumStrip() {
+    var scr = document.querySelector('.screen[data-s="library"]');
+    if (!scr || scr.querySelector('[data-r1-albums]')) return;
+    var d = document.createElement('div');
+    d.setAttribute('data-r1-albums', '1');
+    d.innerHTML =
+      '<div class="lbl">Eve’s own</div><div class="card" style="padding:0;overflow:hidden">' +
+      '<div class="trow2" style="cursor:pointer;padding:13px 15px" onclick="go(\'lib-created\')">' +
+        '<div style="display:flex;gap:11px;align-items:center"><span style="font-size:21px">📜</span>' +
+        '<div><div class="n">Created Stories</div><div class="d">' + STORIES.length + ' kept</div></div></div>' +
+        '<svg class="tsvg" style="color:var(--label);width:20px;height:20px" viewBox="0 0 24 24" fill="none" ' +
+        'stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M9 6l6 6-6 6"/></svg></div>' +
+      '<div class="divider"></div>' +
+      '<div class="trow2" style="cursor:pointer;padding:13px 15px" onclick="go(\'lib-gratitude\')">' +
+        '<div style="display:flex;gap:11px;align-items:center"><span style="font-size:21px">⭐</span>' +
+        '<div><div class="n">Good things</div><div class="d">' + GRATITUDE.length + ' this week</div></div></div>' +
+        '<svg class="tsvg" style="color:var(--label);width:20px;height:20px" viewBox="0 0 24 24" fill="none" ' +
+        'stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M9 6l6 6-6 6"/></svg></div></div>';
+    var body = document.getElementById('libBody');
+    if (body) scr.insertBefore(d, body); else scr.appendChild(d);
+  }
+
+  /* ------------------------------------------------- the grown-up lab signal
+     When a child asks to do the experiment for real, Moss does not refuse and
+     does not comply: he offers to tell a grown-up. That offer has to arrive
+     somewhere, and this is where. */
+
+  function labSignal() {
+    var scr = document.querySelector('.screen[data-s="notifications"]');
+    if (!scr || scr.querySelector('[data-r1-lab]')) return;
+    var d = document.createElement('div');
+    d.setAttribute('data-r1-lab', '1');
+    d.innerHTML =
+      '<div class="lbl">From Neybo today</div>' +
+      '<div class="card" style="border:1.5px solid #d8c48a;background:#fdf6e6;box-shadow:none">' +
+      '<div style="font-weight:600;color:#2c2a24">Eve asked to do the melting-ice lab for real</div>' +
+      '<div style="font-size:13.5px;color:#6a5f3a;line-height:1.55;margin-top:5px">' +
+      'Moss kept it on paper and offered to pass it on. The version with real ice and salt lives in ' +
+      'Grown-Up Mode as the Guided Science Lab — it needs an adult in the room.</div>' +
+      '<button class="medit" style="margin-top:11px" onclick="go(\'m-parent\')">Open Grown-Up Mode</button>' +
+      '</div>';
+    var anchor = scr.querySelector('.lbl') || scr.querySelector('.h1');
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(d, anchor);
+    else scr.appendChild(d);
+  }
+
+  /* ------------------------------------------------------------ real counts
+     The scripts specify the size of every library. A card that says "around
+     twenty books" when the spec says twenty, or "experiments" when there are
+     ten named ones, is throwing away the only detail a parent can check. */
+
+  var COUNTS = {
+    'story-forge':     ['Ten story shapes Ember can open with — a moon door, a sock that wants wind, a dragon who forgot how to roar. Eve picks the hero, the twist and the ending, and it is saved to Created Stories only if she says yes.', 'imagination, vocabulary and story structure.'],
+    'paint-with-words':['Twenty Hollowbrook pictures — ten simple ones for the younger band and ten full scenes. Eve names a colour, Ember paints it back and adds exactly one piece of magic, then asks about the next part.', 'descriptive language and creativity.'],
+    'dress-up':        ['Ten items in the closet, and each one changes Ember’s voice: the scarf makes him an explorer, the tiny crown a kind ruler with one royal decree. Ends with a fashion show.', 'self-expression and pretend play.'],
+    'book-reading':    ['Twenty books — fourteen Hollowbrook originals and six retold from the public domain. Ember offers three at a time with their length, reads the whole thing without interrupting, and remembers the ribbon.', 'reading confidence and listening.'],
+    'sound-lab':       ['Eve names a sound, Moss plays a matching one from his library. No generation, no child audio — and if she asks whether it is real, he gives one short honest answer and plays the next clip.', 'noticing sounds and learning to name them.'],
+    'paper-lab':       ['Ten labs that need nothing but paper — melting ice, sink or float, shadow length, seed growth, colour mixing and five more. Eve predicts, Moss runs it in words, then she says what happened.', 'prediction, observation and following steps.'],
+    'logic-riddles':   ['Twenty riddles, each with exactly three hints in order. A wrong guess gets "not quite, want the next hint?" and nothing is scored. If the third hint is not enough, Moss gives the answer warmly.', 'logic and problem-solving.'],
+    'karaoke':         ['Hollowbrook songs only — no radio, no Disney. Luna sings and Eve joins in, or Eve leads and Luna follows. Nothing is scored; afterwards Luna names one word she caught.', 'rhythm, memory and confidence.'],
+    'breathing':       ['Three tools: the slow belly breath, the box of four counts, and wind-out. Luna counts one whole round without asking anything in the middle, then asks how the body feels.', 'self-regulation.'],
+    'gratitude':       ['One good thing from the day — big, small or silly. Luna asks for one detail, then stops. Only the date and a tag are kept, never the sentence.', 'noticing and putting words to good moments.'],
+    'charging-break':  ['Dances Moss already knows and shows — eight moves over four rounds while the energy meter fills. He counts in real time rather than waiting for a reply, and pauses to ask whether to keep dancing or rest.', 'moving, rhythm and body awareness.']
+  };
+
+  function realCounts() {
+    if (!window.ITEMS) return;
+    ITEMS.forEach(function (x) {
+      var c = COUNTS[x.id];
+      if (!c) return;
+      x.desc = c[0];
+      x.help = c[1];
+    });
+  }
+
+  /* ----------------------------------------------------------- theme lock
+     Each conversation has a house, and one off-theme beat gets handed to
+     whoever owns the subject. A parent reading the card should know that
+     before it happens on the cube. */
+
+  var HOUSES = {
+    'gc-ember': 'Ember’s house is stories, books, imagination and making things. A question about why the sky is blue goes to Moss; a hard feeling goes to Luna.',
+    'gc-moss':  'Moss’s house is why things work, places, counting, riddles and moving. A story goes to Ember; a hard feeling goes to Luna. Real homework goes to you.',
+    'gc-luna':  'Luna’s house is feelings, the day and gratitude. She does not take Moss’s questions or Ember’s stories, and anything heavy goes to a trusted grown-up rather than to another character.'
+  };
+
+  var _detail2 = window.detailHTML;
+  if (typeof _detail2 === 'function') {
+    window.detailHTML = function (x) {
+      var html = _detail2(x);
+      if (!HOUSES[x.id]) return html;
+      return html +
+        '<div class="lbl" style="margin-top:14px">Where it stops</div>' +
+        '<div class="card" style="box-shadow:none"><div style="font-size:13.5px;line-height:1.55;color:var(--muted)">' +
+        HOUSES[x.id] + '</div></div>';
+    };
+  }
+
+  /* ---------------------------------------------------------------- boot */
+
+  function apply2() {
+    realCounts();
+    bandCard();
+    albumScreens();
+    albumStrip();
+    labSignal();
+    if (window.renderLib) try { renderLib(); } catch (e) {}
+    if (window.renderFilterSheet) try { renderFilterSheet(); } catch (e) {}
+    if (window.NeyboR1) NeyboR1.bands = BANDS;
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply2);
+  else setTimeout(apply2, 0);
+})();
+
+
+/* ---------------------------------------------------------------------------
+   Third pass — the script index, 8 September 2026.
+
+   The beat scripts were re-aligned to the methodology and now carry a status
+   label on every activity: whether it is cached, bounded, open, local, or a
+   speaking mode. Those labels are the difference between what can ship in
+   release 1 and what is still being written, so a parent-facing catalogue
+   that hides them is hiding the only checkable thing about each activity.
+
+   This pass also corrected two activities the earlier build had backwards.
+   Sound Lab is a library match, not a game where the child teaches Moss and
+   he answers with a confidence figure; Charging Break is a dance Moss already
+   knows and shows, which the child copies and never assembles.
+--------------------------------------------------------------------------- */
+(function () {
+  'use strict';
+
+  if (!/(^|[?&])r1=1(&|$)/.test(location.search)) return;
+
+  var HOW = {
+    'gc-ember':         'Speaking mode · stories, books, imagine, make',
+    'story-forge':      'Open AI · hybrid voice',
+    'paint-with-words': 'Bounded AI · modular TTS',
+    'dress-up':         'Local assets · cached lines',
+    'book-reading':     'Bedtime · whole book',
+    'gc-moss':          'Speaking mode · travel, why, math, riddles, move',
+    'sound-lab':        'Release 1 · library match, no child audio',
+    'paper-lab':        'Bounded AI · pencil only',
+    'logic-riddles':    'Library · three hints',
+    'charging-break':   'Cached · Moss-led dances',
+    'gc-luna':          'Speaking mode · feeling words',
+    'breathing':        'Child chooses the tool',
+    'gratitude':        'One good thing',
+    'karaoke':          'Interactive Songs and Karaoke Mode, merged',
+    'craft-studio':     'Moss · the adult hands over the scissors',
+    'kitchen-science':  'Release 1 · Moss',
+    'family-trivia':    'Ember · the grown-up plays with a declared handicap',
+    'star-checkup':     'Release 1 · Luna',
+    'letter-word-round':'Circle · group word bank',
+    'group-rhythm':     'Circle · one shared beat',
+    'simon-says':       'Circle · caller only',
+    'hot-potato':       'Circle · music and stop',
+    'red-light':        'Circle · refereed by the kids',
+    'charades':         'Linked · a private picture on each cube',
+    'clue-quest':       'Linked · a private clue on each cube'
+  };
+
+  /* Two activities have a label but no beat script yet. Saying so is more
+     useful to a tester than a screen that pretends the flow is settled. */
+  var PENDING = {
+    'sound-lab': 'The beat script for this one is still being written — the label is fixed, the turns are not.'
+  };
+
+  var _detail = window.detailHTML;
+  if (typeof _detail !== 'function') return;
+
+  window.detailHTML = function (x) {
+    var html = _detail(x);
+    var how = HOW[x.id];
+    if (!how) return html;
+    return html +
+      '<div class="lbl" style="margin-top:14px">How it runs</div>' +
+      '<div class="card" style="box-shadow:none">' +
+        '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;' +
+        'letter-spacing:.02em;color:var(--ink)">' + how + '</div>' +
+        (PENDING[x.id]
+          ? '<div class="divider"></div><div style="font-size:13px;line-height:1.5;color:var(--muted)">' +
+            PENDING[x.id] + '</div>'
+          : '') +
+      '</div>';
+  };
 })();
