@@ -381,10 +381,12 @@
 
   /* ------------------------------------------------------------- in-place cards */
 
+  /* A preset is a name, the running order, and how long it takes. Anything
+     longer than that was a paragraph nobody reads on a phone. */
   var PRESETS = [
-    ['Family Lab', 'Paper Experiment Lab, then Logic Riddles', 'Both of you guess out loud — the grown-up is allowed to be wrong.'],
-    ['Make Something', 'Paint With Words, then Collaborative Storytelling', 'One session that ends with something you can keep.'],
-    ['Wind-Down', 'Book Reading, Gratitude, Breathing', 'Twelve quiet minutes in the same order every night.']
+    ['Family Lab',     'Paper Lab → Logic Riddles',            '15 min'],
+    ['Make Something', 'Paint With Words → Storytelling',      '20 min'],
+    ['Wind-Down',      'Reading → Gratitude → Breathing',      '12 min']
   ];
 
   /* The permission rows on the mode screens describe the old catalogue. They
@@ -446,9 +448,8 @@
       PRESETS.map(function (p, i) {
         return (i ? '<div class="divider"></div>' : '') +
           '<div class="trow2"><div><div class="n">' + p[0] + '</div>' +
-          '<div class="d">' + p[1] + '</div>' +
-          '<div class="d" style="margin-top:2px">' + p[2] + '</div></div>' +
-          '<button class="medit" onclick="t(\'' + p[0] + ' queued on Neybo\')">Start</button></div>';
+          '<div class="d">' + p[1] + ' &middot; ' + p[2] + '</div></div>' +
+          '<button type="button" class="r1-pbtn">Start</button></div>';
       }).join('') + '</div></div>');
 
     var save = scr.querySelector('.btnbig');
@@ -564,15 +565,23 @@
     scr.appendChild(note);
   }
 
-  /* --------------------------------------------------------------------- badge */
+  /* ---------------------------------------------------------------------- css
+     The overlay adds exactly one control the app did not already have — the
+     preset Start button — so it carries exactly one rule set, written in the
+     app's own tokens so it follows the light and dark themes. */
 
-  function badge() {
-    var b = el('<div id="r1Badge" title="Release-1 methodology overlay. Remove ?r1=1 for the current build.">' +
-      'Release&nbsp;1 preview</div>');
-    b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:99999;font:600 11px/1 ' +
-      '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.06em;text-transform:uppercase;' +
-      'padding:7px 11px;border-radius:999px;background:#1f1a12;color:#ffd75e;opacity:.86;pointer-events:none';
-    document.body.appendChild(b);
+  function styles() {
+    if (document.getElementById('r1-style')) return;
+    var s = document.createElement('style');
+    s.id = 'r1-style';
+    s.textContent =
+      '.r1-pbtn{flex:0 0 auto;margin-left:14px;padding:9px 18px;border:0;border-radius:999px;' +
+      'background:var(--yellow);color:#2c2a24;font:600 13.5px/1 inherit;letter-spacing:.01em;' +
+      'cursor:pointer;transition:transform .12s ease,background .15s ease,color .15s ease}' +
+      '.r1-pbtn:active{transform:scale(.96)}' +
+      '.r1-pbtn.on{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line);' +
+      'color:var(--muted);font-weight:500}';
+    document.head.appendChild(s);
   }
 
   /* ---------------------------------------------------------------------- boot */
@@ -588,7 +597,7 @@
     decorateInsights();
     decorateSafetyAlert();
     swapText(document.body);
-    badge();
+    styles();
 
     if (window.renderLib) try { renderLib(); } catch (e) {}
     if (window.renderModeCard) try { renderModeCard(); } catch (e) {}
@@ -1264,9 +1273,9 @@
      not fire a toast and forget. */
 
   var PRESET_PLAN = {
-    'Family Lab':      ['Paper Experiment Lab', 'Logic Riddles'],
-    'Make Something':  ['Paint With Words', 'Collaborative Storytelling'],
-    'Wind-Down':       ['Book Reading', 'Gratitude Ritual', 'Breathing & Calm-Down']
+    'Family Lab':      ['Paper Lab', 'Logic Riddles'],
+    'Make Something':  ['Paint With Words', 'Storytelling'],
+    'Wind-Down':       ['Reading', 'Gratitude', 'Breathing']
   };
   var queued = null;
 
@@ -1283,16 +1292,18 @@
 
     host.querySelectorAll('.trow2').forEach(function (row) {
       var name = (row.querySelector('.n') || {}).textContent;
-      var btn = row.querySelector('.medit');
+      var btn = row.querySelector('.r1-pbtn');
       if (!btn || !PRESET_PLAN[name]) return;
-      btn.removeAttribute('onclick');
       btn.addEventListener('click', function () {
         queued = name;
-        host.querySelectorAll('.medit').forEach(function (b) { b.textContent = 'Start'; });
+        host.querySelectorAll('.r1-pbtn').forEach(function (b) {
+          b.textContent = 'Start'; b.classList.remove('on');
+        });
         btn.textContent = 'Queued';
+        btn.classList.add('on');
+        /* one line, because the point is only what happens next */
         status.innerHTML = '<b style="color:var(--ink)">' + name + ' is queued.</b> Neybo starts with ' +
-          PRESET_PLAN[name][0] + ', then ' + PRESET_PLAN[name].slice(1).join(', then ') +
-          '. It waits for Eve to say your name — it will not open the session itself.';
+          PRESET_PLAN[name][0] + ' when Eve says your name.';
         if (window.nbToast) nbToast(name + ' queued · starts with ' + PRESET_PLAN[name][0]);
         try { if (window.nbSend) nbSend('game.start', { game: name }); } catch (e) {}
       });
