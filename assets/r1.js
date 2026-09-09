@@ -1103,6 +1103,8 @@
 
   function setBand(b) {
     window.EVE_AGE = BAND_MID[b] || 7;
+    /* the strip and the filter sheet are one control, so they must agree */
+    try { if (window.APP && APP.age !== 'all') APP.age = b; } catch (e) {}
     var sub = document.getElementById('headSub');
     if (sub) sub.textContent = BAND_META[b].label;
     if (window.renderLib) try { renderLib(); } catch (e) {}
@@ -1327,9 +1329,40 @@
 
   /* ---------------------------------------------------------------- boot */
 
+  /* The age chips in the filter sheet looked like a control and were not one:
+     every release-1 activity spans roughly 4-10, so overlapping a band never
+     excluded anything and the list came back 25 of 25 whichever chip you
+     pressed. There is only one real notion of a band in this product, so
+     picking an age in the sheet now sets it — and the offer, the allowance
+     line and the recommended length move with it. */
+  function syncBandFromFilter() {
+    var a = window.APP && APP.age;
+    if (!a || a === 'all' || !BAND_MID[a]) return false;
+    if (bandNow() === a) return false;
+    window.EVE_AGE = BAND_MID[a];
+    var sub = document.getElementById('headSub');
+    if (sub) sub.textContent = BAND_META[a].label;
+    paintBandStrip();
+    paintLimits();
+    return true;
+  }
+
   function apply4() {
     mountBandStrip();
     bookScreen();
+    ['libApplyFilters', 'removeChip', 'libClearAll'].forEach(function (fn) {
+      if (typeof window[fn] !== 'function') return;
+      var orig = window[fn];
+      window[fn] = function () {
+        var r = orig.apply(this, arguments);
+        /* the filter renders before the band has moved, and a trim only ever
+           removes cards — so once the band changes the list has to be built
+           again rather than trimmed twice */
+        if (syncBandFromFilter() && window.renderLib) { try { renderLib(); } catch (e) {} }
+        else trimPicks();
+        return r;
+      };
+    });
     if (window.renderLib) {
       var _renderLib = window.renderLib;
       window.renderLib = function () { var r = _renderLib.apply(this, arguments); trimPicks(); return r; };
