@@ -1021,3 +1021,337 @@
       '</div>';
   };
 })();
+
+
+/* ---------------------------------------------------------------------------
+   Fourth pass — making three things real rather than described.
+
+   The age band was a filter and a label; now it is a control that changes
+   what the library recommends, what each activity allows, and which
+   conversation length the app suggests. The book library was a number in a
+   sentence; now it is twenty titles with their length and their band. The
+   three Grown-Up presets had a Start button that only toasted; now they queue
+   a session and say what the cube will do first.
+--------------------------------------------------------------------------- */
+(function () {
+  'use strict';
+
+  if (!/(^|[?&])r1=1(&|$)/.test(location.search)) return;
+
+  var BAND_MID = { '4-6': 5, '6-8': 7, '8-10': 9 };
+  var BAND_META = {
+    '4-6':  { label: 'Ages 4–6',  wait: '8s + 4s', session: '4–7 min',
+              allow: 'Three labs, two riddles, two sounds in one sitting.',
+              choice: 'Two named options — one word is enough' },
+    '6-8':  { label: 'Ages 6–8',  wait: '6s + 4s', session: '7–11 min',
+              allow: 'Five labs, three riddles, the full sound list.',
+              choice: 'Open question first, two options if stuck' },
+    '8-10': { label: 'Ages 8–10', wait: '5s + 3s', session: '10–15 min',
+              allow: 'Every lab, three riddles at least, and one harder follow-up.',
+              choice: 'Open, and one harder follow-up is allowed' }
+  };
+  var GC_SUGGEST = { '4-6': 5, '6-8': 10, '8-10': 15 };
+
+  function bandNow() {
+    var a = window.EVE_AGE || 7;
+    return a <= 6 ? '4-6' : a <= 8 ? '6-8' : '8-10';
+  }
+
+  /* ---------------------------------------------------------- band switcher
+     Changing the band moves Eve's age, which is what the library's own
+     recommendation scoring already reads — so the picks, the allowances and
+     the suggested conversation length all move together instead of the band
+     being a caption. */
+
+  /* How much the band is offered at once. The scripts cap a sitting rather
+     than the whole catalogue — three labs for the youngest, five in the
+     middle, all of them at the top — so the picks list is trimmed to match
+     instead of the band only reordering it. */
+  var BAND_PICKS = { '4-6': 12, '6-8': 18, '8-10': 99 };
+
+  function cards_total() {
+    try { return ITEMS.filter(matchesApplied).length; } catch (e) { return 0; }
+  }
+
+  function trimPicks() {
+    var b = bandNow(), cap = BAND_PICKS[b] || 99;
+    var heads = document.querySelectorAll('#libBody .libhead');
+    var head = null;
+    heads.forEach(function (h) {
+      var t = h.querySelector('.lh-t');
+      if (t && /Picked for/.test(t.textContent)) head = h;
+    });
+    if (!head) return;
+    var grid = head.parentNode.querySelectorAll('.libgrid');
+    grid = grid[grid.length - 1];
+    if (!grid) return;
+    /* the total is taken from the catalogue, not from the grid, so a second
+       pass over an already-trimmed list still reports honestly */
+    var total = cards_total();
+    var cards = grid.querySelectorAll('.libcard');
+    for (var i = cap; i < cards.length; i++) cards[i].remove();
+    var shown = Math.min(cap, total);
+    var count = head.querySelector('.libcount');
+    if (count) count.textContent = (cap < total) ? shown + ' of ' + total : shown + ' results';
+    var sub = head.querySelector('.lh-s');
+    if (sub) {
+      sub.textContent = (cap < total)
+        ? 'Narrowed to what ' + BAND_META[b].label.toLowerCase() + ' is offered at once'
+        : 'Based on her age, interests, and play mode';
+    }
+  }
+
+  function setBand(b) {
+    window.EVE_AGE = BAND_MID[b] || 7;
+    var sub = document.getElementById('headSub');
+    if (sub) sub.textContent = BAND_META[b].label;
+    if (window.renderLib) try { renderLib(); } catch (e) {}
+    trimPicks();
+    paintBandStrip();
+    paintLimits();
+    if (window.nbToast) nbToast(BAND_META[b].label + ' · ' + BAND_META[b].session + ' a session');
+  }
+
+  function bandStripHTML() {
+    var now = bandNow();
+    return '<div class="lbl">Eve’s band</div>' +
+      '<div class="card" style="box-shadow:none">' +
+      '<div class="frow" id="r1BandRow">' +
+        Object.keys(BAND_META).map(function (b) {
+          return '<span class="fchip' + (b === now ? ' on' : '') + '" data-band="' + b + '">' +
+                 BAND_META[b].label.replace('Ages ', '') + '</span>';
+        }).join('') +
+      '</div>' +
+      '<div style="font-size:13px;color:var(--muted);line-height:1.5;margin-top:9px">' +
+        BAND_META[now].allow + ' Neybo waits ' + BAND_META[now].wait +
+        ' before offering help, and a session runs ' + BAND_META[now].session + '.' +
+      '</div></div>';
+  }
+
+  function paintBandStrip() {
+    var host = document.querySelector('[data-r1-band-strip]');
+    if (!host) return;
+    host.innerHTML = bandStripHTML();
+    var row = document.getElementById('r1BandRow');
+    if (row) row.addEventListener('click', function (e) {
+      var c = e.target.closest ? e.target.closest('.fchip[data-band]') : null;
+      if (c) setBand(c.getAttribute('data-band'));
+    });
+  }
+
+  function mountBandStrip() {
+    var scr = document.querySelector('.screen[data-s="library"]');
+    if (!scr || scr.querySelector('[data-r1-band-strip]')) return;
+    var d = document.createElement('div');
+    d.setAttribute('data-r1-band-strip', '1');
+    var albums = scr.querySelector('[data-r1-albums]');
+    if (albums) albums.parentNode.insertBefore(d, albums);
+    else {
+      var body = document.getElementById('libBody');
+      if (body) scr.insertBefore(d, body); else scr.appendChild(d);
+    }
+    paintBandStrip();
+  }
+
+  /* the limits screen recommends the band's length rather than four equal chips */
+  function paintLimits() {
+    var b = bandNow();
+    var row = document.getElementById('r1Mins');
+    if (row) {
+      row.querySelectorAll('.fchip').forEach(function (c) {
+        var m = parseInt(c.getAttribute('data-min'), 10);
+        c.classList.toggle('on', m === GC_SUGGEST[b]);
+      });
+    }
+    document.querySelectorAll('[data-r1-band] .trow2').forEach(function (r) {
+      var mine = r.textContent.indexOf(BAND_META[b].label) === 0;
+      r.style.background = mine ? 'rgba(193,138,0,.07)' : '';
+      r.style.borderRadius = mine ? '10px' : '';
+      r.style.padding = mine ? '8px 10px' : '';
+      r.style.margin = mine ? '0 -10px' : '';
+      var n = r.querySelector('.n');
+      if (n) n.textContent = n.textContent.replace(' · Eve', '') + (mine ? ' · Eve' : '');
+    });
+  }
+
+  /* ------------------------------------------------------------ book library
+     Twenty titles, fourteen of them Hollowbrook originals and six retold from
+     the public domain. Ember offers three at a time with their length — the
+     screen exists so a parent can see the whole shelf, not so the child can
+     scroll it. */
+
+  var BOOKS = [
+    ['Ember and the Moon Door',      'original', 10, '4–6', 'finished'],
+    ['The Sock That Wanted Wind',    'original',  8, '4–6', 'finished'],
+    ['A Lantern for Luna',           'original',  7, '4–6', ''],
+    ['Moss and the Too-Small Map',   'original',  9, '6–8', 'page 12'],
+    ['Pancakes at Midnight',         'original',  6, '4–6', 'finished'],
+    ['The Cloud Boat',               'original',  9, '6–8', ''],
+    ['Pip’s First Winter',           'original', 10, '6–8', ''],
+    ['The Colour Bell',              'original',  8, '6–8', ''],
+    ['A Star in the Puddle',         'original',  7, '4–6', 'finished'],
+    ['The Umbrella Who Wanted Sea',  'original',  8, '6–8', ''],
+    ['Hollowbrook Market Day',       'original', 11, '6–8', ''],
+    ['The Quiet Cricket',            'original',  5, '4–6', ''],
+    ['Commander Ember',              'original', 12, '8–10', ''],
+    ['The Kind Crown',               'original', 10, '8–10', ''],
+    ['The Three Little Pigs',        'retold',    6, '4–6', 'finished'],
+    ['The Little Red Hen',           'retold',    5, '4–6', ''],
+    ['Stone Soup',                   'retold',    8, '6–8', ''],
+    ['The Gingerbread Runner',       'retold',    6, '4–6', ''],
+    ['The Town Musicians',           'retold',    9, '6–8', ''],
+    ['Goldilocks, Repaired',         'retold',    7, '6–8', '']
+  ];
+
+  function bookScreen() {
+    var host = document.querySelector('.screen[data-s="library"]');
+    if (!host || document.querySelector('.screen[data-s="lib-books"]')) return;
+    var s = document.createElement('section');
+    s.className = 'screen';
+    s.setAttribute('data-s', 'lib-books');
+    s.setAttribute('data-r1', '1');
+    var rows = BOOKS.map(function (bk, i) {
+      var badge = bk[4] === 'finished'
+        ? '<span class="lbadge b-free">read</span>'
+        : bk[4] ? '<span class="lbadge b-neybo">' + bk[4] + '</span>' : '';
+      return (i ? '<div class="divider"></div>' : '') +
+        '<div class="trow2"><div><div class="n">' + bk[0] + '</div>' +
+        '<div class="d">' + bk[2] + ' min · ages ' + bk[3] + ' · ' +
+        (bk[1] === 'original' ? 'Hollowbrook original' : 'retold in Neybo English') + '</div></div>' +
+        (badge || '') + '</div>';
+    }).join('');
+    s.innerHTML =
+      '<div class="topback" onclick="go(\'library\')">' +
+      '<svg class="tsvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" ' +
+      'stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Library</div>' +
+      '<div class="h1">Book Library</div>' +
+      '<div class="subh">Twenty titles · fourteen ours, six retold</div>' +
+      '<div class="card" style="box-shadow:none"><div style="font-size:13.5px;line-height:1.55;color:var(--muted)">' +
+      'Ember offers three at a time and says how long each one is. He reads the whole book without ' +
+      'stopping to ask questions, and if Eve goes quiet he keeps reading to the end rather than ' +
+      'checking whether she is still there. The ribbon stays where she stopped.' +
+      '</div></div>' +
+      '<div class="lbl">The shelf</div><div class="card">' + rows + '</div>' +
+      '<div class="card" style="box-shadow:none"><div style="font-size:12.5px;line-height:1.5;color:var(--muted)">' +
+      'Titles as listed in the beat scripts. Worth checking against the current draft before any ' +
+      'artwork is commissioned.</div></div>';
+    host.parentNode.appendChild(s);
+    if (window.TAB) TAB['lib-books'] = 'library';
+  }
+
+  /* a way in from the Book Reading card, where a parent is already looking */
+  var _detail = window.detailHTML;
+  if (typeof _detail === 'function') {
+    window.detailHTML = function (x) {
+      var html = _detail(x);
+      if (x.id !== 'book-reading') return html;
+      return html +
+        '<div class="lbl" style="margin-top:14px">The shelf</div>' +
+        '<div class="card" style="cursor:pointer" onclick="libCloseDetail();go(\'lib-books\')">' +
+        '<div class="trow2"><div><div class="n">All twenty books</div>' +
+        '<div class="d">Length, band and where the ribbon is</div></div>' +
+        '<svg class="tsvg" style="color:var(--label);width:20px;height:20px" viewBox="0 0 24 24" fill="none" ' +
+        'stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M9 6l6 6-6 6"/></svg></div></div>';
+    };
+  }
+
+  /* -------------------------------------------------------------- presets
+     A preset is two or three activities in a fixed order, so the Start
+     button should say what the cube will do first and leave it queued —
+     not fire a toast and forget. */
+
+  var PRESET_PLAN = {
+    'Family Lab':      ['Paper Experiment Lab', 'Logic Riddles'],
+    'Make Something':  ['Paint With Words', 'Collaborative Storytelling'],
+    'Wind-Down':       ['Book Reading', 'Gratitude Ritual', 'Breathing & Calm-Down']
+  };
+  var queued = null;
+
+  function wirePresets() {
+    var host = document.querySelector('[data-r1-presets]');
+    if (!host || host.getAttribute('data-wired')) return;
+    host.setAttribute('data-wired', '1');
+
+    var status = document.createElement('div');
+    status.id = 'r1PresetQueue';
+    status.style.cssText = 'font-size:13px;line-height:1.5;color:var(--muted);margin-top:10px';
+    var card = host.querySelector('.card');
+    if (card) card.appendChild(status);
+
+    host.querySelectorAll('.trow2').forEach(function (row) {
+      var name = (row.querySelector('.n') || {}).textContent;
+      var btn = row.querySelector('.medit');
+      if (!btn || !PRESET_PLAN[name]) return;
+      btn.removeAttribute('onclick');
+      btn.addEventListener('click', function () {
+        queued = name;
+        host.querySelectorAll('.medit').forEach(function (b) { b.textContent = 'Start'; });
+        btn.textContent = 'Queued';
+        status.innerHTML = '<b style="color:var(--ink)">' + name + ' is queued.</b> Neybo starts with ' +
+          PRESET_PLAN[name][0] + ', then ' + PRESET_PLAN[name].slice(1).join(', then ') +
+          '. It waits for Eve to say your name — it will not open the session itself.';
+        if (window.nbToast) nbToast(name + ' queued · starts with ' + PRESET_PLAN[name][0]);
+        try { if (window.nbSend) nbSend('game.start', { game: name }); } catch (e) {}
+      });
+    });
+  }
+
+  /* --------------------------------------------------------- the star trail
+     One mark a day, and only ever a mark. Today is deliberately empty until
+     the check-up happens, because a filled-in today would be the app
+     promising something the cube has not done. */
+
+  function fixStarTrail() {
+    var box = document.querySelector('[data-r1-stars]');
+    if (!box || box.getAttribute('data-fixed')) return;
+    box.setAttribute('data-fixed', '1');
+    var days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    var got  = [1, 1, 0, 1, 1, 1, 0];      /* today is the last one, not yet done */
+    var card = box.querySelector('.card');
+    if (!card) return;
+    card.innerHTML =
+      '<div style="display:flex;gap:10px;justify-content:space-between;align-items:flex-end">' +
+      days.map(function (d, i) {
+        var today = (i === days.length - 1);
+        return '<div style="text-align:center;flex:1">' +
+          '<div style="font-size:22px;line-height:1;opacity:' + (got[i] ? '1' : '.22') + '">⭐</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:6px' +
+          (today ? ';font-weight:700;color:var(--ink)' : '') + '">' + d + '</div></div>';
+      }).join('') + '</div>' +
+      '<div style="font-size:13px;color:var(--muted);line-height:1.5;margin-top:12px">' +
+      'Four check-ups this week. Tonight’s is still open — a star appears once it has happened, ' +
+      'and it only ever says that it happened. Nothing here is a score and there is no streak to keep.' +
+      '</div>';
+  }
+
+  /* ---------------------------------------------------------------- boot */
+
+  function apply4() {
+    mountBandStrip();
+    bookScreen();
+    if (window.renderLib) {
+      var _renderLib = window.renderLib;
+      window.renderLib = function () { var r = _renderLib.apply(this, arguments); trimPicks(); return r; };
+    }
+    wirePresets();
+    fixStarTrail();
+    paintLimits();
+    if (window.renderLib) try { renderLib(); } catch (e) {}
+
+    /* the presets and the trail live on screens built by the earlier pass,
+       so they are wired again whenever one of those screens is opened */
+    var _go = window.go;
+    window.go = function (id) {
+      var r = _go.apply(this, arguments);
+      if (id === 'm-parent') wirePresets();
+      if (id === 'insights') fixStarTrail();
+      if (id === 'gc-limits') paintLimits();
+      if (id === 'library') { mountBandStrip(); trimPicks(); }
+      return r;
+    };
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply4);
+  else setTimeout(apply4, 0);
+})();
