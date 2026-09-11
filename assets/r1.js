@@ -250,12 +250,121 @@
       MODES.parent.sheetSub    = 'An adult leads · co-play';
       MODES.parent.collection  = '4 activities · release 1';
     }
+    /* The mode tab is a bare "Parent" text node, which the phrase list leaves
+       alone on purpose — a blanket /Parent/ rule would also rewrite "Parent
+       app". It is renamed here, where the element is known. */
+    var tab = document.querySelector('#mseg [data-m="parent"]');
+    if (tab && tab.textContent.trim() === 'Parent') tab.textContent = 'Grown-Up';
+
+    if (window.MODES && MODES.group) {
+      MODES.group.subtitle   = '2–6 kids';
+      MODES.group.collection = '7 games · release 1';
+      MODES.group.desc       = 'Two ways to play together — pick one below. Neybo hosts blind either way: ' +
+        'it does not know who is speaking, nobody is counted, and no visitor profile is created.';
+      MODES.group.sheetSub   = 'Social play · 2–6 kids';
+    }
+
     if (window.FLT) {
       FLT.forEach(function (g) {
         if (g[1] !== 'mode') return;
         g[2].forEach(function (o) { if (o[0] === 'parent') o[1] = 'Grown-Up'; });
       });
     }
+  }
+
+  /* ------------------------------------------------------- group sub-modes
+     Group Mode is two different things wearing one name: five games around a
+     single cube, and two games that need a cube per child. Which one you mean
+     decides how many cubes have to be in the room, so it belongs on the mode
+     screen rather than two taps deeper.
+
+     The choice is app-side only. mode.set still sends { mode: 'group' } and
+     nothing else — the bridge contract is unchanged. */
+
+  var SUBS = {
+    circle: {
+      n: 'Circle Play',
+      d: 'One cube, 2–6 kids',
+      games: 'Letter Word Round · Group Rhythm · Simon Says · Hot Potato · Red Light Green Light',
+      screen: 'm-circle'
+    },
+    linked: {
+      n: 'Linked Cubes',
+      d: 'A cube for each child · Neybo+',
+      games: 'Charades · Clue Quest',
+      screen: 'm-linked'
+    }
+  };
+  var sub = 'circle';
+
+  function subPaint(host) {
+    host.querySelectorAll('.r1-sub').forEach(function (row) {
+      var on = row.getAttribute('data-sub') === sub;
+      row.setAttribute('aria-checked', on ? 'true' : 'false');
+      var dot = row.querySelector('.r1-radio');
+      if (dot) dot.classList.toggle('on', on);
+    });
+    var o = host.querySelector('#r1SubOpen');
+    if (o) o.textContent = 'Customize ' + SUBS[sub].n;
+  }
+
+  function groupBlock() {
+    var ex = document.getElementById('modeExtra');
+    if (!ex) return;
+    var chevron = '<svg class="tsvg" style="color:var(--label);width:20px;height:20px" viewBox="0 0 24 24" ' +
+      'fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M9 6l6 6-6 6"/></svg>';
+
+    ex.innerHTML =
+      '<div class="lbl">Which kind of group play</div>' +
+      '<div class="card" data-r1-sub="1" role="radiogroup" aria-label="Kind of group play">' +
+      Object.keys(SUBS).map(function (k, i) {
+        var s = SUBS[k];
+        return (i ? '<div class="divider"></div>' : '') +
+          '<div class="trow2 r1-sub" data-sub="' + k + '" role="radio" tabindex="0" aria-checked="false">' +
+          '<div><div class="n">' + s.n + '</div><div class="d">' + s.d + '</div>' +
+          '<div class="r1-subgames">' + s.games + '</div></div>' +
+          '<span class="r1-radio" aria-hidden="true"></span></div>';
+      }).join('') +
+      '<div class="divider"></div>' +
+      '<div class="trow2 r1-subopen" style="cursor:pointer">' +
+      '<div><div class="n" id="r1SubOpen">Customize</div>' +
+      '<div class="d">Turn individual games on or off</div></div>' + chevron + '</div>' +
+      '</div>';
+
+    ex.querySelectorAll('.r1-sub').forEach(function (row) {
+      function pick() {
+        sub = row.getAttribute('data-sub');
+        subPaint(ex);
+      }
+      row.addEventListener('click', pick);
+      row.addEventListener('keydown', function (e) {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); pick(); }
+      });
+    });
+    var open = ex.querySelector('.r1-subopen');
+    if (open) open.addEventListener('click', function () {
+      if (window.go) go(SUBS[sub].screen);
+    });
+
+    subPaint(ex);
+  }
+
+  function wireModeCard() {
+    if (!window.renderModeCard || window.renderModeCard.r1) return;
+    var orig = window.renderModeCard;
+    var wrapped = function () {
+      var r = orig.apply(this, arguments);
+      /* the original clears #modeExtra for every mode but solo, so this has
+         to run after it, not instead of it */
+      try {
+        if (window.viewedMode === 'group' ||
+            (document.querySelector('#mseg [data-m="group"]') || {}).className === 'on') groupBlock();
+      } catch (e) {}
+      return r;
+    };
+    wrapped.r1 = true;
+    window.renderModeCard = wrapped;
   }
 
   /* ------------------------------------------------------------------ screens */
@@ -580,7 +689,13 @@
       'cursor:pointer;transition:transform .12s ease,background .15s ease,color .15s ease}' +
       '.r1-pbtn:active{transform:scale(.96)}' +
       '.r1-pbtn.on{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line);' +
-      'color:var(--muted);font-weight:500}';
+      'color:var(--muted);font-weight:500}' +
+      '.r1-sub{cursor:pointer}' +
+      '.r1-sub:focus-visible{outline:2px solid var(--yellow);outline-offset:3px;border-radius:8px}' +
+      '.r1-radio{flex:0 0 auto;width:22px;height:22px;margin-left:14px;border-radius:50%;' +
+      'box-shadow:inset 0 0 0 1.5px var(--line);transition:box-shadow .15s ease}' +
+      '.r1-radio.on{box-shadow:inset 0 0 0 7px var(--yellow)}' +
+      '.r1-subgames{margin-top:5px;font-size:12.5px;line-height:1.45;color:var(--muted);opacity:.82}';
     document.head.appendChild(s);
   }
 
@@ -598,6 +713,7 @@
     decorateSafetyAlert();
     swapText(document.body);
     styles();
+    wireModeCard();
 
     if (window.renderLib) try { renderLib(); } catch (e) {}
     if (window.renderModeCard) try { renderModeCard(); } catch (e) {}
