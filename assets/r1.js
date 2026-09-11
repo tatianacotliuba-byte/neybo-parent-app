@@ -256,14 +256,6 @@
     var tab = document.querySelector('#mseg [data-m="parent"]');
     if (tab && tab.textContent.trim() === 'Parent') tab.textContent = 'Grown-Up';
 
-    if (window.MODES && MODES.group) {
-      MODES.group.subtitle   = '2–6 kids';
-      MODES.group.collection = '7 games · release 1';
-      MODES.group.desc       = 'Two ways to play together — pick one below. Neybo hosts blind either way: ' +
-        'it does not know who is speaking, nobody is counted, and no visitor profile is created.';
-      MODES.group.sheetSub   = 'Social play · 2–6 kids';
-    }
-
     if (window.FLT) {
       FLT.forEach(function (g) {
         if (g[1] !== 'mode') return;
@@ -272,82 +264,120 @@
     }
   }
 
-  /* ------------------------------------------------------- group sub-modes
-     Group Mode is two different things wearing one name: five games around a
-     single cube, and two games that need a cube per child. Which one you mean
-     decides how many cubes have to be in the room, so it belongs on the mode
-     screen rather than two taps deeper.
+  /* ------------------------------------------------------------ group play
+     "Group Mode" was one card standing for two different things: five games
+     around a single cube, and two games that need a cube per child. Which one
+     you mean decides how many cubes have to be in the room, so a single card
+     could not answer it — and a card plus a picker underneath was three
+     things on a screen that has one question.
 
-     The choice is app-side only. mode.set still sends { mode: 'group' } and
-     nothing else — the bridge contract is unchanged. */
+     The Group tab is therefore two full mode cards and nothing else. Each one
+     applies and customizes itself, exactly like Solo and Grown-Up do.
+
+     The split is app-side only: applying either still sends
+     mode.set { mode: 'group' } and nothing more, so the bridge contract and
+     everything the cube does with it are unchanged. */
+
+  var ICON = {
+    /* five around one — the cube in the middle, the circle around it */
+    circle:
+      '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+      'stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px">' +
+      '<rect x="11.5" y="11.5" width="9" height="9" rx="2.6"/>' +
+      '<circle cx="16" cy="4.6" r="2.1" fill="currentColor" stroke="none"/>' +
+      '<circle cx="27.4" cy="12.3" r="2.1" fill="currentColor" stroke="none"/>' +
+      '<circle cx="23.1" cy="26.4" r="2.1" fill="currentColor" stroke="none"/>' +
+      '<circle cx="8.9" cy="26.4" r="2.1" fill="currentColor" stroke="none"/>' +
+      '<circle cx="4.6" cy="12.3" r="2.1" fill="currentColor" stroke="none"/>' +
+      '</svg>',
+    /* two cubes with one game arcing between them */
+    linked:
+      '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+      'stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px">' +
+      '<rect x="2.8" y="16.4" width="10.8" height="10.8" rx="3"/>' +
+      '<rect x="18.4" y="16.4" width="10.8" height="10.8" rx="3"/>' +
+      '<path d="M8.2 13.4Q16 3.9 23.8 13.4"/>' +
+      '</svg>'
+  };
 
   var SUBS = {
     circle: {
       n: 'Circle Play',
-      d: 'One cube, 2–6 kids',
-      games: 'Letter Word Round · Group Rhythm · Simon Says · Hot Potato · Red Light Green Light',
+      sub: 'One cube · 2–6 kids',
+      desc: 'Letter Word Round, Group Rhythm, Simon Says, Hot Potato and Red Light Green Light — ' +
+            'five games the whole circle plays around one cube. Neybo hosts blind: it does not know ' +
+            'who is speaking, nobody is counted, and no visitor profile is created.',
+      tags: ['Recommended 5+', '5 games · release 1'],
       screen: 'm-circle'
     },
     linked: {
       n: 'Linked Cubes',
-      d: 'A cube for each child · Neybo+',
-      games: 'Charades · Clue Quest',
+      sub: 'A cube for each child',
+      desc: 'Charades and Clue Quest — each child plays on their own cube, and the cubes share the ' +
+            'game, not the children. Clues and turns pass between them; names and voices never do.',
+      tags: ['Recommended 6+', '2 games · release 1'],
+      extraTag: 'Neybo+',
       screen: 'm-linked'
     }
   };
-  var sub = 'circle';
 
-  function subPaint(host) {
-    host.querySelectorAll('.r1-sub').forEach(function (row) {
-      var on = row.getAttribute('data-sub') === sub;
-      row.setAttribute('aria-checked', on ? 'true' : 'false');
-      var dot = row.querySelector('.r1-radio');
-      if (dot) dot.classList.toggle('on', on);
-    });
-    var o = host.querySelector('#r1SubOpen');
-    if (o) o.textContent = 'Customize ' + SUBS[sub].n;
-  }
+  var sub = 'circle';        /* which card the parent is looking at */
+  var activeSub = null;      /* which one is running on the cube */
 
-  function groupBlock() {
+  function groupCards() {
     var ex = document.getElementById('modeExtra');
     if (!ex) return;
-    var chevron = '<svg class="tsvg" style="color:var(--label);width:20px;height:20px" viewBox="0 0 24 24" ' +
-      'fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">' +
-      '<path d="M9 6l6 6-6 6"/></svg>';
+    if (window.activeMode !== 'group') activeSub = null;
 
-    ex.innerHTML =
-      '<div class="lbl">Which kind of group play</div>' +
-      '<div class="card" data-r1-sub="1" role="radiogroup" aria-label="Kind of group play">' +
-      Object.keys(SUBS).map(function (k, i) {
-        var s = SUBS[k];
-        return (i ? '<div class="divider"></div>' : '') +
-          '<div class="trow2 r1-sub" data-sub="' + k + '" role="radio" tabindex="0" aria-checked="false">' +
-          '<div><div class="n">' + s.n + '</div><div class="d">' + s.d + '</div>' +
-          '<div class="r1-subgames">' + s.games + '</div></div>' +
-          '<span class="r1-radio" aria-hidden="true"></span></div>';
-      }).join('') +
-      '<div class="divider"></div>' +
-      '<div class="trow2 r1-subopen" style="cursor:pointer">' +
-      '<div><div class="n" id="r1SubOpen">Customize</div>' +
-      '<div class="d">Turn individual games on or off</div></div>' + chevron + '</div>' +
-      '</div>';
+    ex.innerHTML = Object.keys(SUBS).map(function (k) {
+      var s = SUBS[k], on = (activeSub === k);
+      return '<div class="mode2 group r1-gcard" data-sub="' + k + '">' +
+        '<div class="vb2"></div>' +
+        '<div class="mc-head"><div class="mc-icon group r1-gicon" aria-hidden="true">' + ICON[k] + '</div>' +
+        '<div><div class="mc-title">' + s.n + '</div><div class="mc-sub">' + s.sub + '</div></div></div>' +
+        (on ? '<div class="mc-status"><span class="dot" aria-hidden="true"></span>ACTIVE ON EVE’S NEYBO</div>' : '') +
+        '<div class="mc-desc">' + s.desc + '</div>' +
+        '<div class="mc-tags">' +
+          s.tags.map(function (t) { return '<span class="pillt">' + t + '</span>'; }).join('') +
+          (s.extraTag ? '<span class="pillt n">' + s.extraTag + '</span>' : '') +
+        '</div>' +
+        (on
+          ? '<div class="mc-actions mc-actions-1"><button type="button" class="mc-edit r1-gedit">Customize</button></div>'
+          : '<div class="mc-actions"><button type="button" class="mc-apply r1-gapply">Apply to Eve’s Neybo</button>' +
+            '<button type="button" class="mc-edit r1-gedit">Customize</button></div>') +
+        '</div>';
+    }).join('');
 
-    ex.querySelectorAll('.r1-sub').forEach(function (row) {
-      function pick() {
-        sub = row.getAttribute('data-sub');
-        subPaint(ex);
-      }
-      row.addEventListener('click', pick);
-      row.addEventListener('keydown', function (e) {
-        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); pick(); }
+    ex.querySelectorAll('.r1-gcard').forEach(function (card) {
+      var k = card.getAttribute('data-sub');
+      var edit = card.querySelector('.r1-gedit');
+      if (edit) edit.addEventListener('click', function () {
+        sub = k;
+        if (window.go) go(SUBS[k].screen);
+      });
+      var apply = card.querySelector('.r1-gapply');
+      if (apply) apply.addEventListener('click', function () {
+        applySub(k, apply);
       });
     });
-    var open = ex.querySelector('.r1-subopen');
-    if (open) open.addEventListener('click', function () {
-      if (window.go) go(SUBS[sub].screen);
-    });
+  }
 
-    subPaint(ex);
+  function applySub(k, btn) {
+    if (window.r1Applying) return;
+    window.r1Applying = true;
+    sub = k;
+    btn.disabled = true;
+    btn.textContent = 'Applying…';
+    /* the same payload the app has always sent — the sub-mode is not part of
+       it, and the cube is not told about the split */
+    try { if (window.nbSend) nbSend('mode.set', { mode: 'group' }); } catch (e) {}
+    setTimeout(function () {
+      window.r1Applying = false;
+      activeSub = k;
+      if (window.NBsetMode) NBsetMode('group');
+      else if (window.renderModeCard) renderModeCard();
+      if (window.nbToast) nbToast(SUBS[k].n + ' applied');
+    }, 520);
   }
 
   function wireModeCard() {
@@ -355,11 +385,13 @@
     var orig = window.renderModeCard;
     var wrapped = function () {
       var r = orig.apply(this, arguments);
-      /* the original clears #modeExtra for every mode but solo, so this has
-         to run after it, not instead of it */
       try {
-        if (window.viewedMode === 'group' ||
-            (document.querySelector('#mseg [data-m="group"]') || {}).className === 'on') groupBlock();
+        var group = window.viewedMode === 'group';
+        var card = document.getElementById('modeCard');
+        /* on the Group tab the generic card is replaced rather than
+           decorated: the two cards below it ARE the modes */
+        if (card) card.style.display = group ? 'none' : '';
+        if (group) groupCards();
       } catch (e) {}
       return r;
     };
@@ -690,12 +722,11 @@
       '.r1-pbtn:active{transform:scale(.96)}' +
       '.r1-pbtn.on{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line);' +
       'color:var(--muted);font-weight:500}' +
-      '.r1-sub{cursor:pointer}' +
-      '.r1-sub:focus-visible{outline:2px solid var(--yellow);outline-offset:3px;border-radius:8px}' +
-      '.r1-radio{flex:0 0 auto;width:22px;height:22px;margin-left:14px;border-radius:50%;' +
-      'box-shadow:inset 0 0 0 1.5px var(--line);transition:box-shadow .15s ease}' +
-      '.r1-radio.on{box-shadow:inset 0 0 0 7px var(--yellow)}' +
-      '.r1-subgames{margin-top:5px;font-size:12.5px;line-height:1.45;color:var(--muted);opacity:.82}';
+      /* the two Group cards sit where one card used to, so the first keeps the
+         card's own top margin and the second only needs the gap */
+      '#modeExtra .r1-gcard:first-child{margin-top:16px}' +
+      '.r1-gicon{color:#3F7D55}' +
+      '.r1-gcard .mc-desc{margin-bottom:14px}';
     document.head.appendChild(s);
   }
 
