@@ -1483,9 +1483,9 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
   function deviceIsOn() {
     return !!(deviceState && deviceState.state && deviceState.state !== 'off');
   }
-  function notifyDevice(type, envelope) {
+  function notifyDevice() {
     for (var i = 0; i < deviceListeners.length; i++) {
-      try { deviceListeners[i](deviceState, type, envelope); } catch (e) { fail('onDevice listener', e); }
+      try { deviceListeners[i](deviceState); } catch (e) { fail('onDevice listener', e); }
     }
   }
   function onDeviceBroadcast(m) {
@@ -1497,7 +1497,7 @@ body.tour-active #nbux-research{ visibility:hidden; pointer-events:none; }
     var was = deviceState && deviceState.state;
     deviceState = st;
     if (was !== st.state) L('<- ' + p.type + ' | device state =', st.state);
-    notifyDevice(p.type, p);
+    notifyDevice();
   }
 
   function subscribe() {
@@ -1702,7 +1702,7 @@ function openDetail(id){renderDetail(id);document.getElementById("libDetailWrap"
 function libCloseDetail(){document.getElementById("libDetailWrap").classList.remove("open");}
 function pickDepth(el){el.parentElement.querySelectorAll(".depthopt").forEach(function(d){d.classList.remove("on");});el.classList.add("on");}
 var CUBE_EVE="assets/images/cube-eve.png",CUBE_LEO="assets/images/cube-leo.png",AV_EVE="assets/images/avatar-eve.png",AV_LEO="assets/images/avatar-leo.png";function switchCube(w,el){document.querySelectorAll("#cubeSwitch .cubetab").forEach(function(d){d.classList.remove("on")});el.classList.add("on");var eve=(w==="eve");var g=function(i){return document.getElementById(i)};if(g("headTitle"))g("headTitle").textContent=eve?"Eve\u2019s Cube":"Leo\u2019s Cube";if(g("headSub"))g("headSub").textContent=eve?"Ages 4–6 4\u20136":"Little Explorer 4\u20136";if(g("homeCube"))g("homeCube").style.backgroundImage="url("+(eve?CUBE_EVE:CUBE_LEO)+")";if(g("emberName"))g("emberName").textContent=eve?"Ember \u00b7 Creative":"Moss \u00b7 Explorer";if(g("emberDesc"))g("emberDesc").textContent=eve?"Builds stories from sounds and half-ideas.":"Tests guesses and checks how things work.";if(g("emberAv"))g("emberAv").style.backgroundImage="url("+(eve?AV_EVE:AV_LEO)+")";}function refreshCubeSwitch(){var cs=document.getElementById("cubeSwitch");if(cs)cs.style.display=(tier==="family")?"flex":"none";}var TIERM={free:{solo:12,parent:9,group:7,lbl:"Free core set"},neybo:{solo:20,parent:14,group:11,lbl:"Neybo+ \u00b7 expanded"},family:{solo:28,parent:18,group:15,lbl:"Family+ \u00b7 fullest"}};var SEATS={free:{t:"Only you can control this cube",c:"1 seat"},neybo:{t:"You and Nick can control this cube",c:"2 of 2 seats"},family:{t:"You and family can control this cube",c:"2\u20134 seats"}};function choosePlan(tv){if(tv===tier){t("You\u2019re already on this plan");return;}tier=tv;applyTier();t("Switched to "+({free:"Neybo Free",neybo:"Neybo+",family:"Family+"}[tv]));}function applyTier(){if(window.nbRerender)window.nbRerender();if(typeof renderTierUI==="function")renderTierUI();var m=TIERM[tier];var g=function(i){return document.getElementById(i)};var set=function(i,v){var e=g(i);if(e)e.textContent=v};set("cntSolo",m.solo);set("cntParent",m.parent);set("cntGroup",m.group);set("lblSolo",m.lbl);set("lblParent",m.lbl);set("lblGroup",m.lbl);var s=SEATS[tier];set("seatText",s.t);set("seatCount",s.c);var af=g("addFamBtn");if(af)af.style.display="flex";var afh=g("addFamHint");if(afh)afh.style.display=(tier==="free")?"block":"none";var showRow=function(id,c){var e=g(id);if(e)e.style.display=c?"block":"none";};showRow("famNick",tier!=="free");showRow("famGrandma",tier==="family");showRow("famNanny",tier==="family");["free","neybo","family"].forEach(function(t){var e=g("cur-"+t);if(e){e.textContent=(t===tier)?"Current plan":"";e.style.display=(t===tier)?"inline-block":"none";}});if(typeof refreshCubeSwitch==="function")refreshCubeSwitch();}function setNet(on){var tag=document.getElementById("homeOnline");var b=document.getElementById("offBanner");if(tag){tag.textContent=on?"Online":"Offline";tag.className=on?"tag green":"tag off";}if(b){b.style.display=on?"none":"flex";}t(on?"Online mode":"Offline mode");}function setTheme(t){document.body.classList.toggle("dark",t==="dark");var b=document.getElementById("themeBtn");if(b)b.innerHTML=t==="dark"?"<svg class='eic' style='color:#d9a53c'><use href='#ic-sun'/></svg> Light":"<svg class='eic' style='color:#a98fe0'><use href='#ic-moon'/></svg> Dark";if(window.updateHero)updateHero();}function toggleTheme(){setTheme(document.body.classList.contains("dark")?"light":"dark");}function ccpick(el){document.querySelectorAll(".ccard").forEach(function(c){c.classList.remove("on")});el.classList.add("on");try{var _n=el.querySelector(".cim+div>div");var _c=_n?_n.textContent.trim():"";if(!_c){_c=el.classList.contains("m")?"Moss":el.classList.contains("l")?"Luna":"Ember";}window.nbSend&&nbSend("character.set",{character:_c});}catch(e){}}var AMBH={active:"",study:"",presleep:""};function ambPick(el,k){el.parentElement.querySelectorAll("div").forEach(function(d){d.classList.remove("on")});el.classList.add("on");var hi=document.getElementById("ambHint");if(hi)hi.textContent=AMBH[k];}var off=false;function toggleOffline(){off=!off;var b=document.getElementById("offBanner");if(b)b.style.display=off?"flex":"none";var o=document.getElementById("homeOnline");if(o){o.textContent=off?"Offline":"Online";o.className=off?"tag gray":"tag green";o.style.fontWeight="500";}var s=document.getElementById("homeState");if(s){s.textContent=off?"Offline":"Listening";s.classList.toggle("off",off);}var w=document.getElementById("homeWk");if(w)w.textContent=off?"Offline · last synced 2h ago":"Wake word active · mic on";var c=document.getElementById("homeCube");if(c)c.classList.toggle("gray",off);t(off?"Cube set offline (demo)":"Cube back online");if(window.updateHero)updateHero();}function dsel(el){el.parentElement.querySelectorAll(".dchip").forEach(function(d){d.classList.remove("on")});el.classList.add("on")}function seg(el){el.parentElement.querySelectorAll("div").forEach(function(d){d.classList.remove("on")});el.classList.add("on")}function fc(el){el.parentElement.querySelectorAll(".fchip").forEach(function(d){d.classList.remove("on")});el.classList.add("on")}function sg(el){el.parentElement.querySelectorAll("div").forEach(function(d){d.classList.remove("on")});el.classList.add("on")}applyTier();renderLib();go("home");</script><script>var HERO={onLight:'',micLight:'assets/images/hero-cube-mic-light.jpg',micDark:'assets/images/hero-cube-mic-dark.jpg',onDark:'assets/images/hero-cube-on-dark.jpg',offLight:'assets/images/hero-cube-off-light.jpg',offDark:'assets/images/hero-cube-off-dark.jpg'};(function(){var c=document.getElementById('homeCube');if(c){var m=/url\(["']?(.*?)["']?\)/.exec(c.style.backgroundImage||'');HERO.onLight=m?m[1]:'';}[HERO.offLight,HERO.offDark,HERO.micLight,HERO.micDark].forEach(function(s){var i=new Image();i.src=s;});})();window.updateHero=function(){var c=document.getElementById('homeCube');if(!c)return;var isDark=document.body.classList.contains('dark');var pb=document.getElementById('powerBtn');var isPoweredOn=pb?pb.classList.contains('on'):true;var mb=document.getElementById('micBtn');var isMicOn=mb?!mb.dataset.off:true;var isOnline=!window.off;if(mb){mb.classList.toggle('dis',!isPoweredOn);mb.setAttribute('aria-disabled',(!isPoweredOn).toString());}var currentSessionLabel='Story Forge \u00b7 12 min in';var lastConnectedLabel='6 min ago';var dv=(!isPoweredOn||!isOnline)?{state:'offline',image:isDark?HERO.offDark:HERO.offLight,pos:'center -21px',title:'Neybo is offline',subtitle:'Last connected '+lastConnectedLabel+' \u00b7 Check the router'}:!isMicOn?{state:'mic-off',image:isDark?HERO.micDark:HERO.micLight,pos:'center -19px',title:'Microphone is off',subtitle:'Neybo can\u2019t hear anything right now'}:{state:'listening',image:isDark?HERO.onDark:HERO.onLight,pos:'center',title:'Playing Story Forge',subtitle:currentSessionLabel};var tEl=document.getElementById('stTitle'),sEl=document.getElementById('stSub');function applyText(){if(tEl)tEl.textContent=dv.title;if(sEl)sEl.textContent=dv.subtitle;}var cur=/url\(["']?(.*?)["']?\)/.exec(c.style.backgroundImage||'');if(cur&&cur[1]===dv.image){c.style.backgroundPosition=dv.pos;applyText();return;}c.style.opacity='0';setTimeout(function(){c.style.backgroundImage="url('"+dv.image+"')";c.style.backgroundPosition=dv.pos;c.style.opacity='1';applyText();},160);};updateHero();</script><script>(function(){var p=document.querySelector('.phone');function fit(){if(window.innerWidth<=480){p.style.zoom='';return;}var bar=document.querySelector('.bararea');var bh=bar?bar.offsetHeight:0;var s=Math.min((window.innerHeight-bh-24)/844,(window.innerWidth-16)/390,1);p.style.zoom=s;}window.addEventListener('resize',fit);window.addEventListener('orientationchange',fit);setTimeout(fit,60);fit();})();</script><script>var MODES={solo:{title:"Solo Mode",subtitle:"Kid & Neybo",icon:"🎮",recommended:"Recommended 6+",collection:"12 games \u00b7 Free core set",desc:"Stories, puzzles and creative games Eve can play independently.",sheetSub:"Kid & Cube \u00b7 self-directed"},parent:{title:"Parent Mode",subtitle:"Together",icon:"💛",recommended:"Recommended 4+",collection:"9 games \u00b7 Free core set",desc:"Co-play: math through story, guided kitchen science, shared reading. Built to make your time together richer.",sheetSub:"Together \u00b7 co-play"},group:{title:"Group Mode",subtitle:"2\u20136 kids",icon:"<svg class='eic' style='color:#6fa85f'><use href='#ic-moss'/></svg>",recommended:"Recommended 5+",collection:"Group play set",desc:"Social games and shared adventures designed for several children playing together.",sheetSub:"Social play \u00b7 2\u20136 kids"}};var MORDER=["solo","parent","group"];var viewedMode="solo",activeMode="solo",pendingMode="solo";window.NBsetMode=function(m){try{activeMode=m;pendingMode=m;}catch(e){}try{viewedMode=m;}catch(e){}if(window.renderModeCard)renderModeCard();if(window.renderHome)renderHome();};window.NFC_SOLO_HTML=`<div class="lbl">NFC cards</div><div class="card"><div class="d" style="font-size:13px;color:var(--muted);margin:0 0 8px">Choose which tap-to-play cards Eve can use in Solo</div><div class="trow2"><div style="display:flex;gap:12px;align-items:center"><span style="font-size:22px">🌋</span><div><div class="n">Volcanoes adventure</div></div></div><span class="cbx on" onclick="sw(this)"></span></div><div class="divider"></div><div class="trow2"><div style="display:flex;gap:12px;align-items:center"><span style="font-size:22px"><svg class="eic" style="color:#6fa85f"><use href="#ic-dino"/></svg></span><div><div class="n">Dinosaurs mission</div></div></div><span class="cbx on" onclick="sw(this)"></span></div><div class="divider"></div><div class="trow2"><div style="display:flex;gap:12px;align-items:center"><span style="font-size:22px"><svg class="eic" style="color:#c98a2e"><use href="#ic-amphora"/></svg></span><div><div class="n">Ancient Egypt</div></div></div><span class="cbx" onclick="sw(this)"></span></div><div class="divider"></div><div class="trow2"><div style="display:flex;gap:12px;align-items:center"><span style="font-size:22px"><svg class="eic" style="color:#4a7cb0"><use href="#ic-rocket"/></svg></span><div><div class="n">Space Explorers</div></div></div><span class="cbx" onclick="sw(this)"></span></div><div class="divider"></div><div class="trow2" style="cursor:pointer" onclick="go('k-nfc')"><div><div class="n">Manage cards</div><div class="d">Activate, cache offline, remove</div></div><svg class="tsvg" style="color:var(--label);width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div></div>`;
-window.renderModeCard=function(){var sel=viewedMode,m=MODES[sel],act=(sel===activeMode);document.querySelectorAll('#mseg [role="tab"]').forEach(function(x){var on=x.getAttribute("data-m")===sel;x.classList.toggle("on",on);x.setAttribute("aria-selected",on?"true":"false");x.tabIndex=on?0:-1;});var card=document.getElementById("modeCard");if(!card)return;card.className="mode2 "+sel;var head='<div class="vb2"></div><div class="mc-head"><div class="mc-icon '+sel+'" aria-hidden="true">'+m.icon+'</div><div><div class="mc-title">'+m.title+'</div><div class="mc-sub">'+m.subtitle+'</div></div></div>';var tags='<div class="mc-tags"><span class="pillt">'+m.recommended+'</span><span class="pillt">'+m.collection+'</span></div>';var desc='<div class="mc-desc">'+m.desc+'</div>';var inner;if(act){inner='<div class="mc-status"><span class="dot" aria-hidden="true"></span>ACTIVE ON EVE\u2019S NEYBO</div>'+desc+tags+'<div class="mc-actions mc-actions-1"><button type="button" class="mc-edit" onclick="go(\'m-'+sel+'\')">Customize mode</button></div>';}else{inner=desc+tags+'<div class="mc-actions"><button type="button" class="mc-apply" id="applyBtn" onclick="applyMode()">Apply to Eve\u2019s Neybo</button><button type="button" class="mc-edit" onclick="go(\'m-'+sel+'\')">Customize mode</button></div>';}card.innerHTML=head+inner;var ex=document.getElementById("modeExtra");if(ex){ex.innerHTML=(sel==="solo")?window.NFC_SOLO_HTML:"";}};window.viewMode=function(k){if(window.modeApplying)return;viewedMode=k;renderModeCard();};window.modeApplying=false;window.applyMode=function(){if(window.modeApplying)return;/* re-applying the mode already active is allowed: the cube acts on the command (Solo unlocks Meet friends), so a no-op button would hide that */try{window.nbSend&&nbSend('mode.set',{mode:viewedMode});}catch(e){}window.modeApplying=true;var btn=document.getElementById("applyBtn");if(btn){btn.disabled=true;btn.textContent="Applying\u2026";}document.querySelectorAll('#mseg [role="tab"]').forEach(function(x){x.classList.add("seg-dis");x.setAttribute("aria-disabled","true");});var target=viewedMode;requestAnimationFrame(function(){setTimeout(function(){var ok=(typeof window.MODE_FORCE_ERR==="undefined"||!window.MODE_FORCE_ERR);window.modeApplying=false;document.querySelectorAll('#mseg [role="tab"]').forEach(function(x){x.classList.remove("seg-dis");x.removeAttribute("aria-disabled");});if(ok){activeMode=target;renderModeCard();nbToast(MODES[target].title+" applied");}else{renderModeCard();nbToast("Couldn\u2019t apply the mode. Try again.",{error:true});}},520);});};window.modeKey=function(e){var o=["solo","parent","group"];var i=o.indexOf(viewedMode);if(e.key==="ArrowRight"||e.key==="ArrowDown"){e.preventDefault();viewMode(o[(i+1)%3]);var t=document.querySelector('#mseg [data-m="'+viewedMode+'"]');if(t)t.focus();}else if(e.key==="ArrowLeft"||e.key==="ArrowUp"){e.preventDefault();viewMode(o[(i+2)%3]);var t2=document.querySelector('#mseg [data-m="'+viewedMode+'"]');if(t2)t2.focus();}};renderModeCard();</script>
+window.renderModeCard=function(){var sel=viewedMode,m=MODES[sel],act=(sel===activeMode);document.querySelectorAll('#mseg [role="tab"]').forEach(function(x){var on=x.getAttribute("data-m")===sel;x.classList.toggle("on",on);x.setAttribute("aria-selected",on?"true":"false");x.tabIndex=on?0:-1;});var card=document.getElementById("modeCard");if(!card)return;card.className="mode2 "+sel;var head='<div class="vb2"></div><div class="mc-head"><div class="mc-icon '+sel+'" aria-hidden="true">'+m.icon+'</div><div><div class="mc-title">'+m.title+'</div><div class="mc-sub">'+m.subtitle+'</div></div></div>';var tags='<div class="mc-tags"><span class="pillt">'+m.recommended+'</span><span class="pillt">'+m.collection+'</span></div>';var desc='<div class="mc-desc">'+m.desc+'</div>';var inner;if(act){inner='<div class="mc-status"><span class="dot" aria-hidden="true"></span>ACTIVE ON EVE\u2019S NEYBO</div>'+desc+tags+'<div class="mc-actions mc-actions-1"><button type="button" class="mc-edit" onclick="go(\'m-'+sel+'\')">Customize mode</button></div>';}else{inner=desc+tags+'<div class="mc-actions"><button type="button" class="mc-apply" id="applyBtn" onclick="applyMode()">Apply to Eve\u2019s Neybo</button><button type="button" class="mc-edit" onclick="go(\'m-'+sel+'\')">Customize mode</button></div>';}card.innerHTML=head+inner;var ex=document.getElementById("modeExtra");if(ex){ex.innerHTML=(sel==="solo")?window.NFC_SOLO_HTML:"";}};window.viewMode=function(k){if(window.modeApplying)return;viewedMode=k;renderModeCard();};window.modeApplying=false;window.applyMode=function(){if(window.modeApplying||viewedMode===activeMode)return;try{window.nbSend&&nbSend('mode.set',{mode:viewedMode});}catch(e){}window.modeApplying=true;var btn=document.getElementById("applyBtn");if(btn){btn.disabled=true;btn.textContent="Applying\u2026";}document.querySelectorAll('#mseg [role="tab"]').forEach(function(x){x.classList.add("seg-dis");x.setAttribute("aria-disabled","true");});var target=viewedMode;requestAnimationFrame(function(){setTimeout(function(){var ok=(typeof window.MODE_FORCE_ERR==="undefined"||!window.MODE_FORCE_ERR);window.modeApplying=false;document.querySelectorAll('#mseg [role="tab"]').forEach(function(x){x.classList.remove("seg-dis");x.removeAttribute("aria-disabled");});if(ok){activeMode=target;renderModeCard();nbToast(MODES[target].title+" applied");}else{renderModeCard();nbToast("Couldn\u2019t apply the mode. Try again.",{error:true});}},520);});};window.modeKey=function(e){var o=["solo","parent","group"];var i=o.indexOf(viewedMode);if(e.key==="ArrowRight"||e.key==="ArrowDown"){e.preventDefault();viewMode(o[(i+1)%3]);var t=document.querySelector('#mseg [data-m="'+viewedMode+'"]');if(t)t.focus();}else if(e.key==="ArrowLeft"||e.key==="ArrowUp"){e.preventDefault();viewMode(o[(i+2)%3]);var t2=document.querySelector('#mseg [data-m="'+viewedMode+'"]');if(t2)t2.focus();}};renderModeCard();</script>
 <script>
 /* ===== Neybo Home — single source of truth ===== */
 var NEY={power:true,mic:true,online:true,micSaved:true,queue:0};window.NBsetDevice=function(o){try{Object.assign(NEY,o);}catch(e){}if(window.neyHousekeeping)neyHousekeeping();if(window.renderHome)renderHome();};
@@ -2674,7 +2674,6 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     booted: false,
     consentA: false,          // analytics consent
     consentR: false,          // session-recording consent
-    participantLabel: null,   // a readable id from the link, when it was not a uuid
     participant: null,        // participant_code (uuid)
     session: null,            // test_session_id (uuid)
     device: deviceType(),
@@ -2874,7 +2873,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   /* The parent's own name on the feedback event is deliberate: the consent
      gate tells the participant it is visible to the team, and the research
      needs answers attributable to a person. Nothing else is exempt. */
-  var PII_ALLOW = { parent_name: true, parent_first_name: true, parent_last_name: true };
+  var PII_ALLOW = { parent_name: true };
   function stripPII(props) {
     if (!props) return props;
     try {
@@ -2896,7 +2895,6 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   function superProps() {
     return {
       participant_code: S.participant,
-      participant_label: S.participantLabel,
       test_session_id: S.session,
       test_version: CFG.test_version,
       surface: 'parent_app',
@@ -2923,14 +2921,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   function beginSession(o) {
     // o = { participant_code, test_session_id, consent_analytics, consent_session_recording,
     //       first_name, last_name, email, child_age_group }
-    /* participants.participant_code is a uuid column, so a readable id from
-       the link ("tester3") can never be stored there. Keep it as a label for
-       analytics and give the database an id it can actually accept. */
-    var given = o.participant_code || null;
-    var isUuidCode = !!given && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(given);
-    S.participant = isUuidCode ? given : uuid();
-    S.participantLabel = (given && !isUuidCode) ? given : null;
-    if (given && !isUuidCode) log('participant code is not a uuid — stored as a label', given);
+    S.participant = o.participant_code || uuid();
     S.session = o.test_session_id || uuid();
     S.consentA = !!o.consent_analytics;
     S.consentR = !!o.consent_session_recording;
@@ -3499,11 +3490,7 @@ var q   = new URLSearchParams(location.search);
 function lsGet(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
-/* 64, not 24: a UUID is 36 characters, and cutting it produced a code that
-   looked fine in the browser but failed the server's uuid check — so every
-   participant who arrived with an id in the link was written to PostHog and
-   to nothing else. */
-function sanId(s){return String(s||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,64);}
+function sanId(s){return String(s||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,24);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
 function defState(){return{
@@ -3725,7 +3712,7 @@ STEP.child=function(){
     if(!ok){log('validation error',{step:'child'});return;}
     S.child.firstName=fn; save();
     try{installNameReplacer();}catch(e){}      /* the whole app switches to this name at once */
-    try{window.nbSend&&nbSendSetup('profile.save',{childName:fn,ageGroup:S.child.ageGroup||null});}catch(e){}
+    try{window.nbSend&&nbSend('profile.save',{childName:fn,ageGroup:S.child.ageGroup||null});}catch(e){}
     next();
   });
 };
@@ -3776,7 +3763,7 @@ STEP.connect=function(){
 
   cta.addEventListener('click',function(){
     if(!found){
-      try{window.nbSend&&nbSendSetup('setup.start',{});}catch(e){}
+      try{window.nbSend&&nbSend('setup.start',{});}catch(e){}
       rings.classList.add('nbux-searching');status.textContent='Searching…';ctaBusy(cta,true);
       setTimeout(function(){
         rings.classList.remove('nbux-searching');ctaBusy(cta,false);
@@ -3792,7 +3779,7 @@ STEP.connect=function(){
         return;
       }
       connected=true;
-      try{window.nbSend&&nbSendSetup('pairing.confirm',{deviceId:'7F2A'});}catch(e){}
+      try{window.nbSend&&nbSend('pairing.confirm',{deviceId:'7F2A'});}catch(e){}
       ctaBusy(cta,true);status.textContent='Connecting…';
       setTimeout(function(){
         ctaBusy(cta,false);status.textContent='Neybo connected';
@@ -3803,101 +3790,6 @@ STEP.connect=function(){
     }
   });
 };
-
-/* ================= setup resync =================
-   The bridge validates every setup command against the cube's own state, so a
-   command sent while the cube is still off simply fails. The app carries on
-   regardless — that is how the two used to end up on different steps, with the
-   cube stuck on "Connecting…" and the pairing code never shown.
-
-   Every setup command is therefore logged in order, and whenever the cube
-   becomes reachable (or reports it was behind) the log is replayed with a
-   pause between steps. Each replayed command is validated by the cube as
-   usual: the ones that do not apply come back as bad_state and change
-   nothing, the ones that do walk it forward. No protocol change. */
-var NB_SETUP_LOG = [];
-var NB_SENT_AT={};                                   /* per command, for recency */
-function nbSendSetup(type,payload){
-  NB_SETUP_LOG.push({type:type,payload:payload||{}});
-  nbLastSendAt=Date.now(); NB_SENT_AT[type]=nbLastSendAt;
-  try{window.nbSend&&nbSend(type,payload||{});}catch(e){}
-}
-var nbResyncing=false, nbCubeSettled=false, nbResyncAt=0, nbResyncTries=0, nbLastSendAt=0;
-var NB_CUBE_BUSY=/^(off|boot)$/;                     /* nothing can be applied yet */
-
-/* How far through setup each cube state is, and what each command needs and
-   produces. The walk uses this to send ONLY the steps the cube has not reached
-   yet — replaying a step it already passed is what made screens flicker past
-   or get skipped. */
-var NB_STAGE={ 'off':0,'boot':1,'onboard-qr':2,'onboard-pair':3,'onboard-wifi':4,
-               'onboard-profile':5,'onboard-character':6 };
-var NB_CMD_STAGE={
-  'setup.start':     { needs:2, gives:3 },
-  'pairing.confirm': { needs:3, gives:3 },          /* same state, new screen */
-  'wifi.connect':    { needs:3, gives:4 },
-  'profile.save':    { needs:5, gives:5 },
-  'setup.complete':  { needs:2, gives:99 }
-};
-function nbCubeStage(){
-  var dev=null; try{dev=window.NBLink&&NBLink.deviceState;}catch(e){}
-  if(!dev||!dev.state)return -1;
-  if(dev.firstRunDone)return 99;                     /* setup already finished */
-  var st=NB_STAGE[dev.state];
-  return st===undefined ? 90 : st;                   /* past onboarding screens */
-}
-/* is this command still worth sending? */
-function nbCmdApplies(type){
-  var m=NB_CMD_STAGE[type];
-  var stage=nbCubeStage();
-  if(stage<0)return false;
-  if(!m)return false;
-  if(stage>=99)return false;                         /* nothing left to set up */
-  if(type==='pairing.confirm')return stage===3;
-  return stage>=m.needs && stage<m.gives;
-}
-
-function nbResyncSetup(why){
-  if(nbResyncing||!NB_SETUP_LOG.length)return;
-  var dev=null; try{dev=window.NBLink&&NBLink.deviceState;}catch(e){}
-  if(!dev||!dev.state||NB_CUBE_BUSY.test(dev.state))return;
-  if(Date.now()-nbResyncAt<2000)return;               /* one walk at a time */
-  if(Date.now()-nbLastSendAt<1200)return;             /* a command is in flight */
-  if(nbResyncTries>=6)return;                         /* never loop forever */
-  nbResyncing=true; nbResyncAt=Date.now(); nbResyncTries++;
-  try{log('cube resync',{why:why,steps:NB_SETUP_LOG.length,attempt:nbResyncTries});}catch(e){}
-
-  var i=0, deadline=Date.now()+20000;
-  (function step(){
-    if(i>=NB_SETUP_LOG.length||Date.now()>deadline){nbResyncing=false;return;}
-    var c=NB_SETUP_LOG[i];
-    /* the cube may have moved on its own between steps, so look every time */
-    if(!nbCmdApplies(c.type)){ i++; return step(); }
-    /* the same command may still be in flight from the parent's own tap — wait
-       for it to land or fail instead of firing a duplicate. pairing.confirm is
-       exempt: it changes no state, and its confirmation screen is exactly what
-       gets missed when the parent taps ahead of the cube. */
-    if(c.type!=='pairing.confirm'&&Date.now()-(NB_SENT_AT[c.type]||0)<2000) return setTimeout(step,1200);
-    NB_SENT_AT[c.type]=Date.now();
-    try{window.nbSend&&nbSend(c.type,c.payload);}catch(e){}
-    i++;
-    setTimeout(step,1400);
-  })();
-}
-window.nbResyncSetup=nbResyncSetup;                   /* console handle */
-try{
-  if(window.NBLink&&NBLink.onDevice)NBLink.onDevice(function(st,type,env){
-    if(!st)return;
-    var busy=!st.state||NB_CUBE_BUSY.test(st.state);
-    if(busy){ nbCubeSettled=false; nbResyncTries=0; }   /* a fresh cube gets fresh tries */
-    else if(!nbCubeSettled){
-      nbCubeSettled=true;
-      if(!S.onboardingCompleted)nbResyncSetup('cube came up');
-    }
-    var code=null;
-    try{code=env&&env.payload&&env.payload.code;}catch(e){}
-    if(type==='command.error'&&code==='bad_state'&&!S.onboardingCompleted)nbResyncSetup('cube was behind');
-  });
-}catch(e){}
 
 /* --- Wi-Fi handoff (one recoverable failure then success) --- */
 STEP.wifi=function(){
@@ -3930,7 +3822,7 @@ STEP.wifi=function(){
   var steps=$('#wf-steps'),cta=$('#wf-cta'),errEl=$('#wf-err');
   cta.addEventListener('click',function(){
     if(errEl)errEl.classList.remove('show');
-    try{window.nbSend&&nbSendSetup('wifi.connect',{network:S.wifi.network||null});}catch(e){}
+    try{window.nbSend&&nbSend('wifi.connect',{network:S.wifi.network||null});}catch(e){}
     steps.style.display='block';ctaBusy(cta,true);
     var lns=steps.querySelectorAll('.ln');lns.forEach(function(l){l.className='ln';l.querySelector('.ic').innerHTML='';});
     var i=0;
@@ -4249,7 +4141,7 @@ function finishToApp(justCompleted){
   buildResearchBar();
   applyAccount();
   if(window.go)try{go('home');}catch(e){}
-  if(justCompleted){S.onboardingCompleted=true;S.onboardingStep=STEPS.length-1;save();try{window.nbSend&&nbSendSetup('setup.complete',{});}catch(e){}log('setup completed');log('task completed',{task:'onboarding'});}
+  if(justCompleted){S.onboardingCompleted=true;S.onboardingStep=STEPS.length-1;save();try{window.nbSend&&nbSend('setup.complete',{});}catch(e){}log('setup completed');log('task completed',{task:'onboarding'});}
   // Product tour offer. Guided tasks are parked (nbux-tasks.disabled.js), so
   // there is nothing to resume afterwards — the callback is a no-op today and
   // is the hook to restore startTasks() when the task runner comes back.
@@ -4298,10 +4190,6 @@ function applyAccount(){
 /* ================= research controls ================= */
 function buildResearchBar(){
   if(document.getElementById('nbux-research'))return;
-  /* Framed by the Test Room? The room shows Restart beside the phone, so the
-     in-phone pill would be a second one sitting on top of the UI. */
-  var framed=false; try{framed=window.parent!==window;}catch(e){framed=true;}
-  if(framed)return;
   var bar=make('div',null);bar.id='nbux-research';
   var html='<button id="nbux-restart" aria-label="Restart usability test">Restart test</button>';
   if(research)html+='<button id="nbux-export" aria-label="Export test log">Export log</button>';
@@ -4375,11 +4263,6 @@ window.NBUX={
     var b=$('#nbux-restore-go');if(b)b.addEventListener('click',function(){closeSheet();goStep('account');});
   },
   restart:restartTest,
-  exportLog:function(){try{exportLog();}catch(e){}},
-  /* canonical first/last name as typed on the consent screen — read-only, so
-     the Test Room's feedback flow never has to ask for it again */
-  parentName:function(){return {first:(S.parent&&S.parent.firstName)||null,
-                               last:(S.parent&&S.parent.lastName)||null};},
   feedback:function(){try{openFeedback();}catch(e){}}
 };
 
@@ -5174,5 +5057,4 @@ else setTimeout(boot,0);
 })();
 
 </script>
-<script src="assets/r1.js"></script>
 </body></html>

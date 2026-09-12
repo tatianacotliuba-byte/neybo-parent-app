@@ -42,7 +42,20 @@
     position:absolute;top:0;left:0;border:0;display:block;background:transparent;
     transform-origin:0 0;
   }
-  .cap{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--room-muted);flex:none}
+  /* Which half is which: testers kept mixing up "the app" and "Neybo", so each
+     pane says what it is. Name in caps, plain-language qualifier after it. */
+  .cap{
+    flex:none;display:flex;align-items:baseline;gap:8px;
+    padding:5px 12px;border-radius:999px;
+    background:rgba(255,255,255,.62);border:1px solid var(--room-line);
+    box-shadow:0 1px 2px rgba(0,0,0,.04);
+  }
+  .cap strong{
+    font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--room-ink);
+  }
+  .cap span{ font-size:11.5px;color:var(--room-muted); }
+  .cap span::before{ content:'·';margin-right:7px;color:var(--room-line) }
   body.debug{padding-bottom:300px}
   body.debug .stage{height:calc(100vh - 300px)}
 
@@ -59,32 +72,74 @@
   #intro.clear{background:transparent}
   #intro[hidden]{display:none}
   #introCube{
-    width:min(40vh,360px);opacity:0;transform:scale(.88);
+    position:relative;width:min(40vh,360px);opacity:0;transform:scale(.88);
     filter:drop-shadow(0 26px 60px rgba(0,0,0,.24));
     transition:opacity .9s ease, transform 1.15s cubic-bezier(.2,.68,.2,1);
   }
+  /* The cube still is the body; the clip plays inside its own screen, so the
+     result reads as one whole cube — no video rectangle, no extra frame. */
+  #introCube .introcube-frame{display:block;width:100%;height:auto}
+  #introCube .introcube-screen{
+    position:absolute;left:22%;top:20.6%;width:57%;height:58.4%;
+    border-radius:13%;overflow:hidden;background:#fff;
+    pointer-events:none;opacity:0;transition:opacity .45s ease;
+  }
+  #introCube.playing .introcube-screen{opacity:1}
+  /* the clip carries its own padding — scale past it so Moss fills the screen,
+     anchored high so the hat never leaves the frame */
+  #introCube .introcube-clip{
+    display:block;width:100%;height:100%;object-fit:cover;
+    transform:scale(1.32);transform-origin:50% 18%;
+    border:0;outline:0;background:#fff;
+  }
   #intro.lit #introCube{opacity:1;transform:scale(1)}
   #intro.gone #introCube{opacity:0}
+  /* Same visual language as the in-app tutorial (nbtour): dark card, gold
+     eyebrow, small pointer at the thing being talked about. */
   .introcap{
-    max-width:min(600px,86vw);text-align:center;opacity:0;transform:translateY(12px);
-    transition:opacity .6s ease, transform .6s ease;
+    width:310px;max-width:calc(100vw - 32px);box-sizing:border-box;
+    padding:16px 18px;border-radius:18px;text-align:left;
+    background:#25283f;color:#fffaf0;
+    border:1px solid rgba(255,255,255,.15);
+    box-shadow:0 18px 46px rgba(0,0,0,.42), 0 4px 14px rgba(0,0,0,.26);
+    opacity:0;transform:translateY(10px);
+    transition:opacity .5s ease, transform .5s ease;
   }
   .introcap.show{opacity:1;transform:none}
   .introcap .eyebrow{
-    font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--room-muted);
-    display:block;margin-bottom:10px;
+    display:block;margin:0 0 7px;
+    font-size:11px;line-height:15px;letter-spacing:.08em;text-transform:uppercase;
+    font-weight:700;color:#f5c84a;
   }
-  .introcap h2{margin:0 0 12px;font-size:27px;line-height:1.2;font-weight:600;color:var(--room-ink)}
-  .introcap p{margin:0;font-size:15.5px;line-height:1.6;color:#5f5c55}
-  #introCap2{
-    position:fixed;z-index:61;
-    background:rgba(255,254,250,.94);border:1px solid var(--room-line);
-    border-radius:20px;padding:24px 26px;
-    box-shadow:0 22px 60px rgba(0,0,0,.14);
-    max-width:min(430px,84vw);text-align:left;
+  .introcap h2{margin:0;font-size:18px;line-height:23px;font-weight:600;color:inherit}
+  .introcap p{margin:7px 0 0;font-size:14px;line-height:20px;color:rgba(255,250,240,.82)}
+  .introcap .pointer{
+    position:absolute;width:10px;height:10px;transform:rotate(45deg);
+    background:#25283f;border:1px solid rgba(255,255,255,.15);
   }
-  #introCap2 h2{font-size:22px}
-  #introCap2 p{font-size:14.5px}
+  /* the arrow belongs to a side placement; anywhere else it would float over
+     the card's own text, so it is hidden unless a pt-* placement is set */
+  .introcap .pointer{display:none}
+  .introcap.pt-left  .pointer{display:block;left:-6px;border-right:0;border-top:0}
+  .introcap.pt-right .pointer{display:block;right:-6px;border-left:0;border-bottom:0}
+  .introcap.pt-top   .pointer{display:block;top:-6px;border-right:0;border-bottom:0}
+  #introCap1{position:relative;width:360px}
+  #introCap1 .pointer{display:none}
+  #introCap2,#introBannerCard,#nbCard{position:fixed;z-index:62}
+  #nbRestart{
+    position:fixed;left:16px;bottom:16px;z-index:63;pointer-events:auto;
+    font:inherit;font-size:12px;color:var(--room-muted);
+    background:rgba(255,255,255,.7);border:1px solid var(--room-line);
+    border-radius:999px;padding:6px 14px;cursor:pointer;
+    transition:color .15s ease, background .15s ease, border-color .15s ease;
+  }
+  #nbRestart:hover{color:var(--room-ink)}
+  #nbRestart.armed{
+    color:#7a2f22;background:#f7e0d8;border-color:#e0b7ab;font-weight:600;
+  }
+  body.debug #nbRestart{bottom:314px}
+  body.debug.dbg-min #nbRestart{bottom:48px}
+
   #introSkip{
     position:fixed;right:16px;bottom:16px;z-index:63;pointer-events:auto;
     font:inherit;font-size:12px;color:var(--room-muted);
@@ -92,18 +147,43 @@
     border-radius:999px;padding:6px 14px;cursor:pointer;
   }
   #introSkip:hover{color:var(--room-ink)}
-  #introBanner{
-    position:fixed;left:50%;top:20px;z-index:62;
-    transform:translate(-50%,-16px);opacity:0;pointer-events:none;
-    background:#22262e;color:#f6f3ea;border-radius:999px;
-    padding:11px 20px;font-size:13.5px;font-weight:500;
-    box-shadow:0 14px 34px rgba(0,0,0,.24);
-    transition:opacity .5s ease, transform .5s ease;
-  }
-  #introBanner.show{opacity:1;transform:translate(-50%,0)}
+  #introBanner{position:fixed;z-index:62;pointer-events:none}
   @media (prefers-reduced-motion:reduce){
     #intro,#introCube,.introcap,.pane,#introBanner{transition-duration:.01ms !important}
   }
+
+  /* ---------- guided script (after setup) ---------- */
+  .pane.dimmed{pointer-events:none}
+  #nbRing{
+    position:fixed;z-index:59;pointer-events:none;border-radius:18px;opacity:0;
+    box-shadow:0 0 0 2px rgba(255,213,92,.95), 0 0 14px 3px rgba(255,205,77,.22);
+    transition:opacity .35s ease, left .4s cubic-bezier(.2,.7,.2,1), top .4s cubic-bezier(.2,.7,.2,1),
+               width .4s cubic-bezier(.2,.7,.2,1), height .4s cubic-bezier(.2,.7,.2,1);
+  }
+  #nbRing.on{opacity:1}
+  #nbCard{pointer-events:auto}
+  #nbCard .note{
+    margin:10px 0 0;padding:9px 11px;border-radius:11px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);
+    font-size:12.5px;line-height:17px;color:rgba(255,250,240,.66);
+  }
+  #nbCard .tasks{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+  #nbCard .tasks li{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;line-height:18px;color:rgba(255,250,240,.82)}
+  #nbCard .tasks .tick{
+    flex:none;width:17px;height:17px;border-radius:50%;margin-top:1px;
+    border:1.5px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;
+    font-size:10px;color:transparent;transition:.2s;
+  }
+  #nbCard .tasks li.done{color:#fffaf0}
+  #nbCard .tasks li.done .tick{background:#5cb88a;border-color:#5cb88a;color:#0f2418}
+  #nbCard .tasks li.now .tick{border-color:#f5c84a;box-shadow:0 0 0 3px rgba(245,200,74,.16)}
+  #nbCard .acts{display:flex;align-items:center;gap:8px;margin-top:15px}
+  #nbCard .acts button{
+    font:inherit;font-size:13px;min-height:36px;padding:0 14px;border-radius:12px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.26);background:transparent;color:inherit;
+  }
+  #nbCard .acts button.primary{background:#f5c84a;color:#15182a;border:0;font-weight:700}
+  #nbCard .acts button.ghost{border:0;text-decoration:underline;text-underline-offset:3px;padding:0 4px;margin-left:auto}
 
   /* ---------- debug drawer (?debug=1 only) ---------- */
   #dbg{
@@ -150,24 +230,39 @@
 <body>
 
 <main class="stage">
-  <section class="pane">
+  <section class="pane pane-parent">
+    <div class="cap" data-cap><strong>Parent app</strong><span>on the phone</span></div>
     <div class="holder" id="parentHolder">
       <iframe id="parentFrame" class="frame" title="Neybo Parent App"
               allow="clipboard-write"></iframe>
     </div>
-    <div class="cap" data-cap hidden>Parent App</div>
   </section>
-  <section class="pane">
+  <section class="pane pane-device">
+    <div class="cap" data-cap><strong>Neybo</strong><span>the cube</span></div>
     <div class="holder" id="deviceHolder">
-      <iframe id="deviceFrame" class="frame" title="Neybo Device Prototype"></iframe>
+      <!-- Talk mode needs the microphone, and a cross-origin frame gets none
+           unless the page that embeds it says so. Without this attribute
+           getUserMedia inside the cube is rejected outright and talk mode
+           can never connect from the Test Room. autoplay lets the avatar's
+           voice start without a second gesture inside the frame. -->
+      <iframe id="deviceFrame" class="frame" title="Neybo Device Prototype"
+              allow="microphone; autoplay"></iframe>
     </div>
-    <div class="cap" data-cap hidden>Device</div>
   </section>
 </main>
 
 <div id="intro" hidden aria-hidden="true">
-  <img id="introCube" src="assets/images/onboarding-cube.png" alt="">
+  <div id="introCube">
+    <img class="introcube-frame" src="assets/images/onboarding-cube.png" alt="Neybo cube">
+    <span class="introcube-screen">
+      <video class="introcube-clip" id="introCubeVideo"
+             src="assets/images/device-moss-idle.mp4"
+             autoplay muted loop playsinline preload="auto"
+             disablepictureinpicture tabindex="-1" aria-hidden="true"></video>
+    </span>
+  </div>
   <div class="introcap" id="introCap1">
+    <span class="pointer" aria-hidden="true"></span>
     <span class="eyebrow">Meet the device</span>
     <h2>This is Neybo</h2>
     <p>A voice companion for kids 4+ — curious, funny, and endlessly patient.
@@ -175,13 +270,30 @@
   </div>
 </div>
 <div class="introcap" id="introCap2" hidden>
+  <span class="pointer" aria-hidden="true"></span>
   <span class="eyebrow">And this is the Parent App</span>
   <h2>You see everything. They stay safe.</h2>
   <p>No ads, no algorithms, no surprises. Just a curious companion your child loves —
      and weekly insights so you always know what&#8217;s on their mind.</p>
 </div>
+<button type="button" id="nbRestart" title="Start the whole test over with a fresh participant">Restart test</button>
 <button type="button" id="introSkip" hidden>Skip intro</button>
-<div id="introBanner" role="status">Start by filling in your details in the app &#8594;</div>
+<div id="nbRing" aria-hidden="true"></div>
+<div class="introcap" id="nbCard" hidden role="dialog" aria-live="polite">
+  <span class="pointer" aria-hidden="true"></span>
+  <span class="eyebrow" id="nbCardEyebrow"></span>
+  <h2 id="nbCardTitle"></h2>
+  <p id="nbCardBody"></p>
+  <p class="note" id="nbCardNote" hidden></p>
+  <ul class="tasks" id="nbCardTasks" hidden></ul>
+  <div class="acts" id="nbCardActs"></div>
+</div>
+<div id="introBanner" hidden><div class="introcap" id="introBannerCard" role="status">
+  <span class="pointer" aria-hidden="true"></span>
+  <span class="eyebrow">Your turn</span>
+  <h2>Start here</h2>
+  <p>Fill in your details in the app to begin the setup.</p>
+</div></div>
 
 <aside id="dbg" aria-label="Diagnostics">
   <div id="dbgBar">
@@ -267,12 +379,17 @@
     try { history.replaceState(null, '', location.pathname + '?' + q.toString()); } catch (e) {}
   }
 
-  var parentSrc = PARENT_BASE + '?participantId=' + encodeURIComponent(pid);
+  /* Release-1 preview: the room passes ?r1=1 straight through to both frames,
+     so one link shows the whole methodology revision. Without it, both panes
+     are the build the testers are already using. */
+  var R1 = q.get('r1') === '1' ? '&r1=1' : '';
+
+  var parentSrc = PARENT_BASE + '?participantId=' + encodeURIComponent(pid) + R1;
   /* A test room must never show a cached build of the prototype: every room
      load pulls the current one. (Cheap — it is a single HTML document.) */
   var cacheBust = 'r' + String(Math.floor(Math.random() * 1e9));
   var deviceSrc = DEVICE_BASE + '?embed=1&participantId=' + encodeURIComponent(pid) +
-                  '&nocache=' + cacheBust;
+                  '&nocache=' + cacheBust + R1;
 
   var parentFrame = document.getElementById('parentFrame');
   var deviceFrame = document.getElementById('deviceFrame');
@@ -305,7 +422,11 @@
     var gap     = parseFloat(cs.gap) || 36;
     var drawer  = document.body.classList.contains('debug')
                     ? (document.body.classList.contains('dbg-min') ? 34 : 300) : 0;
-    var capH    = document.body.classList.contains('debug') ? 26 : 0;
+    /* the labels sit in the flow above each pane, so their height is part of
+       what the panes have to fit into */
+    var capEl   = document.querySelector('[data-cap]');
+    var capGap  = parseFloat(getComputedStyle(document.querySelector('.pane')).gap) || 8;
+    var capH    = capEl ? Math.ceil(capEl.getBoundingClientRect().height + capGap) : 26;
 
     var availH = window.innerHeight - drawer - padY - capH;
     var availW = window.innerWidth - padX - gap;
@@ -326,6 +447,51 @@
   fit();
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
+  window.addEventListener('resize', function () {
+    if (window.__nbReanchor) window.__nbReanchor();
+  });
+
+  /* ================= shared spotlight ring =================
+     One ring element, used by the intro and by the guided tour. The room can
+     measure inside the Parent App frame (same origin), so it can ring a whole
+     pane or an exact region of a screen. */
+  var ringEl = document.getElementById('nbRing');
+
+  function nbSpot(box, radius, pad) {
+    if (!ringEl || !box) { if (ringEl) ringEl.classList.remove('on'); return false; }
+    pad = pad == null ? 8 : pad;
+    ringEl.style.borderRadius = (radius == null ? 18 : radius) + 'px';
+    ringEl.style.left   = Math.round(box.left - pad) + 'px';
+    ringEl.style.top    = Math.round(box.top - pad) + 'px';
+    ringEl.style.width  = Math.round(box.width + pad * 2) + 'px';
+    ringEl.style.height = Math.round(box.height + pad * 2) + 'px';
+    ringEl.classList.add('on');
+    return true;
+  }
+  function nbSpotOff() { if (ringEl) ringEl.classList.remove('on'); }
+
+  /* union rect of two elements inside the Parent App, in room coordinates */
+  function nbAppRegion(fromSel, toSel) {
+    try {
+      var w = parentFrame.contentWindow, d = w.document;
+      var a = d.querySelector(fromSel), b = d.querySelector(toSel);
+      if (!a || !b) return null;
+      var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      if (!ra.height || !rb.height) return null;
+      var host = parentHolder.getBoundingClientRect();
+      var sc = host.width / (w.innerWidth || 390);
+      var l = Math.min(ra.left, rb.left), r = Math.max(ra.right, rb.right);
+      var t = Math.min(ra.top, rb.top), bo = Math.max(ra.bottom, rb.bottom);
+      var box = { left: host.left + l * sc, top: host.top + t * sc,
+                  width: (r - l) * sc, height: (bo - t) * sc };
+      /* never spill outside the phone */
+      var maxB = host.top + host.height - 4;
+      if (box.top < host.top + 4) { box.height -= (host.top + 4 - box.top); box.top = host.top + 4; }
+      if (box.top + box.height > maxB) box.height = maxB - box.top;
+      return box.height > 40 ? box : null;
+    } catch (e) { return null; }
+  }
+  window.NBSpot = { on: nbSpot, off: nbSpotOff, region: nbAppRegion };
 
   /* ================= intro choreography =================
      The cube is introduced alone, travels to its place, the app follows, and
@@ -346,6 +512,46 @@
     var banner      = document.getElementById('introBanner');
     if (!wrap || !devicePane || !parentPane) return;
 
+    var bannerCard = document.getElementById('introBannerCard');
+
+    /* Put a card next to the phone, pointer aimed at it. Right side when there
+       is room, otherwise left, otherwise under it. */
+    /* The ring says what is being talked about, so the card just needs room:
+       'beside' puts it next to the phone (covering the cube is fine),
+       anything else lays it over the phone itself. */
+    function anchor(card, holder, yBias, mode) {
+      var r  = holder.getBoundingClientRect();
+      var EDGE = 14, GAP = 22;
+      card.style.left = '0px'; card.style.top = '0px';
+      var cw = card.offsetWidth || 310, ch = card.offsetHeight || 130;
+      card.classList.remove('pt-left', 'pt-right', 'pt-top');
+      var left;
+      if (mode === 'beside' && r.right + GAP + cw <= window.innerWidth - EDGE) {
+        left = r.right + GAP;
+      } else if (mode === 'beside' && r.left - GAP - cw >= EDGE) {
+        left = r.left - GAP - cw;
+      } else {
+        left = r.left + r.width / 2 - cw / 2;
+      }
+      var top = r.top + r.height * (yBias == null ? 0.5 : yBias) - ch / 2;
+      card.style.left = Math.round(Math.min(Math.max(EDGE, left), Math.max(EDGE, window.innerWidth - cw - EDGE))) + 'px';
+      card.style.top  = Math.round(Math.min(Math.max(EDGE, top), Math.max(EDGE, window.innerHeight - ch - EDGE))) + 'px';
+    }
+
+    /* the clip inside the cube's screen: only revealed once it really plays,
+       so a blocked autoplay leaves the static cube instead of a black box */
+    var clip = document.getElementById('introCubeVideo');
+    if (clip) {
+      var lit = function () { cube.classList.add('playing'); };
+      clip.addEventListener('loadeddata', lit);
+      clip.addEventListener('playing', lit);
+      clip.addEventListener('error', function () { cube.classList.remove('playing'); });
+      try {
+        var pr = clip.play();
+        if (pr && pr.catch) pr.catch(function () {});
+      } catch (e) {}
+    }
+
     var timers = [];
     function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
     function clearAll() { timers.forEach(clearTimeout); timers = []; }
@@ -361,8 +567,19 @@
         p.classList.remove('dimmed');
       });
       if (showBanner) {
-        banner.classList.add('show');
-        setTimeout(function () { banner.classList.remove('show'); }, 9000);
+        banner.hidden = false;
+        spotGate();
+        gateTimer = setInterval(spotGate, 700);     /* the form is still rendering */
+        anchor(bannerCard, parentHolder, 0.5, 'beside');
+        requestAnimationFrame(function () { bannerCard.classList.add('show'); });
+        setTimeout(function () {
+          clearInterval(gateTimer); gateTimer = null;
+          nbSpotOff();
+          bannerCard.classList.remove('show');
+          setTimeout(function () { banner.hidden = true; }, 600);
+        }, 9000);
+      } else {
+        nbSpotOff();
       }
     }
 
@@ -403,27 +620,688 @@
       wrap.hidden = true;
       parentPane.classList.add('reveal');
       devicePane.classList.add('dimmed');
-      var r = deviceHolder.getBoundingClientRect();
+      var ph = parentHolder.getBoundingClientRect();
+      nbSpot({ left: ph.left, top: ph.top, width: ph.width, height: ph.height }, 38, 6);
       cap2.hidden = false;
-      cap2.style.left = Math.round(Math.max(16, r.left + r.width / 2 - Math.min(430, r.width * 0.9) / 2)) + 'px';
-      cap2.style.top  = Math.round(Math.max(16, r.top + r.height / 2 - 110)) + 'px';
-      cap2.style.width = Math.round(Math.min(430, Math.max(280, r.width * 0.9))) + 'px';
+      anchor(cap2, parentHolder, 0.42, 'beside');
       requestAnimationFrame(function () { cap2.classList.add('show'); });
     });
+
+    var gateTimer = null;
+    /* "Before you start" heading through the "Start the test" button */
+    function spotGate() {
+      var box = nbAppRegion('#nbux-root .nbux-h1', '#nb-participant-submit');
+      if (box) nbSpot(box, 16, 10);
+      else nbSpot({ left: parentHolder.getBoundingClientRect().left,
+                    top: parentHolder.getBoundingClientRect().top,
+                    width: parentHolder.getBoundingClientRect().width,
+                    height: parentHolder.getBoundingClientRect().height }, 38, 6);
+      anchor(bannerCard, parentHolder, 0.5, 'beside');
+    }
+
+    window.__nbReanchor = function () {
+      if (!cap2.hidden && cap2.classList.contains('show')) {
+        var ph = parentHolder.getBoundingClientRect();
+        nbSpot({ left: ph.left, top: ph.top, width: ph.width, height: ph.height }, 38, 6);
+        anchor(cap2, parentHolder, 0.42, 'beside');
+      }
+      if (!banner.hidden) spotGate();
+    };
 
     /* 4 · the test begins */
     at(12600, function () {
       cap2.classList.remove('show');
       devicePane.classList.remove('dimmed');
+      nbSpotOff();
     });
     at(13300, function () { finish(true); });
+  })();
+
+  /* ================= restart the whole test =================
+     A restart is a brand-new participant: the app wipes its state and consent,
+     the cube forgets it was ever provisioned (its first-run flag is keyed by
+     participant), and the room replays the intro and the guided script. One
+     reload with a fresh id does all three — no partial resets to keep in sync. */
+  (function restartControl() {
+    var btn = document.getElementById('nbRestart');
+    if (!btn) return;
+    var armed = false, armTimer = null;
+
+    function disarm() {
+      armed = false;
+      btn.classList.remove('armed');
+      btn.textContent = 'Restart test';
+      clearTimeout(armTimer);
+    }
+
+    btn.addEventListener('click', function () {
+      if (!armed) {
+        armed = true;
+        btn.classList.add('armed');
+        btn.textContent = 'Start over? Tap again';
+        clearTimeout(armTimer);
+        armTimer = setTimeout(disarm, 4000);
+        return;
+      }
+      disarm();
+      btn.textContent = 'Starting over…';
+
+      /* tell the app to drop its session first — it clears its own storage and
+         reports the abandon to analytics; the reload below does the rest */
+      try {
+        var pw = parentFrame.contentWindow;
+        if (pw && pw.NBA && pw.NBA.sessionUpdate) pw.NBA.sessionUpdate({ completion_status: 'abandoned' });
+      } catch (e) {}
+
+      var np = uuid();
+      try { localStorage.setItem(PID_KEY, np); } catch (e) {}
+      try {
+        Object.keys(sessionStorage).forEach(function (k) {
+          if (k.indexOf('nb_guide_done_') === 0) sessionStorage.removeItem(k);
+        });
+      } catch (e) {}
+
+      var q2 = new URLSearchParams(location.search);
+      q2.set('participantId', np);
+      q2.delete('intro');            /* the newcomer sees the intro again */
+      q2.delete('guide');
+      setTimeout(function () { location.search = '?' + q2.toString(); }, 120);
+    });
+  })();
+
+  /* ================= cube observer (always on) =================
+     The room listens to the same channel the cube broadcasts on, so it always
+     knows what the cube is doing. The guided script below needs that; the
+     debug drawer just borrows it. Read-only: the room never sends commands. */
+  var NBRoom = (function () {
+    var snapshot = null, listeners = [], statusFns = [], rawFns = [], sdkIdx = 0;
+
+    function emit(type) { listeners.forEach(function (f) { try { f(snapshot, type); } catch (e) {} }); }
+    function status(st, err) { statusFns.forEach(function (f) { try { f(st, err); } catch (e) {} }); }
+
+    function onMessage(m) {
+      var p = m && m.payload;
+      if (!p || typeof p !== 'object') return;
+      rawFns.forEach(function (f) { try { f(p); } catch (e) {} });
+      if (p.source !== 'neybo-cube') return;
+      var snap = p.payload && p.payload.state;
+      if (snap && typeof snap === 'object') { snapshot = snap; emit(p.type || m.event); }
+    }
+
+    function loadSdk() {
+      if (sdkIdx >= SDKS.length) { status('SDK_UNREACHABLE'); return; }
+      var url = SDKS[sdkIdx];
+      var el = document.createElement('script');
+      el.src = url; el.async = true;
+      el.onerror = function () { sdkIdx++; loadSdk(); };
+      el.onload = function () {
+        if (!window.supabase || !window.supabase.createClient) { sdkIdx++; loadSdk(); return; }
+        try {
+          var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: { persistSession: false, autoRefreshToken: false }
+          });
+          var ch = client.channel(channelName, {
+            config: { broadcast: { self: false, ack: false }, private: false }
+          });
+          ch.on('broadcast', { event: '*' }, onMessage);
+          ch.subscribe(function (st, err) { status(st, err); });
+        } catch (e) { status('OBSERVER_FAILED', e); }
+      };
+      document.head.appendChild(el);
+    }
+    loadSdk();
+
+    return {
+      get cube() { return snapshot; },
+      onCube: function (fn) { listeners.push(fn); if (snapshot) { try { fn(snapshot, null); } catch (e) {} } },
+      onStatus: function (fn) { statusFns.push(fn); },
+      /* raw channel payloads (read-only) — used for latency and error counts */
+      onAny: function (fn) { if (typeof fn === 'function') rawFns.push(fn); },
+      /* debug=1 only: drive the observer locally, so the room's own flows can
+         be exercised without a live channel. Never reachable in clean mode. */
+      simulateStatus: function (st) { if (DEBUG) status(st); },
+      simulateMessage: function (payload) { if (DEBUG) onMessage({ payload: payload }); },
+      /* second, local source for the same snapshot (the cube's layout beacon):
+         keeps the guided tasks honest if realtime is slow or blocked */
+      feed: function (snap, type) {
+        if (!snap || typeof snap !== 'object') return;
+        var sig = JSON.stringify(snap);
+        if (sig === JSON.stringify(snapshot)) return;
+        snapshot = snap; emit(type || 'layout');
+      }
+    };
+  })();
+  window.NBRoom = NBRoom;
+  window.NBRoomPid = function () { return pid; };
+
+  /* The device iframe is cross-origin, so it tells us where its own regions
+     are (layout numbers only). The guided tour rings those exact rects
+     instead of guessing with fractions. */
+  var deviceZones = null;
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || d.source !== 'neybo-cube-layout' || !d.zones) return;
+    try { if (e.source !== deviceFrame.contentWindow) return; } catch (err) { return; }
+    deviceZones = { zones: d.zones, targets: d.targets || null, chips: d.chips || [],
+                    viewport: d.viewport || null };
+    if (d.state) NBRoom.feed(d.state, 'cube-beacon');
+  }, false);
+  window.NBRoomZones = function () { return deviceZones; };
+
+
+  /* ================= guided script after setup =================
+     The room is the director: it dims one side, points at the other, sets the
+     four cube tasks, then hands over to the app's own product tour. Cube task
+     progress is read from the channel (NBRoom), never faked. ?guide=0 skips. */
+  (function guide() {
+    /* The feedback ask waits for this flag: the whole guided run — cube tour,
+       cube tasks, then the app tour — has to be behind the tester first. */
+    if (q.get('guide') === '0') { window.NBRoomGuideDone = true; return; }
+
+    var DONE_KEY = 'nb_guide_done_' + pid;
+    try {
+      if (sessionStorage.getItem(DONE_KEY) === '1') { window.NBRoomGuideDone = true; return; }
+    } catch (e) {}
+
+    var devicePane = deviceFrame.closest('.pane');
+    var parentPane = parentFrame.closest('.pane');
+    var card   = document.getElementById('nbCard');
+    var ring   = document.getElementById('nbRing');
+    var elEye  = document.getElementById('nbCardEyebrow');
+    var elTit  = document.getElementById('nbCardTitle');
+    var elBod  = document.getElementById('nbCardBody');
+    var elNote = document.getElementById('nbCardNote');
+    var elTask = document.getElementById('nbCardTasks');
+    var elActs = document.getElementById('nbCardActs');
+    if (!card || !devicePane || !parentPane) return;
+
+    /* ---------- card plumbing ---------- */
+    var anchorTarget = null, anchorBias = 0.5, anchorOver = false, anchorSide = false;
+
+    function place() {
+      if (card.hidden || !anchorTarget) return;
+      var r = anchorTarget.getBoundingClientRect();
+      var GAP = 18, EDGE = 14;
+      card.style.left = '0px'; card.style.top = '0px';
+      var cw = card.offsetWidth || 310, ch = card.offsetHeight || 150;
+      var pointer = card.querySelector('.pointer');
+      card.classList.remove('pt-left', 'pt-right', 'pt-top');
+      var top = Math.min(Math.max(EDGE, r.top + r.height * anchorBias - ch / 2),
+                         Math.max(EDGE, window.innerHeight - ch - EDGE));
+      if (anchorSide) {                                   /* reserved column, right edge */
+        card.style.left = Math.round(Math.max(EDGE, window.innerWidth - cw - 24)) + 'px';
+        card.style.top  = Math.round(Math.max(EDGE, (window.innerHeight - ch) / 2)) + 'px';
+      } else if (anchorOver) {                             /* sit on the target */
+        var lft = Math.min(Math.max(EDGE, r.left + r.width / 2 - cw / 2),
+                           Math.max(EDGE, window.innerWidth - cw - EDGE));
+        card.style.left = Math.round(lft) + 'px';
+        card.style.top  = Math.round(top) + 'px';
+      } else if (r.left - GAP - cw >= EDGE) {             /* left of the target */
+        card.style.left = Math.round(r.left - GAP - cw) + 'px';
+        card.style.top  = Math.round(top) + 'px';
+        card.classList.add('pt-right');
+        if (pointer) { pointer.style.left = ''; pointer.style.top = Math.round(Math.max(14, Math.min(ch - 24, r.top + r.height * anchorBias - top - 5))) + 'px'; }
+      } else if (r.right + GAP + cw <= window.innerWidth - EDGE) {
+        card.style.left = Math.round(r.right + GAP) + 'px';
+        card.style.top  = Math.round(top) + 'px';
+        card.classList.add('pt-left');
+        if (pointer) pointer.style.top = Math.round(Math.max(14, Math.min(ch - 24, r.top + r.height * anchorBias - top - 5))) + 'px';
+      } else {
+        var left = Math.min(Math.max(EDGE, r.left + r.width / 2 - cw / 2), window.innerWidth - cw - EDGE);
+        card.style.left = Math.round(left) + 'px';
+        card.style.top  = Math.round(Math.min(r.bottom + GAP, window.innerHeight - ch - EDGE)) + 'px';
+        card.classList.add('pt-top');
+        if (pointer) pointer.style.left = Math.round(Math.max(14, Math.min(cw - 24, r.left + r.width / 2 - left - 5))) + 'px';
+      }
+    }
+
+    function show(o) {
+      elEye.textContent = o.eyebrow || '';
+      elTit.textContent = o.title || '';
+      elBod.textContent = o.body || '';
+      elBod.hidden = !o.body;
+      elNote.textContent = o.note || '';
+      elNote.hidden = !o.note;
+      elTask.hidden = !o.tasks;
+      elTask.innerHTML = '';
+      elActs.innerHTML = '';
+      (o.actions || []).forEach(function (a) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = a.kind || 'primary';
+        b.textContent = a.label;
+        b.addEventListener('click', a.onClick);
+        elActs.appendChild(b);
+      });
+      anchorTarget = o.anchor || parentHolder;
+      anchorBias   = (o.bias == null) ? 0.5 : o.bias;
+      anchorOver   = !!o.over;
+      anchorSide   = !!o.side;
+      card.hidden = false;
+      place();
+      requestAnimationFrame(function () { card.classList.add('show'); });
+    }
+
+    function hideCard(then) {
+      card.classList.remove('show');
+      setTimeout(function () { card.hidden = true; if (then) then(); }, 420);
+    }
+
+    /* ---------- highlight ring ----------
+       Draws around a real region reported by the cube. Falls back to a
+       proportional band if the beacon has not arrived (older cube build). */
+    var lastZone = null;
+
+    function drawRing(zoneName, fallback) {
+      var host = deviceHolder.getBoundingClientRect();
+      var data = deviceZones;
+      var pad = 6, box = null;
+
+      if (data && data.zones && data.zones[zoneName] && data.viewport && data.viewport.w) {
+        var s = host.width / data.viewport.w;         /* iframe px -> room px */
+        var z = data.zones[zoneName];
+        box = { left: host.left + z.x * s, top: host.top + z.y * s,
+                width: z.w * s, height: z.h * s };
+      } else if (fallback) {
+        box = { left: host.left + 8, top: host.top + host.height * fallback[0],
+                width: host.width - 16, height: host.height * (fallback[1] - fallback[0]) };
+      }
+      if (!box) { ring.classList.remove('on'); return; }
+
+      /* keep the ring inside the pane; a zone that reaches the pane edge is
+         inset on purpose, so the line never looks clipped */
+      var inset = 8;
+      var left = Math.max(host.left + inset, box.left - pad);
+      var top  = Math.max(host.top + inset, box.top - pad);
+      var right  = Math.min(host.left + host.width - inset, box.left + box.width + pad);
+      var bottom = Math.min(host.top + host.height - inset, box.top + box.height + pad);
+      ring.style.borderRadius = '18px';
+      ring.style.left   = Math.round(left) + 'px';
+      ring.style.top    = Math.round(top) + 'px';
+      ring.style.width  = Math.round(right - left) + 'px';
+      ring.style.height = Math.round(bottom - top) + 'px';
+      ring.classList.add('on');
+    }
+
+    /* iframe px -> room px, for anything the cube reported */
+    function toRoom(r) {
+      var data = deviceZones, host = deviceHolder.getBoundingClientRect();
+      if (!r || !data || !data.viewport || !data.viewport.w) return null;
+      var s = host.width / data.viewport.w;
+      return { left: host.left + r.x * s, top: host.top + r.y * s,
+               width: r.w * s, height: r.h * s };
+    }
+
+    function targetBox(key) {
+      var t = deviceZones && deviceZones.targets;
+      return toRoom(t && t[key]);
+    }
+    function chipBox(pattern) {
+      var list = (deviceZones && deviceZones.chips) || [];
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].label.indexOf(pattern) !== -1) return toRoom(list[i]);
+      }
+      return null;
+    }
+
+    function ringBox(box, radius) {
+      if (!box) { ring.classList.remove('on'); return false; }
+      /* round before padding: a fractional box makes one side a pixel wider */
+      box = { left: Math.round(box.left), top: Math.round(box.top),
+              width: Math.round(box.width), height: Math.round(box.height) };
+      /* Keep the ring inside the pane, but never let that clamp cut into the
+         control itself — a ring that crosses the button reads as crooked. */
+      var host = deviceHolder.getBoundingClientRect(), pad = 3, edge = 4;
+      var l  = Math.min(box.left, Math.max(host.left + edge, box.left - pad));
+      var t  = Math.min(box.top,  Math.max(host.top + edge, box.top - pad));
+      var r2 = Math.max(box.left + box.width,  Math.min(host.left + host.width - edge, box.left + box.width + pad));
+      var b2 = Math.max(box.top + box.height, Math.min(host.top + host.height - edge, box.top + box.height + pad));
+      /* hug the control: a pill gets exactly its own curvature, not an ellipse */
+      var rr = (radius == null) ? Math.round((b2 - t) / 2) : radius;
+      ring.style.borderRadius = rr + 'px';
+      ring.style.left = Math.round(l) + 'px';
+      ring.style.top = Math.round(t) + 'px';
+      ring.style.width = Math.round(r2 - l) + 'px';
+      ring.style.height = Math.round(b2 - t) + 'px';
+      ring.classList.add('on');
+      return true;
+    }
+
+    /* what the tester should press right now */
+    function spotTask() {
+      if (!watchingTasks) return;
+      var snap = NBRoom.cube || {};
+      var i = doneFlags.indexOf(false);
+      if (i === -1) { ring.classList.remove('on'); return; }
+      var steps = TASKS[i].steps || [];
+      for (var k = 0; k < steps.length; k++) {
+        var st = steps[k];
+        var isDone = false;
+        try { isDone = !!st.done(snap); } catch (e) {}
+        if (isDone) continue;
+        /* prefer the voice chip once the dock offers it, else the control
+           that leads there */
+        var box = st.chip ? chipBox(st.chip) : null;
+        var radius = 12;
+        if (!box && st.target) { box = targetBox(st.target); radius = null; }  /* pill: own curvature */
+        ringBox(box, radius);
+        return;
+      }
+      ring.classList.remove('on');
+    }
+
+    function ringOff() { ring.classList.remove('on'); lastZone = null; }
+    function highlight(zoneName, fallback) {
+      lastZone = [zoneName, fallback];
+      drawRing(zoneName, fallback);
+    }
+
+    window.addEventListener('resize', function () {
+      place();
+      if (lastZone) drawRing(lastZone[0], lastZone[1]);
+    });
+    /* the cube re-lays out (dock grows per state) — follow it */
+    setInterval(function () {
+      if (lastZone) drawRing(lastZone[0], lastZone[1]);
+      else if (watchingTasks) spotTask();
+    }, 500);
+
+    /* ---------- cube task tracking ---------- */
+    /* Each task carries the controls it needs, in order: the ring moves to the
+       next one as soon as the cube reports the previous is done, so the tester
+       always sees exactly what to press. */
+    var TASKS = [
+      { label: 'Pick Moss on the cube',
+        /* the cube already boots as Moss, so this asks for the actual pick:
+           his meet screen or his own game menu */
+        hit: function (s) { return s.state === 'onboard-meeting' || s.state === 'choose'; },
+        steps: [ { target: 'choose.moss',
+                   done: function (s) { return s.state === 'onboard-meeting' || s.state === 'choose'; } } ] },
+      { label: 'Play Logic Riddles',
+        hit: function (s) { return s.game === 'riddles'; },
+        steps: [ { chip: 'riddle',      done: function (s) { return s.game === 'riddles'; } } ] },
+      { label: 'Sing karaoke with Luna',
+        hit: function (s) { return s.game === 'karaoke'; },
+        steps: [ { target: 'choose.luna', done: function (s) { return s.character === 'luna'; } },
+                 { chip: 'karaoke',    done: function (s) { return s.game === 'karaoke'; } } ] },
+      { label: 'Have a talk with Ember',
+        /* Reaching the screen is not the task — the talk is. So the ring walks
+           the whole way: Ember's menu, the ask to talk, the mic consent under
+           the cube, and finally the line telling the parent to say hello, which
+           stays lit long enough to actually be read and answered. */
+        hit: function (s) { return talkGreeted(s); },
+        steps: [ { target: 'choose.ember', done: function (s) { return s.character === 'ember'; } },
+                 { chip: 'talk',           done: function (s) { return s.state === 'talk-ember'; } },
+                 { target: 'talk.connect', done: function (s) { return talkStarted(s); } },
+                 { target: 'talk.hello',   done: function (s) { return talkGreeted(s); } } ] },
+      { label: 'Send Neybo to sleep',
+        hit: function (s) { return s.state === 'sleep'; },
+        steps: [ { target: 'device.sleep', done: function (s) { return s.state === 'sleep'; } } ] }
+    ];
+    var doneFlags = [false, false, false, false, false];
+
+    /* The cube reports a phase, not a conversation. "Connecting has begun" is
+       readable straight from it; "the parent has said hello" is not, so the
+       room times it: once the avatar is live, the ask stands for SAY_HELLO_MS
+       and then the task counts as done. */
+    var SAY_HELLO_MS = 9000;
+    var liveSince = 0;
+    function talkStarted(s) {
+      var p = s && s.talkPhase;
+      return !!p && p !== 'idle' && p !== 'error';
+    }
+    function talkGreeted(s) {
+      if (!s || s.talkPhase !== 'active') return false;
+      if (!liveSince) liveSince = Date.now();
+      return (Date.now() - liveSince) > SAY_HELLO_MS;
+    }
+
+    function renderTasks() {
+      elTask.hidden = false;
+      elTask.innerHTML = '';
+      var firstOpen = doneFlags.indexOf(false);
+      TASKS.forEach(function (t, i) {
+        var li = document.createElement('li');
+        li.className = doneFlags[i] ? 'done' : (i === firstOpen ? 'now' : '');
+        var tick = document.createElement('span');
+        tick.className = 'tick';
+        tick.textContent = '✓';
+        var txt = document.createElement('span');
+        txt.textContent = t.label;
+        li.appendChild(tick); li.appendChild(txt);
+        elTask.appendChild(li);
+      });
+      place();
+    }
+
+    var watchingTasks = false;
+    function checkTasks(snap) {
+      if (!watchingTasks || !snap) return;
+      var changed = false;
+      TASKS.forEach(function (t, i) {
+        var hit = false;
+        try { hit = !!t.hit(snap); } catch (e) {}
+        if (!doneFlags[i] && hit) { doneFlags[i] = true; changed = true; }
+      });
+      if (changed) {
+        renderTasks();
+        if (doneFlags.every(Boolean)) { watchingTasks = false; ring.classList.remove('on'); setTimeout(stepApp, 1400); return; }
+      }
+      spotTask();
+    }
+    NBRoom.onCube(checkTasks);
+    /* A task that finishes on a clock rather than on a cube event would
+       otherwise wait for the next report, and a live avatar reports nothing. */
+    setInterval(function () { if (watchingTasks) checkTasks(NBRoom.cube); }, 1000);
+
+    /* ---------- has the parent finished setup? ---------- */
+    function appFinishedSetup() {
+      try {
+        var d = parentFrame.contentWindow.document;
+        var root = d.getElementById('nbux-root');
+        var home = d.querySelector('.screen[data-s="home"]');
+        return !!(home && home.classList.contains('active') && (!root || !root.classList.contains('show')));
+      } catch (e) { return false; }
+    }
+
+    /* ================= the steps ================= */
+    function stepConnected() {
+      hideTourOffer();
+      show({
+        eyebrow: 'Setup complete',
+        title: 'Great — the app and Neybo are connected',
+        body: 'The link is live: whatever you do in the app reaches the cube straight away.',
+        anchor: parentHolder, bias: 0.42, over: true,
+        actions: [{ label: 'Next', onClick: function () { hideCard(stepCubeIntro); } }]
+      });
+      setTimeout(function () { if (!card.hidden && step === 'connected') hideCard(stepCubeIntro); }, 6000);
+      step = 'connected';
+    }
+
+    function stepCubeIntro() {
+      step = 'cube-intro';
+      parentPane.classList.add('dimmed');
+      devicePane.classList.remove('dimmed');
+      show({
+        eyebrow: 'Now the cube',
+        title: 'Let’s see what the cube can do',
+        body: 'The app steps back for a moment. Everything on the right is the cube itself.',
+        note: 'This is a demo model — the real Neybo does much more. The prototype is only here to show how it works.',
+        anchor: deviceHolder, bias: 0.35,
+        actions: [{ label: 'Show me', onClick: function () { hideCard(stepTour1); } }]
+      });
+    }
+
+    function stepTour1() {
+      step = 'tour1';
+      highlight('screen', [0.03, 0.62]);
+      show({
+        eyebrow: 'The cube · 1 of 3',
+        title: 'The cube’s own screen',
+        body: 'This is what the child sees and hears. Power, mic and volume sit on the sides — they are simulated, so you can press them.',
+        anchor: deviceHolder, bias: 0.3,
+        actions: [{ label: 'Next', onClick: function () { hideCard(stepTour2); } }]
+      });
+    }
+
+    function stepTour2() {
+      step = 'tour2';
+      highlight('voice', [0.63, 0.82]);
+      show({
+        eyebrow: 'The cube · 2 of 3',
+        title: 'Simulated child voice',
+        body: 'Neybo is voice-first. These chips stand in for what the child says out loud — that is how games get picked and answered.',
+        anchor: deviceHolder, bias: 0.72,
+        actions: [{ label: 'Next', onClick: function () { hideCard(stepTour3); } }]
+      });
+    }
+
+    function stepTour3() {
+      step = 'tour3';
+      highlight('controls', [0.83, 0.99]);
+      show({
+        eyebrow: 'The cube · 3 of 3',
+        title: 'Simulation controls',
+        body: 'Jump through setup, meet Moss, Luna or Ember, start any game, or switch on a service state like muted mic, low battery or offline.',
+        anchor: deviceHolder, bias: 0.86,
+        actions: [{ label: 'Give me a task', onClick: function () { hideCard(stepTasks); } }]
+      });
+    }
+
+    function stepTasks() {
+      step = 'tasks';
+      ringOff();
+      watchingTasks = true;
+      var s = NBRoom.cube;
+      if (s) TASKS.forEach(function (t, i) { if (t.hit(s)) doneFlags[i] = true; });
+      spotTask();
+      show({
+        eyebrow: 'Your turn on the cube',
+        title: 'Five things to try',
+        body: 'Use the controls under the cube. Each one ticks itself off when the cube reacts.',
+        tasks: true,
+        anchor: deviceHolder, bias: 0.5,
+        actions: [{ label: 'Skip to the app', kind: 'ghost', onClick: function () { watchingTasks = false; hideCard(stepApp); } }]
+      });
+      renderTasks();
+      spotTask();
+    }
+
+    /* The app offers its own tour card the moment setup finishes. In the room
+       the guided script is the one asking, so that offer must never appear —
+       not even for the moment before the room's own card arrives. A stylesheet
+       injected into the app frame keeps it off screen with no flash; the class
+       and the element are cleared too, and the whole thing is re-applied
+       whenever the frame reloads. */
+    var offerKiller = null;
+    function hideTourOffer() {
+      try {
+        var d = parentFrame.contentWindow.document;
+        if (!d.getElementById('nb-room-hide-offer')) {
+          var st = d.createElement('style');
+          st.id = 'nb-room-hide-offer';
+          st.textContent = '#nbtour-offer{display:none !important}';
+          (d.head || d.documentElement).appendChild(st);
+        }
+        var off = d.getElementById('nbtour-offer');
+        if (off) { off.hidden = true; off.style.display = 'none'; }
+        d.body.classList.remove('tour-offering');
+      } catch (e) {}
+    }
+    /* from the first moment the frame exists, and again after any reload */
+    hideTourOffer();
+    parentFrame.addEventListener('load', hideTourOffer);
+    clearInterval(offerKiller);
+    offerKiller = setInterval(hideTourOffer, 1000);   /* cheap safety net */
+
+    function stepApp() {
+      if (step === 'app' || step === 'free') return;
+      step = 'app';
+      hideTourOffer();
+      watchingTasks = false;
+      ringOff();
+      /* the cube is asleep by now, so it needs no dimming — leave it live */
+      devicePane.classList.remove('dimmed');
+      parentPane.classList.remove('dimmed');
+      show({
+        eyebrow: 'Now the app',
+        title: 'Now let’s explore what you can do with the app',
+        body: 'No tasks this time — the app will walk you through itself.',
+        anchor: parentHolder, bias: 0.4, over: true,
+        actions: [{ label: 'Start the app tour', onClick: startAppTour }]
+      });
+    }
+
+    function startAppTour() {
+      hideCard();
+      clearInterval(offerKiller); offerKiller = null;
+      try {
+        var d0 = parentFrame.contentWindow.document;
+        var s0 = d0.getElementById('nb-room-hide-offer');
+        if (s0 && s0.parentNode) s0.parentNode.removeChild(s0);   /* the tour is ours now */
+      } catch (e) {}
+      var pw = null;
+      try { pw = parentFrame.contentWindow; } catch (e) {}
+      var started = false;
+      try {
+        if (pw && pw.NeyboTour) { pw.NeyboTour.restart('test-room'); started = true; }
+      } catch (e) {}
+      if (!started) { stepFree(); return; }
+      var waited = 0;
+      var iv = setInterval(function () {
+        waited += 600;
+        var active = false;
+        try { active = !!(pw.NeyboTour && pw.NeyboTour.isActive()); } catch (e) {}
+        if (!active && waited > 1800) { clearInterval(iv); stepFree(); }
+        if (waited > 300000) clearInterval(iv);
+      }, 600);
+    }
+
+    /* Feedback now lives in the room's own flow (see TEST ROOM · FEEDBACK
+       FLOW at the end of this file): it waits for both onboardings, the
+       bridge and the cube, then asks on its own schedule. */
+    function stepFree() {
+      step = 'free';
+      window.NBRoomGuideDone = true;          /* free exploration starts here */
+      window.NBRoomGuideFreeAt = Date.now();
+      ringOff();
+      devicePane.classList.remove('dimmed');
+      parentPane.classList.remove('dimmed');
+      try { sessionStorage.setItem(DONE_KEY, '1'); } catch (e) {}
+      show({
+        eyebrow: 'All yours',
+        title: 'You’re free to explore',
+        body: 'Both sides are unlocked now — poke at anything, in any order.',
+        anchor: parentHolder, bias: 0.5, over: true,
+        actions: [{ label: 'Got it', onClick: function () { hideCard(); } }]
+      });
+      setTimeout(function () { if (step === 'free') hideCard(); }, 9000);
+    }
+
+    /* ---------- kick off once setup is done ---------- */
+    var step = 'waiting';
+    var poll = setInterval(function () {
+      if (step !== 'waiting') { clearInterval(poll); return; }
+      if (appFinishedSetup()) { clearInterval(poll); setTimeout(stepConnected, 900); }
+    }, 700);
+
+    /* console hooks for dry runs without walking the whole setup */
+    window.NBGuide = {
+      run: function () { step = 'connected'; stepConnected(); },
+      jump: function (name) {
+        var m = { connected: stepConnected, cube: stepCubeIntro, tour1: stepTour1, tour2: stepTour2,
+                  tour3: stepTour3, tasks: stepTasks, app: stepApp, free: stepFree };
+        if (m[name]) { card.hidden = true; card.classList.remove('show'); m[name](); }
+      },
+      get step() { return step; },
+      get tasks() { return doneFlags.slice(); }
+    };
   })();
 
   if (!DEBUG) return;   /* clean room: nothing else runs */
 
   /* ================= debug mode ================= */
   document.body.classList.add('debug');
-  Array.prototype.forEach.call(document.querySelectorAll('[data-cap]'), function (c) { c.hidden = false; });
 
   var $ = function (id) { return document.getElementById(id); };
   $('dPid').textContent    = pid;
@@ -491,44 +1369,1022 @@
     }
   }, 1000);
 
-  /* ---- listen on the same channel (read-only) ---- */
-  var sdkIdx = 0;
-  function loadSdk() {
-    if (sdkIdx >= SDKS.length) { $('dRoom2').textContent = 'SDK unreachable'; setDot('dotRoom', 'bad'); return; }
-    var url = SDKS[sdkIdx];
-    var el = document.createElement('script');
-    el.src = url; el.async = true;
-    el.onerror = function () { log('x', 'SDK load failed: ' + url); sdkIdx++; loadSdk(); };
-    el.onload = function () {
-      if (!window.supabase || !window.supabase.createClient) { sdkIdx++; loadSdk(); return; }
-      try {
-        var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-          auth: { persistSession: false, autoRefreshToken: false }
-        });
-        /* the observer joins the SAME channel the parent broadcasts on */
-        var ch = client.channel(channelName, {
-          config: { broadcast: { self: false, ack: false }, private: false }
-        });
-        ch.on('broadcast', { event: '*' }, function (m) {
-          var p = m && m.payload;
-          var t = (p && p.type) || m.event || 'message';
-          var who = (p && p.source) || '?';
-          log('e', who + ' · ' + t + ' ' + (p && p.payload ? JSON.stringify(p.payload) : ''));
-        });
-        ch.subscribe(function (st, err) {
-          $('dRoom2').textContent = st;
-          setDot('dotRoom', st === 'SUBSCRIBED' ? 'ok' :
-                            (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') ? 'bad' : '');
-          log(st === 'SUBSCRIBED' ? 'e' : 'w',
-              'observer ' + st + (err ? (' — ' + (err.message || err)) : ''));
-        });
-      } catch (e) { log('x', 'observer failed: ' + (e && e.message)); setDot('dotRoom', 'bad'); }
-    };
-    document.head.appendChild(el);
-  }
-  loadSdk();
   log('w', 'room ready · participant ' + pid);
+  NBRoom.onCube(function (snap, type) {
+    if (type) log('e', 'cube · ' + type + ' · ' + snap.state +
+                      (snap.game ? ' / ' + snap.game : '') + ' · ' + snap.character);
+  });
+  NBRoom.onStatus(function (st, err) {
+    $('dRoom2').textContent = st;
+    setDot('dotRoom', st === 'SUBSCRIBED' ? 'ok' :
+                      (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') ? 'bad' : '');
+    log(st === 'SUBSCRIBED' ? 'e' : 'w', 'observer ' + st + (err ? (' — ' + (err.message || err)) : ''));
+  });
 })();
 </script>
+
+<!-- ===================================================================
+     TEST ROOM · FEEDBACK FLOW
+     -------------------------------------------------------------------
+     Asks for feedback 30s after BOTH onboardings are really finished (the
+     Parent App reached its Home screen, the cube is provisioned and awake,
+     both sides of the bridge are subscribed on this participantId), then
+     runs a five-section questionnaire as a modal over the room.
+
+     Everything lives here: the Device Prototype, the bridge protocol, the
+     channel, the participantId and the Parent App's own screens are not
+     touched. Analytics goes through the Parent App's existing wrapper
+     (window.NBA) — no second analytics service.
+
+     State is per participant (localStorage), so a reload resumes: prompt
+     count, "Later" count, the draft and a completed submission all survive.
+     =================================================================== -->
+<style id="nbfb-css">
+  :root{
+    --fb-bg:#121326; --fb-card:#1E213A; --fb-raised:#292C49; --fb-field:#23263F;
+    --fb-ink:#F7F3E8; --fb-body:#C7C4DC; --fb-muted:#B5B1C8; --fb-line:#353957;
+    --fb-strong:#74719A; --fb-accent:#F5C84A; --fb-accent-ink:#3A2E06;
+    --fb-mint:#7FCB93; --fb-coral:#FF8E71;
+  }
+
+  /* ---------- invitation ---------- */
+  #fbPrompt{
+    position:fixed;right:18px;bottom:64px;z-index:70;width:320px;max-width:calc(100vw - 32px);
+    background:#25283f;color:var(--fb-ink);border:1px solid rgba(255,255,255,.15);
+    border-radius:18px;padding:16px 18px;
+    box-shadow:0 18px 46px rgba(0,0,0,.42),0 4px 14px rgba(0,0,0,.26);
+    opacity:0;transform:translateY(14px);pointer-events:none;
+    transition:opacity .45s ease, transform .45s cubic-bezier(.2,.7,.2,1);
+  }
+  #fbPrompt.show{opacity:1;transform:none;pointer-events:auto}
+  #fbPrompt[hidden]{display:none}
+  #fbPrompt .eyebrow{
+    display:block;margin:0 0 7px;font-size:11px;line-height:15px;letter-spacing:.08em;
+    text-transform:uppercase;font-weight:700;color:var(--fb-accent);
+  }
+  #fbPrompt h2{margin:0;font-size:17px;line-height:22px;font-weight:600}
+  #fbPrompt p{margin:7px 0 0;font-size:13.5px;line-height:19px;color:rgba(255,250,240,.82)}
+  #fbPrompt .acts{display:flex;align-items:center;gap:8px;margin-top:15px}
+  #fbPrompt button{
+    font:inherit;font-size:13px;min-height:36px;padding:0 14px;border-radius:12px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.26);background:transparent;color:inherit;
+  }
+  #fbPrompt button.primary{background:var(--fb-accent);color:var(--fb-accent-ink);border:0;font-weight:700}
+  #fbPrompt button.ghost{border:0;text-decoration:underline;text-underline-offset:3px;padding:0 4px;margin-left:auto}
+
+  /* ---------- the small standing button ---------- */
+  #fbOpen{
+    position:fixed;right:18px;bottom:16px;z-index:69;
+    font:inherit;font-size:12px;font-weight:600;color:#3A2E06;
+    background:rgba(245,200,74,.92);border:1px solid rgba(245,200,74,.5);
+    border-radius:999px;padding:7px 15px;cursor:pointer;
+    box-shadow:0 10px 24px rgba(0,0,0,.18);
+  }
+  #fbOpen:hover{background:#f5c84a}
+  #fbOpen[hidden]{display:none}
+  body.debug #fbOpen{bottom:314px}
+  body.debug #fbPrompt{bottom:362px}
+  body.debug.dbg-min #fbOpen{bottom:48px}
+  body.debug.dbg-min #fbPrompt{bottom:96px}
+
+  /* ---------- modal ---------- */
+  #fbModal{
+    position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+    padding:24px;background:rgba(6,7,18,.66);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+    opacity:0;transition:opacity .3s ease;
+  }
+  #fbModal.show{opacity:1}
+  #fbModal[hidden]{display:none}
+  .fb-panel{
+    width:min(560px,100%);max-height:min(88vh,900px);display:flex;flex-direction:column;
+    background:var(--fb-bg);color:var(--fb-ink);border:1px solid var(--fb-line);border-radius:22px;
+    box-shadow:0 30px 80px rgba(0,0,0,.5);overflow:hidden;
+    font-family:'Nunito Sans','Nunito',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    transform:translateY(12px);transition:transform .32s cubic-bezier(.2,.7,.2,1);
+  }
+  #fbModal.show .fb-panel{transform:none}
+  .fb-head{padding:18px 22px 14px;border-bottom:1px solid var(--fb-line);flex:none;position:relative}
+  .fb-head .fb-kicker{
+    font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--fb-accent);
+  }
+  .fb-head h2{margin:6px 0 0;font-size:19px;line-height:24px;font-weight:600}
+  .fb-head .fb-step{margin-top:3px;font-size:12.5px;color:var(--fb-muted)}
+  #fbClose{
+    position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;
+    background:var(--fb-raised);border:1px solid var(--fb-line);color:var(--fb-body);
+    font:inherit;font-size:16px;line-height:1;cursor:pointer;
+  }
+  #fbClose:hover{color:var(--fb-ink)}
+  .fb-bar{height:4px;background:var(--fb-raised);flex:none}
+  .fb-bar>i{display:block;height:100%;width:0;background:var(--fb-accent);transition:width .3s ease}
+  .fb-body{padding:18px 22px 6px;overflow-y:auto;flex:1;min-height:0}
+  .fb-q{margin:0 0 20px}
+  .fb-q > p{margin:0 0 9px;font-size:14.5px;line-height:20px;color:var(--fb-ink)}
+  .fb-scale{display:flex;gap:7px}
+  .fb-scale button{
+    flex:1;min-width:0;height:44px;border-radius:12px;cursor:pointer;
+    border:1.5px solid var(--fb-strong);background:var(--fb-card);color:var(--fb-ink);
+    font:inherit;font-weight:700;font-size:15px;
+  }
+  .fb-scale button:hover{border-color:#A7A3C4}
+  .fb-scale button[aria-pressed="true"]{
+    background:var(--fb-accent);border-color:var(--fb-accent);color:var(--fb-accent-ink);
+    box-shadow:0 0 0 3px rgba(245,200,74,.22);
+  }
+  .fb-poles{display:flex;justify-content:space-between;margin-top:6px;font-size:11.5px;color:var(--fb-muted)}
+  .fb-legend{
+    margin:0 0 16px;padding:9px 12px;border-radius:11px;background:var(--fb-raised);
+    border:1px solid var(--fb-line);font-size:12px;line-height:17px;color:var(--fb-muted);
+  }
+  .fb-q textarea{
+    width:100%;box-sizing:border-box;min-height:86px;resize:vertical;
+    background:var(--fb-field);border:1.5px solid var(--fb-strong);border-radius:14px;
+    color:var(--fb-ink);font:inherit;font-size:15px;padding:12px 14px;
+  }
+  .fb-q textarea::placeholder{color:#9490AD;opacity:1}
+  .fb-q textarea:focus{outline:none;border-color:var(--fb-accent);box-shadow:0 0 0 3px rgba(245,200,74,.22)}
+  .fb-count{margin-top:5px;font-size:11.5px;color:var(--fb-muted);text-align:right}
+  .fb-count.near{color:var(--fb-accent)}
+  .fb-req{color:var(--fb-coral);font-size:12.5px;margin:6px 0 0;display:none}
+  .fb-req.show{display:block}
+  .fb-opt{color:var(--fb-muted);font-weight:400}
+  .fb-foot{
+    flex:none;display:flex;align-items:center;gap:10px;padding:14px 22px 18px;
+    border-top:1px solid var(--fb-line);background:linear-gradient(to top,var(--fb-bg) 70%,transparent);
+  }
+  .fb-foot button{
+    font:inherit;font-size:14.5px;min-height:44px;padding:0 18px;border-radius:14px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.26);background:transparent;color:var(--fb-ink);font-weight:600;
+  }
+  .fb-foot button.primary{background:var(--fb-accent);color:var(--fb-accent-ink);border:0;font-weight:700;margin-left:auto}
+  .fb-foot button.primary:disabled{background:var(--fb-raised);color:#9A97B4;cursor:not-allowed}
+  .fb-foot .fb-note{font-size:12px;color:var(--fb-muted)}
+  .fb-done{padding:34px 26px 30px;text-align:center}
+  .fb-done .tick{
+    width:62px;height:62px;border-radius:50%;margin:0 auto 16px;
+    background:rgba(127,203,147,.14);border:2px solid rgba(127,203,147,.6);
+    display:flex;align-items:center;justify-content:center;font-size:29px;color:var(--fb-mint);
+  }
+  .fb-done h3{margin:0;font-size:19px;line-height:25px;font-weight:600}
+  .fb-done p{margin:9px 0 0;font-size:14px;line-height:20px;color:var(--fb-body)}
+  .fb-error{
+    margin:0 22px 12px;padding:11px 13px;border-radius:12px;
+    background:rgba(255,142,113,.10);border:1px solid rgba(255,142,113,.45);
+    font-size:13px;line-height:18px;color:#FFC2AF;
+  }
+  .fb-error[hidden]{display:none}
+
+  /* debug-only status line */
+  #fbDebug{
+    position:fixed;left:16px;bottom:56px;z-index:64;display:none;
+    font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8b93a6;
+    background:rgba(20,24,33,.86);border:1px solid #262c39;border-radius:10px;padding:6px 9px;
+    max-width:330px;white-space:pre-wrap;
+  }
+  body.debug #fbDebug{display:block;bottom:352px}
+
+  @media (max-width:560px){
+    .fb-panel{max-height:94vh;border-radius:18px}
+    #fbModal{padding:10px}
+    .fb-head{padding:15px 16px 12px}
+    .fb-body{padding:15px 16px 4px}
+    .fb-foot{padding:12px 16px 15px}
+    .fb-scale button{height:46px;font-size:15px}
+    #fbPrompt{right:12px;left:12px;width:auto}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #fbPrompt,#fbModal,.fb-panel,.fb-bar>i{transition:none}
+  }
+</style>
+
+<div id="fbPrompt" hidden role="status" aria-live="polite">
+  <span class="eyebrow">Whenever you’re ready</span>
+  <h2>Help us improve Neybo</h2>
+  <p>It takes about 3 minutes.</p>
+  <div class="acts">
+    <button type="button" class="primary" id="fbPromptGo">Give feedback</button>
+    <button type="button" class="ghost" id="fbPromptLater">Later</button>
+  </div>
+</div>
+
+<button type="button" id="fbOpen" hidden>Give feedback</button>
+<div id="fbDebug" aria-hidden="true"></div>
+
+<div id="fbModal" hidden role="dialog" aria-modal="true" aria-labelledby="fbTitle">
+  <div class="fb-panel">
+    <div class="fb-head">
+      <span class="fb-kicker">Feedback</span>
+      <h2 id="fbTitle">Setup</h2>
+      <div class="fb-step" id="fbStep">Section 1 of 5</div>
+      <button type="button" id="fbClose" aria-label="Close — your answers are kept">✕</button>
+    </div>
+    <div class="fb-bar"><i id="fbBar"></i></div>
+    <div class="fb-body" id="fbBody"></div>
+    <div class="fb-error" id="fbError" hidden></div>
+    <div class="fb-foot" id="fbFoot"></div>
+  </div>
+</div>
+
+<script id="nbfb-js">
+(function () {
+  'use strict';
+
+  /* ---------------------------------------------------------------- config */
+  var VERSION            = 1;
+  var PROMPT_DELAY_MS    = 10000;      /* ten seconds of free exploration */
+  var LATER_DELAY_MS     = 120000;
+  var TEXT_MAX           = 1000;
+  var APP_VERSION        = 'parent-app-proto-1';
+
+  var SCALE_LABELS = [
+    '1 — Strongly disagree',
+    '2 — Disagree',
+    '3 — Neither agree nor disagree',
+    '4 — Agree',
+    '5 — Strongly agree'
+  ];
+
+  var SECTIONS = [
+    { id: 'setup', title: 'Setup', ratings: [
+        ['setup_easy',            'Setting up Neybo was easy.'],
+        ['instructions_clear',    'The instructions clearly explained what I needed to do.'],
+        ['next_step_clear',       'I always knew what to do next.'],
+        ['setup_confidence',      'After setup, I felt confident that Neybo was ready to use.']
+      ], texts: [] },
+    { id: 'app_and_neybo', title: 'App + Neybo', ratings: [
+        ['relationship_clear',    'I understood how the Parent App and Neybo work together.'],
+        ['cause_effect_clear',    'It was clear which actions in the app caused changes on Neybo.'],
+        ['response_speed',        'Neybo responded quickly enough to my actions.'],
+        ['device_status_clear',   'The app made it clear what Neybo was currently doing.'],
+        ['switching_easy',        'Moving my attention between the app and Neybo felt natural.']
+      ], texts: [] },
+    { id: 'parent_app', title: 'Parent App', ratings: [
+        ['controls_easy_to_find',      'It was easy to find the controls I needed in the Parent App.'],
+        ['information_useful',         'The app showed the information I needed without feeling overwhelming.'],
+        ['parent_control_confidence',  'The app gave me the right level of control over Neybo.']
+      ], texts: [] },
+    { id: 'trust_and_value', title: 'Trust and value', ratings: [
+        ['device_intuitive',      'Interacting directly with Neybo felt intuitive.'],
+        ['child_independence',    'I would feel comfortable letting my child use Neybo independently.'],
+        ['trust',                 'I felt comfortable with and understood what Neybo was doing.'],
+        ['family_value',          'Neybo could provide meaningful value for my family.']
+      ], texts: [] },
+    { id: 'your_thoughts', title: 'Your thoughts', ratings: [], texts: [
+        ['confusing_moment',   'Describe the moment when you felt most confused or unsure. What were you trying to do?'],
+        ['expected_vs_actual', 'Did anything behave differently from what you expected? What did you expect to happen?'],
+        ['app_change',         'If you could change one thing about the Parent App, what would it be and why?'],
+        ['device_change',      'If you could change one thing about Neybo itself, what would it be and why?'],
+        ['home_scenario',      'Imagine Neybo in your home. When would your family use it, and who would usually start the interaction?'],
+        ['adoption_blocker',   'What, if anything, would stop you from using Neybo with your family?'],
+        ['most_valuable',      'What part of the experience felt most valuable to you?'],
+        ['anything_else',      'Is there anything else you would like us to know?']
+      ] }
+  ];
+
+  var SCORES = {
+    feedback_setup_score:      ['setup_easy', 'instructions_clear', 'next_step_clear', 'setup_confidence'],
+    feedback_connection_score: ['relationship_clear', 'cause_effect_clear', 'response_speed', 'device_status_clear', 'switching_easy'],
+    feedback_app_score:        ['controls_easy_to_find', 'information_useful', 'parent_control_confidence'],
+    feedback_value_score:      ['device_intuitive', 'child_independence', 'trust', 'family_value']
+  };
+
+  /* ------------------------------------------------------------ plumbing */
+  var PID = (function () {
+    try { return (window.NBRoomPid && window.NBRoomPid()) || null; } catch (e) { return null; }
+  })();
+  if (!PID) {
+    try {
+      var m = location.search.match(/[?&]participantId=([A-Za-z0-9_-]{1,64})/);
+      PID = m ? m[1] : null;
+    } catch (e) {}
+  }
+  var KEY = 'nbfb_v1_' + (PID || 'anon');
+  var DEBUG = /[?&]debug=1(?:&|$)/.test(location.search);
+
+  function nowMs() { return Date.now(); }
+  function uuid() {
+    try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+    return 'sid-' + Math.random().toString(36).slice(2) + '-' + nowMs().toString(36);
+  }
+  function appWin() { try { return document.getElementById('parentFrame').contentWindow; } catch (e) { return null; } }
+  function nba() { var w = appWin(); return (w && w.NBA) ? w.NBA : null; }
+
+  /* The Parent App's own analytics wrapper is the only sink. "Sent" has to
+     mean sent: the app keeps captures in an internal list and buffers them
+     until PostHog is really loaded, so a list that grew proves nothing. Only
+     phReady does — without it the answers sit in a buffer in this tab and
+     reach nobody, and reporting success would lose them silently. */
+  function trackWhy(event, props) {
+    var a = nba();
+    if (!a || typeof a.capture !== 'function') return 'no_analytics';
+    var st = null;
+    try { st = a.state; } catch (e) {}
+    if (!st) return 'no_analytics';
+    if (!st.consentA) return 'no_consent';
+    if (!st.phReady)  return 'analytics_not_loaded';
+    var before = 0;
+    try { before = a._captures ? a._captures.length : 0; } catch (e) {}
+    try { a.capture(event, props || {}); } catch (e) { return 'capture_threw'; }
+    var grew = true;
+    try { grew = a._captures ? a._captures.length > before : true; } catch (e) {}
+    return grew ? null : 'capture_dropped';
+  }
+  function track(event, props) { return trackWhy(event, props) === null; }
+
+  /* The database is the sink that answers. PostHog cannot: capture() is
+     fire-and-forget and any tracker blocker kills it without a word, so a
+     submit judged by analytics alone is a guess. This endpoint returns a
+     status code, and that is what decides whether the answers are safe. */
+  var DB_ENDPOINT = '/.netlify/functions/nb-feedback-full';
+  var DB_TIMEOUT_MS = 15000;
+
+  function appSessionId() {
+    try { var st2 = nba().state; return (st2 && st2.session) || null; } catch (e) { return null; }
+  }
+
+  function saveToDb(payload, done) {
+    var ctrl = null, timer = null;
+    try { ctrl = new AbortController(); } catch (e) {}
+    if (ctrl) timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, DB_TIMEOUT_MS);
+    var settled = false;
+    function finish(ok, reason) {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      done(ok, reason);
+    }
+    try {
+      fetch(DB_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        keepalive: true,
+        signal: ctrl ? ctrl.signal : undefined,
+        body: JSON.stringify({
+          submission_id: payload.submission_id,
+          participant_code: PID,
+          test_session_id: appSessionId(),
+          payload: payload
+        })
+      }).then(function (res) {
+        finish(res.ok, res.ok ? null : 'http_' + res.status);
+      }, function (err) {
+        finish(false, (err && err.name === 'AbortError') ? 'timeout' : 'network');
+      });
+    } catch (e) { finish(false, 'network'); }
+  }
+
+  var SEND_FAIL_COPY = {
+    network:   'No answer from the server — your answers are saved here. Check the connection and try again.',
+    timeout:   'The server took too long — your answers are saved here. Try again.',
+    http_503:  'Storage is not switched on for this deploy yet — your answers are saved here. Tell the team.',
+    http_413:  'These answers are too long to store. Shorten the longest one and try again.',
+    http_400:  'The server refused these answers — your answers are saved here. Tell the team.'
+  };
+  function sendFailCopy(reason) {
+    if (SEND_FAIL_COPY[reason]) return SEND_FAIL_COPY[reason];
+    return 'That did not go through — your answers are saved here. Try again.';
+  }
+
+  /* ------------------------------------------------------------- state */
+  var st = {
+    started_at: nowMs(),
+    setup_done_at: null,
+    prompt_count: 0,
+    later_count: 0,
+    submitted: false,
+    submission_id: null,
+    draft: { ratings: {}, texts: {} },
+    section: 0,
+    pending: null            /* a payload that failed to send */
+  };
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      var o = JSON.parse(raw);
+      if (o && typeof o === 'object') {
+        Object.keys(st).forEach(function (k) { if (o[k] !== undefined) st[k] = o[k]; });
+        if (!st.draft || typeof st.draft !== 'object') st.draft = { ratings: {}, texts: {} };
+        st.draft.ratings = st.draft.ratings || {};
+        st.draft.texts   = st.draft.texts   || {};
+      }
+    } catch (e) {}
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  load(); save();
+
+  /* -------------------------------------------------------- diagnostics */
+  var diag = {
+    back_count: 0,
+    repeated_click_count: 0,
+    failed_command_count: 0,
+    bridge_error_count: 0,
+    app_interaction_count: 0,
+    device_interaction_count: 0,
+    app_device_attention_switch_count: 0,
+    latencies: [],
+    features_opened: 0,
+    features_started: 0,
+    prompt_state: null
+  };
+  var lastClickSig = null, lastClickAt = 0, lastSide = null;
+  var pendingCmds = {};                    /* requestId -> sent at */
+  var lastCmdAt = 0;                       /* any parent command, for attribution */
+
+  function markSide(side) {
+    if (lastSide && lastSide !== side) diag.app_device_attention_switch_count++;
+    lastSide = side;
+  }
+
+  /* app-side interactions: same origin, listener only, nothing is changed */
+  var appHooked = false;
+  function hookApp() {
+    if (appHooked) return;
+    var w = appWin();
+    if (!w || !w.document || !w.document.body) return;
+    try {
+      w.document.addEventListener('click', function (e) {
+        diag.app_interaction_count++;
+        markSide('app');
+        var t = e.target && e.target.closest ? e.target.closest('button,[role="button"],a,.nbux-chip,.nbux-check,.nbux-modecard,.nbux-themecard') : null;
+        if (t) {
+          if (t.classList && (t.classList.contains('nbux-back') || t.classList.contains('topback'))) diag.back_count++;
+          var sig = (t.id || t.className || t.tagName) + '';
+          if (sig === lastClickSig && nowMs() - lastClickAt < 800) diag.repeated_click_count++;
+          lastClickSig = sig; lastClickAt = nowMs();
+        }
+      }, true);
+      appHooked = true;
+    } catch (e) {}
+  }
+
+  /* channel traffic: latency, errors, and what the cube actually did */
+  var lastCubeState = null, lastCubeAt = 0;
+  function onChannel(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    var type = payload.type || '';
+    if (payload.source === 'neybo-parent') {
+      lastCmdAt = nowMs();
+      if (payload.requestId) pendingCmds[payload.requestId] = nowMs();
+      return;
+    }
+    if (payload.source !== 'neybo-cube') return;
+
+    if (type === 'command.ack' || type === 'command.error') {
+      var sent = payload.requestId ? pendingCmds[payload.requestId] : null;
+      if (sent) {
+        diag.latencies.push(nowMs() - sent);
+        delete pendingCmds[payload.requestId];
+      }
+      if (type === 'command.error') { diag.failed_command_count++; diag.bridge_error_count++; }
+    }
+    var snap = payload.payload && payload.payload.state;
+    if (snap && snap.state) lastCubeAt = nowMs();
+    if (snap && snap.state && snap.state !== lastCubeState) {
+      var prev = lastCubeState;
+      lastCubeState = snap.state;
+      /* a cube change that no recent command explains reads as a touch on the
+         cube itself — the ack is matched and dropped above, so the timestamp
+         of the last command is what attribution has to go by */
+      if (nowMs() - lastCmdAt > 1500) { diag.device_interaction_count++; markSide('cube'); }
+      if (/^choose/.test(snap.state) || snap.state === 'wake') diag.features_opened++;
+      if (/^(play|dance|karaoke|paint|dress|story|talk-)/.test(snap.state)) diag.features_started++;
+    }
+  }
+  try { if (window.NBRoom && window.NBRoom.onAny) window.NBRoom.onAny(onChannel); } catch (e) {}
+  try {
+    if (window.NBRoom && window.NBRoom.onStatus) window.NBRoom.onStatus(function (s) {
+      if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'OBSERVER_FAILED' || s === 'SDK_UNREACHABLE') diag.bridge_error_count++;
+    });
+  } catch (e) {}
+
+  function avg(a) { return a.length ? Math.round(a.reduce(function (x, y) { return x + y; }, 0) / a.length) : null; }
+  function diagnostics() {
+    return {
+      back_count: diag.back_count,
+      repeated_click_count: diag.repeated_click_count,
+      failed_command_count: diag.failed_command_count,
+      bridge_error_count: diag.bridge_error_count,
+      app_to_device_latency_average_ms: avg(diag.latencies),
+      app_to_device_latency_max_ms: diag.latencies.length ? Math.max.apply(null, diag.latencies) : null,
+      app_interaction_count: diag.app_interaction_count,
+      device_interaction_count: diag.device_interaction_count,
+      app_device_attention_switch_count: diag.app_device_attention_switch_count,
+      features_opened: diag.features_opened,
+      features_started: diag.features_started,
+      prompt_shown_in_state: diag.prompt_state
+    };
+  }
+
+  /* ------------------------------------------------------- readiness */
+  function appOnboardingDone() {
+    try {
+      var d = appWin().document;
+      var root = d.getElementById('nbux-root');
+      var home = d.querySelector('.screen[data-s="home"]');
+      return !!(home && home.classList.contains('active') && (!root || !root.classList.contains('show')));
+    } catch (e) { return false; }
+  }
+  function appLink() {
+    try { return appWin().NBLink.status(); } catch (e) { return null; }
+  }
+  function cubeSnap() {
+    try { return (window.NBRoom && window.NBRoom.cube) || null; } catch (e) { return null; }
+  }
+  var roomSubscribed = false;
+  try { if (window.NBRoom && window.NBRoom.onStatus) window.NBRoom.onStatus(function (s) { roomSubscribed = (s === 'SUBSCRIBED'); }); } catch (e) {}
+
+  var CUBE_NOT_READY = /^(off|boot|onboard-)/;
+  var GUIDE_GRACE_MS = 5 * 60 * 1000;      /* a guided run left unfinished */
+  var CUBE_FRESH_MS  = 45 * 1000;          /* the cube reported recently */
+
+  function readiness() {
+    var link = appLink(), snap = cubeSnap();
+    var cubeFresh = lastCubeAt > 0 && (nowMs() - lastCubeAt) < CUBE_FRESH_MS;
+
+    /* The guided run should be over — the ask belongs to free exploration, not
+       to the middle of a tutorial. But a tester who never finishes the tasks
+       or never starts the app tour must still be asked, so after a grace
+       period from the end of setup the run counts as done. */
+    var guideDone = !!window.NBRoomGuideDone;
+    var guideTimedOut = !guideDone && !!st.setup_done_at &&
+                        (nowMs() - st.setup_done_at) > GUIDE_GRACE_MS;
+
+    /* The link that matters is app <-> cube. The room's own read-only observer
+       is a nice-to-have: a live cube report proves the pair is working even if
+       the observer never subscribed. */
+    var bridgeOk = !!(link && link.subscribed) && (roomSubscribed || cubeFresh);
+
+    var r = {
+      app_setup_done:   appOnboardingDone(),
+      device_setup_done: !!(snap && snap.firstRunDone && !CUBE_NOT_READY.test(snap.state || 'off')),
+      guided_run_done:  guideDone || guideTimedOut,
+      guide_timed_out:  guideTimedOut,
+      same_participant: !!(link && PID && link.participantId === PID),
+      app_subscribed:   !!(link && link.subscribed),
+      room_subscribed:  roomSubscribed,
+      cube_fresh:       cubeFresh,
+      bridge_ok:        bridgeOk,
+      cube_state:       snap ? snap.state : null
+    };
+    /* Reaching free exploration is the whole answer: the guide only gets there
+       after setup, the cube tour, the tasks and the app tour. Nothing else may
+       stand in the way — a cube that has gone to sleep stops reporting, and
+       waiting on the channel is what kept the ask from ever appearing. */
+    r.ok = guideDone ||
+           /* no guide, or a run left unfinished: fall back to the checks */
+           (guideTimedOut && r.app_setup_done && r.device_setup_done &&
+            r.same_participant && bridgeOk);
+    return r;
+  }
+
+  /* --------------------------------------------------------- the prompt */
+  var elPrompt = document.getElementById('fbPrompt');
+  var elOpen   = document.getElementById('fbOpen');
+  var promptTimer = null, laterTimer = null, promptVisible = false;
+
+  function elapsed() { return Math.round((nowMs() - st.started_at) / 1000); }
+  function setupSeconds() {
+    return st.setup_done_at ? Math.round((st.setup_done_at - st.started_at) / 1000) : null;
+  }
+
+  function showPrompt() {
+    if (st.submitted || promptVisible || modalOpen) return;
+    var r = readiness();
+    if (!r.ok) return;
+    st.prompt_count = (st.prompt_count || 0) + 1;
+    diag.prompt_state = r.cube_state;
+    save();
+    elPrompt.hidden = false;
+    requestAnimationFrame(function () { elPrompt.classList.add('show'); });
+    promptVisible = true;
+    elOpen.hidden = false;                       /* the standing button stays from now on */
+    track('feedback_prompt_shown', {
+      participant_id: PID,
+      trigger_delay_seconds: st.prompt_count === 1 ? PROMPT_DELAY_MS / 1000 : LATER_DELAY_MS / 1000,
+      prompt_attempt: st.prompt_count,
+      test_elapsed_seconds: elapsed()
+    });
+  }
+  function hidePrompt() {
+    promptVisible = false;
+    elPrompt.classList.remove('show');
+    setTimeout(function () { elPrompt.hidden = true; }, 420);
+  }
+
+  document.getElementById('fbPromptGo').addEventListener('click', function () {
+    track('feedback_prompt_action', { participant_id: PID, action: 'opened',
+      prompt_attempt: st.prompt_count, test_elapsed_seconds: elapsed() });
+    hidePrompt();
+    openModal();
+  });
+  document.getElementById('fbPromptLater').addEventListener('click', function () {
+    st.later_count = (st.later_count || 0) + 1;
+    save();
+    track('feedback_prompt_action', { participant_id: PID, action: 'later',
+      prompt_attempt: st.prompt_count, test_elapsed_seconds: elapsed() });
+    hidePrompt();
+    if (st.later_count < 2) {                    /* one more ask, then never again */
+      clearTimeout(laterTimer);
+      laterTimer = setTimeout(showPrompt, LATER_DELAY_MS);
+    }
+  });
+  elOpen.addEventListener('click', function () {
+    track('feedback_prompt_action', { participant_id: PID, action: 'opened',
+      prompt_attempt: st.prompt_count, test_elapsed_seconds: elapsed() });
+    hidePrompt();
+    openModal();
+  });
+
+  /* watch for readiness, then wait the 30 seconds */
+  var armed = false;
+  var watch = setInterval(function () {
+    hookApp();
+    var r = readiness();
+    if (DEBUG) renderDebug(r);
+    if (st.submitted) { elOpen.hidden = true; return; }
+    if (!r.ok) return;
+    if (!st.setup_done_at) { st.setup_done_at = nowMs(); save(); }
+    if (armed) return;
+    armed = true;
+    if (st.prompt_count > 0) {
+      /* resumed after a reload: honour where the ask had got to */
+      elOpen.hidden = false;
+      if (st.later_count === 1) { clearTimeout(laterTimer); laterTimer = setTimeout(showPrompt, LATER_DELAY_MS); }
+      return;
+    }
+    clearTimeout(promptTimer);
+    promptTimer = setTimeout(showPrompt, PROMPT_DELAY_MS);
+  }, 1000);
+
+  function renderDebug(r) {
+    var el = document.getElementById('fbDebug');
+    if (!el) return;
+    el.textContent =
+      'feedback · pid ' + (PID || '—') + '\n' +
+      'ready ' + (r.ok ? 'yes' : 'no') +
+      ' (app ' + (r.app_setup_done ? 1 : 0) + ' cube ' + (r.device_setup_done ? 1 : 0) +
+      ' guide ' + (r.guided_run_done ? 1 : 0) + (r.guide_timed_out ? '(t)' : '') +
+      ' link ' + (r.app_subscribed ? 1 : 0) + ' room ' + (r.room_subscribed ? 1 : 0) +
+      (r.cube_fresh ? '(cube live)' : '') +
+      ' pid ' + (r.same_participant ? 1 : 0) + ')\n' +
+      'prompt ' + (st.prompt_count || 0) + ' · later ' + (st.later_count || 0) +
+      ' · submitted ' + (st.submitted ? 'yes' : 'no') + '\n' +
+      'setup ' + (setupSeconds() == null ? '—' : setupSeconds() + 's') +
+      ' · elapsed ' + elapsed() + 's · cube ' + (r.cube_state || '—') + '\n' +
+      'back ' + diag.back_count + ' · rep ' + diag.repeated_click_count +
+      ' · err ' + diag.failed_command_count + ' · lat ' + (avg(diag.latencies) == null ? '—' : avg(diag.latencies) + 'ms') + '\n' +
+      'app ' + diag.app_interaction_count + ' · cube ' + diag.device_interaction_count +
+      ' · switches ' + diag.app_device_attention_switch_count;
+  }
+
+  /* ---------------------------------------------------------- the modal */
+  var elModal = document.getElementById('fbModal');
+  var elBody  = document.getElementById('fbBody');
+  var elFoot  = document.getElementById('fbFoot');
+  var elTitle = document.getElementById('fbTitle');
+  var elStep  = document.getElementById('fbStep');
+  var elBar   = document.getElementById('fbBar');
+  var elErr   = document.getElementById('fbError');
+  var modalOpen = false, sending = false, openedAt = 0;
+
+  function lowRatingPresent() {
+    return Object.keys(st.draft.ratings).some(function (k) {
+      var v = st.draft.ratings[k];
+      return v === 1 || v === 2;
+    });
+  }
+  function confusingRequired() { return lowRatingPresent(); }
+
+  function openModal() {
+    if (st.submitted) { renderDone(true); }
+    modalOpen = true;
+    openedAt = nowMs();
+    elModal.hidden = false;
+    requestAnimationFrame(function () { elModal.classList.add('show'); });
+    if (!st.submitted) {
+      track('feedback_started', { participant_id: PID, test_elapsed_seconds: elapsed() });
+      renderSection(Math.min(st.section || 0, SECTIONS.length - 1));
+    }
+  }
+  function closeModal() {
+    modalOpen = false;
+    save();                                     /* the draft is already in st */
+    elModal.classList.remove('show');
+    setTimeout(function () { elModal.hidden = true; }, 300);
+  }
+  document.getElementById('fbClose').addEventListener('click', closeModal);
+  elModal.addEventListener('click', function (e) { if (e.target === elModal) closeModal(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modalOpen && !sending) closeModal();
+  });
+
+  function ratingBlock(field, prompt) {
+    var wrap = document.createElement('div');
+    wrap.className = 'fb-q';
+    var p = document.createElement('p');
+    p.textContent = prompt;
+    wrap.appendChild(p);
+    var row = document.createElement('div');
+    row.className = 'fb-scale';
+    row.setAttribute('role', 'group');
+    row.setAttribute('aria-label', prompt);
+    for (var i = 1; i <= 5; i++) {
+      (function (v) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = String(v);
+        b.setAttribute('aria-label', SCALE_LABELS[v - 1]);
+        b.setAttribute('aria-pressed', st.draft.ratings[field] === v ? 'true' : 'false');
+        b.addEventListener('click', function () {
+          st.draft.ratings[field] = v;
+          save();
+          Array.prototype.forEach.call(row.children, function (c, idx) {
+            c.setAttribute('aria-pressed', idx + 1 === v ? 'true' : 'false');
+          });
+          req.classList.remove('show');
+          syncFoot();
+        });
+        row.appendChild(b);
+      })(i);
+    }
+    wrap.appendChild(row);
+    var poles = document.createElement('div');
+    poles.className = 'fb-poles';
+    poles.innerHTML = '<span>Strongly disagree</span><span>Strongly agree</span>';
+    wrap.appendChild(poles);
+    var req = document.createElement('p');
+    req.className = 'fb-req';
+    req.textContent = 'Please pick a number from 1 to 5.';
+    wrap.appendChild(req);
+    wrap._field = field;
+    wrap._req = req;
+    return wrap;
+  }
+
+  function textBlock(field, prompt, required) {
+    var wrap = document.createElement('div');
+    wrap.className = 'fb-q';
+    var p = document.createElement('p');
+    p.textContent = prompt;
+    if (!required) {
+      var opt = document.createElement('span');
+      opt.className = 'fb-opt';
+      opt.textContent = '  (optional)';
+      p.appendChild(opt);
+    }
+    wrap.appendChild(p);
+    var ta = document.createElement('textarea');
+    ta.maxLength = TEXT_MAX;
+    ta.value = st.draft.texts[field] || '';
+    ta.setAttribute('aria-label', prompt);
+    ta.placeholder = required ? 'A sentence or two is plenty' : '';
+    var count = document.createElement('div');
+    count.className = 'fb-count';
+    var req = document.createElement('p');
+    req.className = 'fb-req';
+    req.textContent = 'A rating of 1 or 2 means something went wrong — please tell us what.';
+    function refresh() {
+      var len = ta.value.length;
+      count.textContent = len + ' / ' + TEXT_MAX;
+      count.classList.toggle('near', len > TEXT_MAX - 100);
+    }
+    ta.addEventListener('input', function () {
+      st.draft.texts[field] = ta.value.slice(0, TEXT_MAX);
+      refresh();
+      if (ta.value.trim()) req.classList.remove('show');
+      save();
+      syncFoot();
+    });
+    refresh();
+    wrap.appendChild(ta);
+    wrap.appendChild(count);
+    wrap.appendChild(req);
+    wrap._field = field;
+    wrap._req = req;
+    wrap._textarea = ta;
+    return wrap;
+  }
+
+  var blocks = [];
+  function renderSection(idx) {
+    st.section = idx; save();
+    var sec = SECTIONS[idx];
+    elTitle.textContent = sec.title;
+    elStep.textContent = 'Section ' + (idx + 1) + ' of ' + SECTIONS.length;
+    elBar.style.width = Math.round(((idx) / SECTIONS.length) * 100) + '%';
+    elErr.hidden = true;
+    elBody.innerHTML = '';
+    blocks = [];
+
+    if (sec.ratings.length) {
+      var legend = document.createElement('div');
+      legend.className = 'fb-legend';
+      legend.textContent = SCALE_LABELS.join(' · ');
+      elBody.appendChild(legend);
+    }
+    sec.ratings.forEach(function (r) {
+      var b = ratingBlock(r[0], r[1]);
+      blocks.push({ kind: 'rating', field: r[0], el: b });
+      elBody.appendChild(b);
+    });
+    sec.texts.forEach(function (t) {
+      var required = t[0] === 'confusing_moment' && confusingRequired();
+      var b = textBlock(t[0], t[1], required);
+      blocks.push({ kind: 'text', field: t[0], el: b, required: required });
+      elBody.appendChild(b);
+    });
+    elBody.scrollTop = 0;
+
+    track('feedback_section_viewed', { participant_id: PID, section: sec.id, section_index: idx + 1 });
+    renderFoot(idx);
+  }
+
+  function sectionComplete(idx) {
+    var sec = SECTIONS[idx];
+    var ok = sec.ratings.every(function (r) {
+      var v = st.draft.ratings[r[0]];
+      return v >= 1 && v <= 5;
+    });
+    if (!ok) return false;
+    if (idx === SECTIONS.length - 1 && confusingRequired()) {
+      var t = (st.draft.texts.confusing_moment || '').trim();
+      if (!t) return false;
+    }
+    return true;
+  }
+  function markMissing(idx) {
+    blocks.forEach(function (b) {
+      if (b.kind === 'rating' && !(st.draft.ratings[b.field] >= 1)) b.el._req.classList.add('show');
+      if (b.kind === 'text' && b.required && !(st.draft.texts[b.field] || '').trim()) b.el._req.classList.add('show');
+    });
+    var first = elBody.querySelector('.fb-req.show');
+    if (first && first.scrollIntoView) first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
+  var footBtn = null;
+  function renderFoot(idx) {
+    elFoot.innerHTML = '';
+    if (idx > 0) {
+      var back = document.createElement('button');
+      back.type = 'button';
+      back.textContent = 'Back';
+      back.addEventListener('click', function () { renderSection(idx - 1); });
+      elFoot.appendChild(back);
+    }
+    var note = document.createElement('span');
+    note.className = 'fb-note';
+    note.textContent = idx === SECTIONS.length - 1 ? 'Open questions are optional' : 'All ratings needed';
+    elFoot.appendChild(note);
+
+    footBtn = document.createElement('button');
+    footBtn.type = 'button';
+    footBtn.className = 'primary';
+    footBtn.textContent = idx === SECTIONS.length - 1 ? 'Submit feedback' : 'Continue';
+    footBtn.addEventListener('click', function () {
+      if (sending) return;
+      if (!sectionComplete(idx)) { markMissing(idx); return; }
+      if (idx === SECTIONS.length - 1) submit();
+      else renderSection(idx + 1);
+    });
+    elFoot.appendChild(footBtn);
+    syncFoot();
+  }
+  function syncFoot() {
+    if (!footBtn) return;
+    footBtn.disabled = sending || !sectionComplete(st.section);
+  }
+
+  /* ---------------------------------------------------------- submitting */
+  function mean(fields) {
+    var vals = fields.map(function (f) { return st.draft.ratings[f]; }).filter(function (v) { return v >= 1; });
+    if (!vals.length) return null;
+    return Math.round((vals.reduce(function (a, b) { return a + b; }, 0) / vals.length) * 100) / 100;
+  }
+  function parentName() {
+    try {
+      var n = appWin().NBUX.parentName();
+      return { first: (n && n.first) || null, last: (n && n.last) || null };
+    } catch (e) { return { first: null, last: null }; }
+  }
+
+  function buildPayload() {
+    if (!st.submission_id) { st.submission_id = uuid(); save(); }
+    var n = parentName();
+    var d = diagnostics();
+    var p = {
+      participant_id: PID,
+      submission_id: st.submission_id,
+      parent_first_name: n.first,
+      parent_last_name: n.last,
+      submitted_at: new Date().toISOString(),
+      feedback_version: VERSION,
+      app_version: APP_VERSION,
+      test_duration_seconds: elapsed(),
+      setup_duration_seconds: setupSeconds(),
+      feedback_completion_seconds: Math.round((nowMs() - openedAt) / 1000),
+      feedback_prompt_delay_seconds: PROMPT_DELAY_MS / 1000,
+      prompt_attempts: st.prompt_count,
+      later_count: st.later_count,
+      ratings: {},
+      diagnostics: d
+    };
+    Object.keys(SCORES).forEach(function (k) { p[k] = mean(SCORES[k]); });
+    SECTIONS.forEach(function (sec) {
+      sec.ratings.forEach(function (r) {
+        var v = st.draft.ratings[r[0]];
+        p.ratings[r[0]] = v == null ? null : v;
+        p['rating_' + r[0]] = v == null ? null : v;      /* flat, for charts */
+      });
+      sec.texts.forEach(function (t) {
+        var v = (st.draft.texts[t[0]] || '').trim();
+        /* prefixed answer_*, not text_*: the app's PII guard drops any property
+           whose name contains "text" */
+        p['answer_' + t[0]] = v || null;
+      });
+    });
+    Object.keys(d).forEach(function (k) { p['diagnostic_' + k] = d[k]; });
+    return p;
+  }
+
+  function submit() {
+    if (sending || st.submitted) return;
+    sending = true;
+    footBtn.disabled = true;
+    footBtn.textContent = 'Sending…';
+    elErr.hidden = true;
+
+    var payload = st.pending || buildPayload();
+    st.pending = payload; save();               /* survives a failed attempt */
+
+    /* Analytics is fired alongside and is never allowed to fail the submit:
+       charts are nice, the answers are the point. */
+    var analytics = trackWhy('feedback_submitted', payload);
+    saveToDb(payload, function (ok, why) {
+      sending = false;
+      if (ok) {
+        st.submitted = true;
+        st.pending = null;
+        save();
+        elBar.style.width = '100%';
+        renderDone(false);
+        elOpen.hidden = true;
+        clearTimeout(promptTimer); clearTimeout(laterTimer);
+      } else {
+        footBtn.disabled = false;
+        footBtn.textContent = 'Retry submit';
+        elErr.hidden = false;
+        elErr.textContent = sendFailCopy(why);
+        try { console.warn('[feedback] not stored:', why); } catch (e) {}
+      }
+      try { console.info('[feedback] stored:', ok, '· analytics:', analytics || 'ok'); } catch (e) {}
+    });
+  }
+
+  function renderDone(already) {
+    elTitle.textContent = 'Feedback';
+    elStep.textContent = already ? 'Already sent' : 'Sent';
+    elBar.style.width = '100%';
+    elErr.hidden = true;
+    elBody.innerHTML = '';
+    var d = document.createElement('div');
+    d.className = 'fb-done';
+    d.innerHTML = '<div class="tick">✓</div>' +
+      '<h3>Thank you — your feedback will help shape Neybo.</h3>' +
+      '<p>' + (already ? 'This session’s answers are already with the team.'
+                       : 'Nothing else to do. You can keep exploring the app and Neybo.') + '</p>';
+    elBody.appendChild(d);
+    elFoot.innerHTML = '';
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'primary';
+    close.textContent = 'Close';
+    close.addEventListener('click', closeModal);
+    elFoot.appendChild(close);
+  }
+
+  /* the standing button belongs to the session, not to this page load: once the
+     ask has happened it stays available until the feedback is in */
+  elOpen.hidden = !(st.prompt_count > 0 && !st.submitted);
+
+  /* console handle for dry runs; no PII, no answers */
+  window.NBFeedback = {
+    get state() {
+      return { pid: PID, prompt_count: st.prompt_count, later_count: st.later_count,
+               submitted: !!st.submitted, section: st.section,
+               ratings_answered: Object.keys(st.draft.ratings).length,
+               texts_answered: Object.keys(st.draft.texts).filter(function (k) { return (st.draft.texts[k] || '').trim(); }).length,
+               ready: readiness(), diagnostics: diagnostics() };
+    },
+    prompt: showPrompt,
+    open: openModal,
+    close: closeModal,
+    payloadPreview: buildPayload,
+    reset: function () { try { localStorage.removeItem(KEY); } catch (e) {} }
+  };
+})();
+</script>
+
 </body>
 </html>
